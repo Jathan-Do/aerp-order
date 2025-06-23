@@ -1,0 +1,241 @@
+<?php
+if (!defined('ABSPATH')) exit;
+$current_user = wp_get_current_user();
+$order_id = get_query_var('aerp_order_id');
+$order = function_exists('aerp_get_order') ? aerp_get_order($order_id) : null;
+if (!$order) wp_die('Đơn hàng không tồn tại!');
+$customer = function_exists('aerp_get_customer') ? aerp_get_customer($order->customer_id) : null;
+$employee = function_exists('aerp_get_customer_assigned_name') ? aerp_get_customer_assigned_name($order->employee_id) : '';
+$order_items = function_exists('aerp_get_order_items') ? aerp_get_order_items($order_id) : [];
+$total_amount = 0;
+ob_start();
+?>
+<div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
+    <h2>Chi tiết đơn hàng #<?php echo esc_html($order->order_code); ?></h2>
+    <div class="user-info text-end">
+        Welcome, <?php echo esc_html($current_user->display_name); ?>
+        <a href="<?php echo wp_logout_url(site_url('/aerp-dang-nhap')); ?>" class="btn btn-sm btn-outline-danger ms-2">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
+    </div>
+</div>
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row mb-2">
+            <div class="col-md-6 mb-2">
+                <label class="fw-bold form-label text-muted small mb-1">Khách hàng</label>
+                <p class="mb-0"><?php echo $customer ? esc_html($customer->full_name) : '<span class="text-muted">--</span>'; ?></p>
+            </div>
+            <div class="col-md-6 mb-2">
+                <label class="fw-bold form-label text-muted small mb-1">Nhân viên phụ trách</label>
+                <p class="mb-0"><?php echo $employee ? esc_html($employee) : '<span class="text-muted">--</span>'; ?></p>
+            </div>
+            <div class="col-md-6 mb-2">
+                <label class="fw-bold form-label text-muted small mb-1">Trạng thái</label>
+                <p class="mb-0"><?php
+                                $statuses = [
+                                    'new' => '<span class="badge bg-primary">Mới</span>',
+                                    'processing' => '<span class="badge bg-warning">Xử lý</span>',
+                                    'completed' => '<span class="badge bg-success">Hoàn tất</span>',
+                                    'cancelled' => '<span class="badge bg-danger">Hủy</span>',
+                                ];
+                                echo $statuses[$order->status] ?? esc_html($order->status);
+                                ?>
+                </p>
+            </div>
+            <div class="col-md-6 mb-2">
+                <label class="fw-bold form-label text-muted small mb-1">Ngày tạo đơn hàng</label>
+                <p class="mb-0"><?php echo esc_html($order->order_date); ?></p>
+            </div>
+
+            <div class="col-md-12 mb-2">
+                <label class="fw-bold form-label text-muted small mb-1">Ghi chú</label>
+                <p class="mb-0"><?php echo $order->note ? esc_html($order->note) : '<span class="text-muted">--</span>'; ?></p>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Sản phẩm trong đơn</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Tên sản phẩm</th>
+                        <th>Số lượng</th>
+                        <th>Đơn giá</th>
+                        <th>Thành tiền</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (!empty($order_items)) :
+                        foreach ($order_items as $idx => $item) :
+                            $line_total = $item->quantity * $item->unit_price;
+                            $total_amount += $line_total;
+                    ?>
+                            <tr>
+                                <td><?php echo $idx + 1; ?></td>
+                                <td><?php echo esc_html($item->product_name); ?></td>
+                                <td><?php echo esc_html($item->quantity); ?></td>
+                                <td><?php echo number_format($item->unit_price, 0, ',', '.'); ?></td>
+                                <td><?php echo number_format($line_total, 0, ',', '.'); ?></td>
+                            </tr>
+                        <?php endforeach;
+                    else: ?>
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">Chưa có sản phẩm nào.</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="4" class="text-end">Tổng cộng</th>
+                        <th><?php echo number_format($total_amount, 0, ',', '.'); ?></th>
+                    </tr>
+                </tfoot>
+            </table>
+            <div class="card-body d-flex justify-content-start align-items-center mt-4 gap-2">
+                <a href="<?php echo home_url('/aerp-order-orders'); ?>" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Quay lại danh sách
+                </a>
+                <a href="<?php echo home_url('/aerp-order-orders?action=edit&id=' . $order_id); ?>" class="btn btn-primary">
+                    <i class="fas fa-edit me-1"></i> Chỉnh sửa
+                </a>
+                <a href="javascript:void(0);" class="btn btn-success" id="print-invoice-btn">
+                    <i class="fas fa-print me-1"></i> In hóa đơn
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lịch sử trạng thái đơn hàng -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0">Lịch sử trạng thái đơn hàng</h5>
+    </div>
+    <div class="card-body">
+        <form class="row g-2 mb-3 aerp-table-ajax-form" data-table-wrapper="#aerp-order-status-log-table-wrapper" data-ajax-action="aerp_order_filter_status_logs">
+            <input type="hidden" name="order_id" value="<?php echo esc_attr($order_id); ?>">
+
+            <div class="col-12 col-md-2">
+                <label class="form-label mb-1">Trạng thái cũ</label>
+                <select name="old_status" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="new">Mới</option>
+                    <option value="processing">Xử lý</option>
+                    <option value="completed">Hoàn tất</option>
+                    <option value="cancelled">Hủy</option>
+                </select>
+            </div>
+
+            <div class="col-12 col-md-2">
+                <label class="form-label mb-1">Trạng thái mới</label>
+                <select name="new_status" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="new">Mới</option>
+                    <option value="processing">Xử lý</option>
+                    <option value="completed">Hoàn tất</option>
+                    <option value="cancelled">Hủy</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-1 d-flex align-items-end mb-0">
+                <button type="submit" class="btn btn-primary w-100">Lọc</button>
+            </div>
+        </form>
+        <?php
+        $message = get_transient('aerp_order_status_log_message');
+        if ($message) {
+            echo '<div class="alert alert-success alert-dismissible fade show" role="alert">
+                                ' . esc_html($message) . '
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                              </div>';
+            delete_transient('aerp_order_status_log_message'); // Xóa transient sau khi hiển thị
+        }
+        ?>
+        <div id="aerp-order-status-log-table-wrapper">
+            <?php
+            $table = new AERP_Frontend_Order_Status_Log_Table($order_id);
+            $table->set_filters(['order_id' => $order_id]);
+            $table->process_bulk_action();
+            $table->render();
+            ?>
+        </div>
+    </div>
+</div>
+
+<!-- Template hóa đơn in ẩn -->
+<div id="aerp-invoice-print-area" style="display:none; font-family: Arial, sans-serif;">
+    <div style="max-width:700px;margin:0 auto;padding:24px;">
+        <h2 style="text-align:center;">HÓA ĐƠN BÁN HÀNG</h2>
+        <div style="margin-bottom:16px;">
+            <strong>Mã đơn hàng:</strong> <?php echo esc_html($order->order_code); ?><br>
+            <strong>Ngày lập:</strong> <?php echo esc_html($order->order_date); ?><br>
+            <strong>Khách hàng:</strong> <?php echo $customer ? esc_html($customer->full_name) : '--'; ?><br>
+            <strong>Nhân viên phụ trách:</strong> <?php echo $employee ? esc_html($employee) : '--'; ?><br>
+        </div>
+        <table border="1" cellpadding="6" cellspacing="0" width="100%" style="border-collapse:collapse;">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Tên sản phẩm</th>
+                    <th>Số lượng</th>
+                    <th>Đơn giá</th>
+                    <th>Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($order_items)) :
+                    $total_amount = 0;
+                    foreach ($order_items as $idx => $item) :
+                        $line_total = $item->quantity * $item->unit_price;
+                        $total_amount += $line_total;
+                ?>
+                        <tr>
+                            <td><?php echo $idx + 1; ?></td>
+                            <td><?php echo esc_html($item->product_name); ?></td>
+                            <td><?php echo esc_html($item->quantity); ?></td>
+                            <td><?php echo number_format($item->unit_price, 0, ',', '.'); ?></td>
+                            <td><?php echo number_format($line_total, 0, ',', '.'); ?></td>
+                        </tr>
+                    <?php endforeach;
+                else: ?>
+                    <tr>
+                        <td colspan="5" style="text-align:center;">Chưa có sản phẩm nào.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="4" style="text-align:right;">Tổng cộng</th>
+                    <th><?php echo number_format($total_amount, 0, ',', '.'); ?></th>
+                </tr>
+            </tfoot>
+        </table>
+        <div style="margin-top:32px;display:flex;justify-content:space-between;">
+            <div><strong>Khách hàng</strong><br><br><br>__________________</div>
+            <div><strong>Người lập hóa đơn</strong><br><br><br>__________________</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    jQuery(function($) {
+        $('#print-invoice-btn').on('click', function() {
+            var printContents = document.getElementById('aerp-invoice-print-area').innerHTML;
+            var originalContents = document.body.innerHTML;
+            document.body.innerHTML = printContents;
+            window.print();
+            document.body.innerHTML = originalContents;
+            location.reload();
+        });
+    });
+</script>
+<?php
+$content = ob_get_clean();
+$title = 'Chi tiết đơn hàng';
+include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
