@@ -52,7 +52,7 @@ ob_start();
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="order_date" class="form-label">Ngày tạo đơn hàng</label>
-                    <input type="date" class="form-control" id="order_date" name="order_date" required>
+                    <input type="date" class="form-control bg-body" id="order_date" name="order_date" required>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="status" class="form-label">Trạng thái</label>

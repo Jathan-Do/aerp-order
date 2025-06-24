@@ -19,7 +19,7 @@ add_action('admin_init', function() {
     if (!function_exists('is_plugin_active')) {
         include_once(ABSPATH . 'wp-admin/includes/plugin.php');
     }
-    if (!is_plugin_active('aerp-order/aerp-order.php')) {
+    if (!is_plugin_active('aerp-crm/aerp-crm.php')) {
         deactivate_plugins(plugin_basename(__FILE__));
         add_action('admin_notices', function() {
             echo '<div class="error"><p><b>AERP ORDER</b> yêu cầu cài và kích hoạt <b>AERP CRM</b> trước!</p></div>';
