@@ -11,6 +11,27 @@ if (!$editing) wp_die(__('Order not found.'));
 $order_items = function_exists('aerp_get_order_items') ? aerp_get_order_items($edit_id) : [];
 ob_start();
 ?>
+<style>
+    .select2-container--default .select2-selection--single {
+        border: 1px solid #dee2e6 !important;
+        border-radius: 0.375rem !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        padding: 6px 12px !important;
+        background: #fff !important;
+        font-size: 1rem !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 24px !important;
+        padding-left: 0 !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px !important;
+        right: 0.75rem !important;
+    }
+</style>
 <div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
     <h2>Cập nhật đơn hàng</h2>
     <div class="user-info text-end">
@@ -63,12 +84,19 @@ ob_start();
                     <input type="date" class="form-control bg-body" id="order_date" name="order_date" value="<?php echo esc_attr($editing->order_date); ?>" required>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label for="status" class="form-label">Trạng thái</label>
-                    <select class="form-select" id="status" name="status">
-                        <option value="new" <?php selected($editing->status, 'new'); ?>>Mới</option>
-                        <option value="processing" <?php selected($editing->status, 'processing'); ?>>Xử lý</option>
-                        <option value="completed" <?php selected($editing->status, 'completed'); ?>>Hoàn tất</option>
-                        <option value="cancelled" <?php selected($editing->status, 'cancelled'); ?>>Hủy</option>
+                    <label for="status_id" class="form-label">Trạng thái</label>
+                    <select class="form-select" id="status_id" name="status_id">
+                        <?php
+                        $statuses = aerp_get_order_statuses();
+                        aerp_safe_select_options($statuses, $editing->status_id, 'id', 'name', true);
+                        ?>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="order_type" class="form-label">Loại đơn hàng</label>
+                    <select class="form-select" id="order_type" name="order_type" required>
+                        <option value="product" <?php selected($editing->order_type, 'product'); ?>>Đơn hàng bán hàng</option>
+                        <option value="service" <?php selected($editing->order_type, 'service'); ?>>Đơn hàng dịch vụ</option>
                     </select>
                 </div>
                 <div class="col-12 mb-3">
@@ -78,18 +106,26 @@ ob_start();
                         if (!empty($order_items)) {
                             foreach ($order_items as $idx => $item) {
                                 echo '<div class="row mb-2 order-item-row">';
-                                echo '<input type="hidden" name="order_items['.$idx.'][id]" value="'.esc_attr($item->id).'">';
-                                echo '<div class="col-md-4 mb-2"><input type="text" class="form-control" name="order_items['.$idx.'][product_name]" value="'.esc_attr($item->product_name).'" placeholder="Tên sản phẩm" required></div>';
-                                echo '<div class="col-md-2 mb-2"><input type="number" class="form-control" name="order_items['.$idx.'][quantity]" value="'.esc_attr($item->quantity).'" placeholder="Số lượng" min="1" required></div>';
-                                echo '<div class="col-md-3 mb-2"><input type="number" class="form-control" name="order_items['.$idx.'][unit_price]" value="'.esc_attr($item->unit_price).'" placeholder="Đơn giá" min="0" step="0.01" required></div>';
-                                echo '<div class="col-md-2 mb-2"><input type="text" class="form-control total-price-field" value="'.number_format($item->total_price,0,',','.').'" placeholder="Thành tiền" readonly></div>';
+                                echo '<input type="hidden" name="order_items[' . $idx . '][id]" value="' . esc_attr($item->id) . '">';
+                                echo '<input type="hidden" name="order_items[' . $idx . '][product_id]" value="' . esc_attr($item->product_id ?? '') . '" class="product-id-input">';
+                                echo '<div class="col-md-4 mb-2"><input type="text" class="form-control" name="order_items[' . $idx . '][product_name]" value="' . esc_attr($item->product_name) . '" placeholder="Tên sản phẩm" required></div>';
+                                echo '<div class="col-md-2 mb-2 d-flex align-items-center">';
+                                echo '<input type="number" class="form-control" name="order_items[' . $idx . '][quantity]" value="' . esc_attr($item->quantity) . '" placeholder="Số lượng" min="0.01" step="0.01" required>';
+                                echo '<span class="unit-label ms-2">' . esc_html($item->unit_name ?? '') . '</span>';
+                                echo '<input type="hidden" name="order_items[' . $idx . '][unit_name]" value="' . esc_attr($item->unit_name ?? '') . '" class="unit-name-input">';
+                                echo '</div>';
+                                echo '<div class="col-md-3 mb-2"><input type="number" class="form-control" name="order_items[' . $idx . '][unit_price]" value="' . esc_attr($item->unit_price) . '" placeholder="Đơn giá" min="0" step="0.01" required></div>';
+                                echo '<div class="col-md-2 mb-2"><input type="text" class="form-control total-price-field" value="' . number_format($item->total_price, 0, ',', '.') . '" placeholder="Thành tiền" readonly></div>';
                                 echo '<div class="col-md-1 mb-2"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>';
                                 echo '</div>';
                             }
                         } else {
                             echo '<div class="row mb-2 order-item-row">';
                             echo '<div class="col-md-4 mb-2"><input type="text" class="form-control" name="order_items[0][product_name]" placeholder="Tên sản phẩm" required></div>';
-                            echo '<div class="col-md-2 mb-2"><input type="number" class="form-control" name="order_items[0][quantity]" placeholder="Số lượng" min="1" value="1" required></div>';
+                            echo '<div class="col-md-2 mb-2 d-flex align-items-center">';
+                            echo '<input type="number" class="form-control" name="order_items[0][quantity]" placeholder="Số lượng" min="0.01" step="0.01" value="1" required>';
+                            echo '<span class="unit-label ms-2"></span>';
+                            echo '</div>';
                             echo '<div class="col-md-3 mb-2"><input type="number" class="form-control" name="order_items[0][unit_price]" placeholder="Đơn giá" min="0" step="0.01" required></div>';
                             echo '<div class="col-md-2 mb-2"><input type="text" class="form-control total-price-field" placeholder="Thành tiền" readonly></div>';
                             echo '<div class="col-md-1 mb-2"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>';
@@ -129,31 +165,34 @@ ob_start();
     </div>
 </div>
 <script>
-(function($){
-    let itemIndex = <?php echo !empty($order_items) ? count($order_items) : 1; ?>;
-    $('#add-order-item').on('click', function(){
-        let row = `<div class="row mb-2 order-item-row">
+    (function($) {
+        let itemIndex = <?php echo !empty($order_items) ? count($order_items) : 1; ?>;
+        $('#add-order-item').on('click', function() {
+            let row = `<div class="row mb-2 order-item-row">
             <div class="col-md-4 mb-2"><input type="text" class="form-control" name="order_items[${itemIndex}][product_name]" placeholder="Tên sản phẩm" required></div>
-            <div class="col-md-2 mb-2"><input type="number" class="form-control" name="order_items[${itemIndex}][quantity]" placeholder="Số lượng" min="1" value="1" required></div>
+            <div class="col-md-2 mb-2 d-flex align-items-center">
+                <input type="number" class="form-control" name="order_items[${itemIndex}][quantity]" placeholder="Số lượng" min="0.01" step="0.01" value="1" required>
+                <span class="unit-label ms-2"></span>
+            </div>
             <div class="col-md-3 mb-2"><input type="number" class="form-control" name="order_items[${itemIndex}][unit_price]" placeholder="Đơn giá" min="0" step="0.01" required></div>
             <div class="col-md-2 mb-2"><input type="text" class="form-control total-price-field" placeholder="Thành tiền" readonly></div>
             <div class="col-md-1 mb-2"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>
         </div>`;
-        $('#order-items-container').append(row);
-        itemIndex++;
-    });
-    $(document).on('click', '.remove-order-item', function(){
-        $(this).closest('.order-item-row').remove();
-    });
-    $(document).on('input', 'input[name*="[quantity]"], input[name*="[unit_price]"], input[name*="[product_name]"]', function(){
-        let row = $(this).closest('.order-item-row');
-        let qty = parseFloat(row.find('input[name*="[quantity]"]').val()) || 0;
-        let price = parseFloat(row.find('input[name*="[unit_price]"]').val()) || 0;
-        row.find('.total-price-field').val((qty * price).toLocaleString('vi-VN'));
-    });
-})(jQuery);
+            $('#order-items-container').append(row);
+            itemIndex++;
+        });
+        $(document).on('click', '.remove-order-item', function() {
+            $(this).closest('.order-item-row').remove();
+        });
+        $(document).on('input', 'input[name*="[quantity]"], input[name*="[unit_price]"], input[name*="[product_name]"]', function() {
+            let row = $(this).closest('.order-item-row');
+            let qty = parseFloat(row.find('input[name*="[quantity]"]').val()) || 0;
+            let price = parseFloat(row.find('input[name*="[unit_price]"]').val()) || 0;
+            row.find('.total-price-field').val((qty * price).toLocaleString('vi-VN'));
+        });
+    })(jQuery);
 </script>
 <?php
 $content = ob_get_clean();
 $title = 'Cập nhật đơn hàng';
-include(AERP_HRM_PATH . 'frontend/dashboard/layout.php'); 
+include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');

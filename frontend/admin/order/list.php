@@ -17,6 +17,9 @@ ob_start();
     <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
         <h5 class="mb-0">Danh sách đơn hàng</h5>
         <div class="d-flex gap-2 flex-column flex-md-row">
+            <a href="<?php echo esc_url(home_url('/aerp-order-statuses')); ?>" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Thêm mới trạng thái
+            </a>
             <a href="<?php echo esc_url(home_url('/aerp-order-orders/?action=add')); ?>" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Thêm mới đơn hàng
             </a>
@@ -27,12 +30,11 @@ ob_start();
         <form id="aerp-order-filter-form" class="row g-2 mb-3 aerp-table-ajax-form" data-table-wrapper="#aerp-order-table-wrapper" data-ajax-action="aerp_order_filter_orders">
             <div class="col-12 col-md-2 mb-2">
                 <label for="filter-status" class="form-label mb-1">Trạng thái</label>
-                <select id="filter-status" name="status" class="form-select">
-                    <option value="">Tất cả trạng thái</option>
-                    <option value="new">Mới</option>
-                    <option value="processing">Xử lý</option>
-                    <option value="completed">Hoàn tất</option>
-                    <option value="cancelled">Hủy</option>
+                <select id="filter-status" name="status_id" class="form-select">
+                    <?php
+                    $statuses = aerp_get_order_statuses();
+                    aerp_safe_select_options($statuses, '', 'id', 'name', true);
+                    ?>
                 </select>
             </div>
             <div class="col-12 col-md-2 mb-2">
@@ -51,6 +53,14 @@ ob_start();
                     $customers = function_exists('aerp_get_customers') ? aerp_get_customers() : [];
                     aerp_safe_select_options($customers, '', 'id', 'full_name', true);
                     ?>
+                </select>
+            </div>
+            <div class="col-12 col-md-2 mb-2">
+                <label for="filter-order-type" class="form-label mb-1">Loại đơn</label>
+                <select id="filter-order-type" name="order_type" class="form-select">
+                    <option value="">Tất cả loại</option>
+                    <option value="product">Bán hàng</option>
+                    <option value="service">Dịch vụ</option>
                 </select>
             </div>
             <div class="col-12 col-md-1 d-flex align-items-end mb-2">
@@ -73,4 +83,4 @@ ob_start();
 <?php
 $content = ob_get_clean();
 $title = 'Quản lý đơn hàng';
-include(AERP_HRM_PATH . 'frontend/dashboard/layout.php'); 
+include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');

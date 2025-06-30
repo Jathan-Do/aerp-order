@@ -15,13 +15,13 @@ define('AERP_ORDER_PATH', plugin_dir_path(__FILE__));
 define('AERP_ORDER_URL', plugin_dir_url(__FILE__));
 define('AERP_ORDER_VERSION', '1.0.0');
 
-add_action('admin_init', function() {
+add_action('admin_init', function () {
     if (!function_exists('is_plugin_active')) {
         include_once(ABSPATH . 'wp-admin/includes/plugin.php');
     }
     if (!is_plugin_active('aerp-crm/aerp-crm.php')) {
         deactivate_plugins(plugin_basename(__FILE__));
-        add_action('admin_notices', function() {
+        add_action('admin_notices', function () {
             echo '<div class="error"><p><b>AERP ORDER</b> yêu cầu cài và kích hoạt <b>AERP CRM</b> trước!</p></div>';
         });
     }
@@ -44,9 +44,19 @@ function aerp_order_init()
     require_once AERP_ORDER_PATH . '../aerp-hrm/frontend/includes/table/class-frontend-table.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-order.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-order-status-log.php';
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-product.php';
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-inventory-log.php';
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-unit.php';
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-category.php';
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-order-status.php';
     // Load các class cần thiết manager
     $includes = [
         'class-frontend-order-manager.php',
+        'class-product-manager.php',
+        'class-inventory-log-manager.php',
+        'class-unit-manager.php',
+        'class-category-manager.php',
+        'class-order-status-manager.php',
     ];
     foreach ($includes as $file) {
         require_once AERP_ORDER_PATH . 'includes/managers/' . $file;
@@ -55,6 +65,11 @@ function aerp_order_init()
     // Xử lý form và logic
     $managers = [
         'AERP_Frontend_Order_Manager',
+        'AERP_Product_Manager',
+        'AERP_Inventory_Log_Manager',
+        'AERP_Unit_Manager',
+        'AERP_Category_Manager',
+        'AERP_Order_Status_Manager',
     ];
     foreach ($managers as $manager) {
         if (method_exists($manager, 'handle_submit')) {
@@ -67,7 +82,6 @@ function aerp_order_init()
             add_action('init', [$manager, 'handle_delete']);
         }
     }
-
 }
 add_action('plugins_loaded', 'aerp_order_init');
 
@@ -93,6 +107,8 @@ add_action('wp_enqueue_scripts', function () {
             'ajaxurl' => admin_url('admin-ajax.php'),
             '_wpnonce_delete_attachment' => wp_create_nonce('aerp_delete_order_attachment_nonce'),
         ));
+        wp_enqueue_style('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css');
+        wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', ['jquery'], null, true);
     }
 }, 20);
 

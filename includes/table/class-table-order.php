@@ -14,7 +14,8 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
                 'employee_id' => 'Nhân viên',
                 'order_date' => 'Ngày lập hóa đơn',
                 'total_amount' => 'Tổng tiền',
-                'status' => 'Trạng thái',
+                'status_id' => 'Trạng thái',
+                'order_type' => 'Loại đơn',
                 'note' => 'Ghi chú',
                 'created_at' => 'Ngày tạo',
             ],
@@ -41,9 +42,9 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
     {
         $filters = [];
         $params = [];
-        if (!empty($this->filters['status'])) {
-            $filters[] = "status = %s";
-            $params[] = $this->filters['status'];
+        if (!empty($this->filters['status_id'])) {
+            $filters[] = "status_id = %d";
+            $params[] = (int)$this->filters['status_id'];
         }
         if (!empty($this->filters['employee_id'])) {
             $filters[] = "employee_id = %d";
@@ -52,6 +53,10 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
         if (!empty($this->filters['customer_id'])) {
             $filters[] = "customer_id = %d";
             $params[] = (int)$this->filters['customer_id'];
+        }
+        if (!empty($this->filters['order_type'])) {
+            $filters[] = "order_type = %s";
+            $params[] = $this->filters['order_type'];
         }
         return [$filters, $params];
     }
@@ -72,15 +77,14 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
         return $employee ? esc_html($employee) : '<span class="text-muted">--</span>';
     }
 
-    protected function column_status($item)
+    protected function column_status_id($item)
     {
-        $statuses = [
-            'new' => '<span class="badge bg-primary">Mới</span>',
-            'processing' => '<span class="badge bg-warning">Xử lý</span>',
-            'completed' => '<span class="badge bg-success">Hoàn tất</span>',
-            'cancelled' => '<span class="badge bg-danger">Hủy</span>',
-        ];
-        return $statuses[$item->status] ?? esc_html($item->status);
+        $status = aerp_get_order_status($item->status_id);
+        if ($status) {
+            $color = !empty($status->color) ? $status->color : 'secondary';
+            return '<span class="badge bg-' . esc_attr($color) . '">' . esc_html($status->name) . '</span>';
+        }
+        return '<span class="badge bg-secondary">Không xác định</span>';
     }
     protected function column_order_code($item)
     {
@@ -90,5 +94,13 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
     protected function column_total_amount($item)
     {
         return sprintf('%s %s', number_format($item->total_amount, 0), 'đ');
+    }
+    protected function column_order_type($item)
+    {
+        $types = [
+            'product' => '<span class="badge bg-info">Bán hàng</span>',
+            'service' => '<span class="badge bg-success">Dịch vụ</span>',
+        ];
+        return $types[$item->order_type] ?? esc_html($item->order_type);
     }
 }

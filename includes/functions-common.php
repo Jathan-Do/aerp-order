@@ -78,3 +78,38 @@ function aerp_get_order_assigned_employees()
     }
     return $employees;
 }
+
+if (!function_exists('aerp_get_products')) {
+    function aerp_get_products($search = '')
+    {
+        global $wpdb;
+        $sql = "SELECT p.*, u.name as unit_name FROM {$wpdb->prefix}aerp_products p LEFT JOIN {$wpdb->prefix}aerp_units u ON p.unit_id = u.id";
+        if ($search) {
+            $sql .= $wpdb->prepare(" WHERE name LIKE %s OR sku LIKE %s", '%' . $wpdb->esc_like($search) . '%', '%' . $wpdb->esc_like($search) . '%');
+        }
+        $sql .= " ORDER BY name ASC";
+        return $wpdb->get_results($sql);
+    }
+}
+
+if (!function_exists('aerp_get_product')) {
+    function aerp_get_product($product_id) {
+        global $wpdb;
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}aerp_products WHERE id = %d", $product_id));
+    }
+}
+
+
+/**
+ * Lấy danh sách trạng thái đơn hàng
+ */
+function aerp_get_order_statuses()
+{
+    global $wpdb;
+    return $wpdb->get_results("SELECT * FROM {$wpdb->prefix}aerp_order_statuses ORDER BY name ASC");
+}
+function aerp_get_order_status($status_id)
+{
+    global $wpdb;
+    return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}aerp_order_statuses WHERE id = %d", $status_id));
+}

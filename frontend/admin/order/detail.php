@@ -9,6 +9,9 @@ $employee = function_exists('aerp_get_customer_assigned_name') ? aerp_get_custom
 $order_items = function_exists('aerp_get_order_items') ? aerp_get_order_items($order_id) : [];
 $total_amount = 0;
 $order_logs = function_exists('aerp_get_order_status_logs') ? aerp_get_order_status_logs($order_id) : [];
+$table = new AERP_Frontend_Order_Status_Log_Table($order_id);
+$table->set_filters(['order_id' => $order_id]);
+$table->process_bulk_action();
 ob_start();
 ?>
 <div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
@@ -34,15 +37,15 @@ ob_start();
             <div class="col-md-6 mb-2">
                 <label class="fw-bold form-label text-muted small mb-1">Trạng thái</label>
                 <p class="mb-0"><?php
-                                $statuses = [
-                                    'new' => '<span class="badge bg-primary">Mới</span>',
-                                    'processing' => '<span class="badge bg-warning">Xử lý</span>',
-                                    'completed' => '<span class="badge bg-success">Hoàn tất</span>',
-                                    'cancelled' => '<span class="badge bg-danger">Hủy</span>',
-                                ];
-                                echo $statuses[$order->status] ?? esc_html($order->status);
-                                ?>
-                </p>
+                                global $wpdb;
+                                $status = $wpdb->get_row($wpdb->prepare("SELECT name, color FROM {$wpdb->prefix}aerp_order_statuses WHERE id = %d", $order->status_id));
+                                if ($status) {
+                                    $color = $status->color ? 'bg-' . esc_attr($status->color) : 'bg-secondary';
+                                    echo '<span class="badge ' . $color . '">' . esc_html($status->name) . '</span>';
+                                } else {
+                                    echo '<span class="badge bg-secondary">Không rõ</span>';
+                                }
+                                ?></p>
             </div>
             <div class="col-md-6 mb-2">
                 <label class="fw-bold form-label text-muted small mb-1">Ngày tạo đơn hàng</label>
@@ -68,6 +71,7 @@ ob_start();
                         <th>#</th>
                         <th>Tên sản phẩm</th>
                         <th>Số lượng</th>
+                        <th>Đơn vị</th>
                         <th>Đơn giá</th>
                         <th>Thành tiền</th>
                     </tr>
@@ -77,11 +81,20 @@ ob_start();
                         foreach ($order_items as $idx => $item) :
                             $line_total = $item->quantity * $item->unit_price;
                             $total_amount += $line_total;
+                            $unit_name = '';
+                            if (!empty($item->unit_name)) {
+                                $unit_name = $item->unit_name;
+                            } elseif (!empty($item->product_id)) {
+                                if (class_exists('AERP_Product_Manager')) {
+                                    $unit_name = AERP_Product_Manager::get_unit_name($item->product_id);
+                                }
+                            }
                     ?>
                             <tr>
                                 <td><?php echo $idx + 1; ?></td>
                                 <td><?php echo esc_html($item->product_name); ?></td>
                                 <td><?php echo esc_html($item->quantity); ?></td>
+                                <td><?php echo esc_html($unit_name); ?></td>
                                 <td><?php echo number_format($item->unit_price, 0, ',', '.'); ?></td>
                                 <td><?php echo number_format($line_total, 0, ',', '.'); ?></td>
                             </tr>
@@ -94,7 +107,7 @@ ob_start();
                 </tbody>
                 <tfoot>
                     <tr>
-                        <th colspan="4" class="text-end">Tổng cộng</th>
+                        <th colspan="5" class="text-end">Tổng cộng</th>
                         <th><?php echo number_format($total_amount, 0, ',', '.'); ?></th>
                     </tr>
                 </tfoot>
@@ -121,28 +134,28 @@ ob_start();
             <h5 class="mb-0">Lịch sử trạng thái đơn hàng</h5>
         </div>
         <div class="card-body">
-            <form class="row g-2 mb-3 aerp-table-ajax-form" data-table-wrapper="#aerp-order-status-log-table-wrapper" data-ajax-action="aerp_order_filter_status_logs">
+            <form id="aerp-order-status-log-filter-form" class="row g-2 mb-3 aerp-table-ajax-form"
+                data-table-wrapper="#aerp-order-status-log-table-wrapper"
+                data-ajax-action="aerp_order_filter_status_logs">
                 <input type="hidden" name="order_id" value="<?php echo esc_attr($order_id); ?>">
 
                 <div class="col-12 col-md-2">
                     <label class="form-label mb-1">Trạng thái cũ</label>
-                    <select name="old_status" class="form-select">
-                        <option value="">Tất cả</option>
-                        <option value="new">Mới</option>
-                        <option value="processing">Xử lý</option>
-                        <option value="completed">Hoàn tất</option>
-                        <option value="cancelled">Hủy</option>
+                    <select name="old_status_id" class="form-select">
+                        <?php
+                        $statuses = aerp_get_order_statuses();
+                        aerp_safe_select_options($statuses, '', 'id', 'name', true);
+                        ?>
                     </select>
                 </div>
 
                 <div class="col-12 col-md-2">
                     <label class="form-label mb-1">Trạng thái mới</label>
-                    <select name="new_status" class="form-select">
-                        <option value="">Tất cả</option>
-                        <option value="new">Mới</option>
-                        <option value="processing">Xử lý</option>
-                        <option value="completed">Hoàn tất</option>
-                        <option value="cancelled">Hủy</option>
+                    <select name="new_status_id" class="form-select">
+                        <?php
+                        $statuses = aerp_get_order_statuses();
+                        aerp_safe_select_options($statuses, '', 'id', 'name', true);
+                        ?>
                     </select>
                 </div>
                 <div class="col-12 col-md-1 d-flex align-items-end mb-0">
@@ -161,9 +174,6 @@ ob_start();
             ?>
             <div id="aerp-order-status-log-table-wrapper">
                 <?php
-                $table = new AERP_Frontend_Order_Status_Log_Table($order_id);
-                $table->set_filters(['order_id' => $order_id]);
-                $table->process_bulk_action();
                 $table->render();
                 ?>
             </div>
@@ -185,6 +195,7 @@ ob_start();
                         <th>#</th>
                         <th>Tên sản phẩm</th>
                         <th>Số lượng</th>
+                        <th>Đơn vị</th>
                         <th>Đơn giá</th>
                         <th>Thành tiền</th>
                     </tr>
@@ -195,11 +206,20 @@ ob_start();
                         foreach ($order_items as $idx => $item) :
                             $line_total = $item->quantity * $item->unit_price;
                             $total_amount += $line_total;
+                            $unit_name = '';
+                            if (!empty($item->unit_name)) {
+                                $unit_name = $item->unit_name;
+                            } elseif (!empty($item->product_id)) {
+                                if (class_exists('AERP_Product_Manager')) {
+                                    $unit_name = AERP_Product_Manager::get_unit_name($item->product_id);
+                                }
+                            }
                     ?>
                             <tr>
                                 <td><?php echo $idx + 1; ?></td>
                                 <td><?php echo esc_html($item->product_name); ?></td>
                                 <td><?php echo esc_html($item->quantity); ?></td>
+                                <td><?php echo esc_html($unit_name); ?></td>
                                 <td><?php echo number_format($item->unit_price, 0, ',', '.'); ?></td>
                                 <td><?php echo number_format($line_total, 0, ',', '.'); ?></td>
                             </tr>
@@ -212,7 +232,7 @@ ob_start();
                 </tbody>
                 <tfoot>
                     <tr>
-                        <th colspan="4" style="text-align:right;">Tổng cộng</th>
+                        <th colspan="5" style="text-align:right;">Tổng cộng</th>
                         <th><?php echo number_format($total_amount, 0, ',', '.'); ?></th>
                     </tr>
                 </tfoot>

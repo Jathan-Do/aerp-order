@@ -16,7 +16,7 @@ class AERP_Frontend_Order_Manager
         $total_amount = 0;
         if (!empty($_POST['order_items']) && is_array($_POST['order_items'])) {
             foreach ($_POST['order_items'] as $item) {
-                $quantity = intval($item['quantity'] ?? 0);
+                $quantity = floatval($item['quantity'] ?? 0);
                 $unit_price = floatval($item['unit_price'] ?? 0);
                 $total_amount += $quantity * $unit_price;
             }
@@ -24,36 +24,38 @@ class AERP_Frontend_Order_Manager
 
         // 2. Chuẩn hóa dữ liệu
         $order_date = !empty($_POST['order_date']) ? sanitize_text_field($_POST['order_date']) : date('Y-m-d');
+        $order_type = !empty($_POST['order_type']) ? sanitize_text_field($_POST['order_type']) : 'product';
         
         if ($id) {
             // Cập nhật đơn hàng
             // --- Lấy trạng thái cũ để ghi log nếu có thay đổi ---
-            $old_status = $wpdb->get_var($wpdb->prepare("SELECT status FROM $table WHERE id = %d", $id));
-            $new_status = sanitize_text_field($_POST['status']);
+            $old_status = $wpdb->get_var($wpdb->prepare("SELECT status_id FROM $table WHERE id = %d", $id));
+            $new_status = absint($_POST['status_id']);
             $data = [
                 'customer_id'   => absint($_POST['customer_id']),
                 'employee_id'   => absint($_POST['employee_id']),
                 'order_date'    => $order_date,
-                'status'        => $new_status,
+                'status_id'     => $new_status,
                 'note'          => sanitize_textarea_field($_POST['note']),
                 'total_amount'  => $total_amount,
+                'order_type'    => $order_type,
             ];
-            $format = ['%d', '%d', '%s', '%s', '%s', '%f'];
+            $format = ['%d', '%d', '%s', '%s', '%s', '%f', '%s'];
             $wpdb->update($table, $data, ['id' => $id], $format, ['%d']);
             $order_id = $id;
             $msg = 'Đã cập nhật đơn hàng!';
             // --- Ghi log nếu trạng thái thay đổi ---
-            if ($old_status !== $new_status) {
+            if ((int)$old_status !== (int)$new_status && $old_status && $new_status) {
                 $wpdb->insert(
                     $wpdb->prefix . 'aerp_order_status_logs',
                     [
                         'order_id'   => $order_id,
-                        'old_status' => $old_status,
-                        'new_status' => $new_status,
+                        'old_status_id' => $old_status,
+                        'new_status_id' => $new_status,
                         'changed_by' => get_current_user_id(),
                         'changed_at' => (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d H:i:s'),
                     ],
-                    ['%d', '%s', '%s', '%d', '%s']
+                    ['%d', '%d', '%d', '%d', '%s']
                 );
             }
         } else {
@@ -64,7 +66,8 @@ class AERP_Frontend_Order_Manager
                 'employee_id'   => absint($_POST['employee_id']),
                 'order_date'    => $order_date,
                 'total_amount'  => $total_amount,
-                'status'        => sanitize_text_field($_POST['status']),
+                'status_id'     => sanitize_text_field($_POST['status_id']),
+                'order_type'    => $order_type,
                 'note'          => sanitize_textarea_field($_POST['note']),
                 'created_at'    => (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d H:i:s'),
             ];
@@ -89,27 +92,30 @@ class AERP_Frontend_Order_Manager
                 foreach ($_POST['order_items'] as $item) {
                     $item_id = isset($item['id']) ? absint($item['id']) : 0;
                     $product_name = sanitize_text_field($item['product_name'] ?? '');
-                    $quantity = intval($item['quantity'] ?? 0);
+                    $quantity = floatval($item['quantity'] ?? 0);
                     $unit_price = floatval($item['unit_price'] ?? 0);
-
+                    $product_id = isset($item['product_id']) && $order_type === 'product' && !empty($item['product_id']) ? absint($item['product_id']) : null;
                     if (empty($product_name) || $quantity <= 0) continue; // Bỏ qua dòng trống
 
                     $item_data = [
                         'order_id'      => $order_id,
+                        'product_id'    => $product_id,
                         'product_name'  => $product_name,
                         'quantity'      => $quantity,
                         'unit_price'    => $unit_price,
                         'total_price'   => $quantity * $unit_price,
+                        'unit_name'     => isset($item['unit_name']) ? sanitize_text_field($item['unit_name']) : '',
                     ];
-                    $item_format = ['%d', '%s', '%d', '%f', '%f'];
+                    $item_format = ['%d', '%d', '%s', '%f', '%f', '%f', '%s'];
 
                     if ($item_id > 0 && in_array($item_id, $existing_item_ids, true)) {
-                        // 2a. Cập nhật sản phẩm đã có
+                        // Cập nhật sản phẩm đã có
                         $wpdb->update($item_table, $item_data, ['id' => $item_id], $item_format, ['%d']);
                         $submitted_item_ids[] = $item_id;
                     } else {
-                        // 2b. Thêm sản phẩm mới
+                        // Thêm sản phẩm mới
                         $wpdb->insert($item_table, $item_data, $item_format);
+                        // Không thêm vào $submitted_item_ids vì là dòng mới
                     }
                 }
             }
