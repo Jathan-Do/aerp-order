@@ -48,7 +48,11 @@ function aerp_order_init()
     require_once AERP_ORDER_PATH . 'includes/table/class-table-inventory-log.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-unit.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-category.php';
-    require_once AERP_ORDER_PATH . 'includes/table/class-table-order-status.php';
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-order-status.php';   
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-warehouse.php';
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-product-stock.php';
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-inventory-transfer.php';
+    
     // Load các class cần thiết manager
     $includes = [
         'class-frontend-order-manager.php',
@@ -57,6 +61,9 @@ function aerp_order_init()
         'class-unit-manager.php',
         'class-category-manager.php',
         'class-order-status-manager.php',
+        'class-warehouse-manager.php',
+        'class-product-stock-manager.php',
+        'class-inventory-transfer-manager.php',
     ];
     foreach ($includes as $file) {
         require_once AERP_ORDER_PATH . 'includes/managers/' . $file;
@@ -70,6 +77,9 @@ function aerp_order_init()
         'AERP_Unit_Manager',
         'AERP_Category_Manager',
         'AERP_Order_Status_Manager',
+        'AERP_Warehouse_Manager',
+        'AERP_Product_Stock_Manager',
+        'AERP_Inventory_Transfer_Manager',
     ];
     foreach ($managers as $manager) {
         if (method_exists($manager, 'handle_submit')) {
@@ -100,8 +110,8 @@ register_deactivation_hook(__FILE__, function () {
 require_once AERP_ORDER_PATH . 'includes/page-rewrite-rules.php';
 // Enqueue script cho frontend nếu cần
 add_action('wp_enqueue_scripts', function () {
-    $request_uri = $_SERVER['REQUEST_URI'];
-    if (preg_match('/\/aerp-order-orders/i', $request_uri)) {
+    // $request_uri = $_SERVER['REQUEST_URI'];
+    // if (preg_match('/\/aerp-order-orders/i', $request_uri)) {
         wp_enqueue_script('aerp-order-form', AERP_ORDER_URL . 'assets/js/order-form.js', ['jquery'], AERP_ORDER_VERSION, true);
         wp_localize_script('aerp-order-form', 'aerp_order_ajax', array(
             'ajaxurl' => admin_url('admin-ajax.php'),
@@ -109,7 +119,7 @@ add_action('wp_enqueue_scripts', function () {
         ));
         wp_enqueue_style('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css');
         wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', ['jquery'], null, true);
-    }
+    // }
 }, 20);
 
 // Ajax hooks nếu có

@@ -15,6 +15,12 @@ function aerp_order_get_table_names()
         $wpdb->prefix . 'aerp_products',
         $wpdb->prefix . 'aerp_inventory_logs',
         $wpdb->prefix . 'aerp_order_statuses',
+        $wpdb->prefix . 'aerp_product_categories',
+        $wpdb->prefix . 'aerp_units',
+        $wpdb->prefix . 'aerp_warehouses',
+        $wpdb->prefix . 'aerp_product_stocks',
+        $wpdb->prefix . 'aerp_inventory_transfers',
+        $wpdb->prefix . 'aerp_inventory_transfer_items',
     ];
 }
 
@@ -65,6 +71,7 @@ function aerp_order_install_schema()
         unit_price FLOAT,
         total_price FLOAT,
         unit_name VARCHAR(255),
+        vat_percent FLOAT NULL,
         INDEX idx_order_id (order_id),
         INDEX idx_product_id (product_id),
         INDEX idx_product_id (product_name)
@@ -104,7 +111,6 @@ function aerp_order_install_schema()
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         sku VARCHAR(100) DEFAULT NULL,
-        quantity INT DEFAULT 0,
         price FLOAT DEFAULT 0,
         category_id BIGINT NULL,
         unit_id BIGINT NULL,
@@ -134,19 +140,65 @@ function aerp_order_install_schema()
         INDEX idx_name (name)
     ) $charset_collate;";
 
+    // 5d. Danh sách kho
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_warehouses (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        work_location_id BIGINT DEFAULT NULL
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_name (name)
+    ) $charset_collate;";
+
+    // 5e. Tồn kho từng sản phẩm theo từng kho
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_product_stocks (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        product_id BIGINT NOT NULL,
+        warehouse_id BIGINT NOT NULL,
+        quantity INT DEFAULT 0,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_product_warehouse (product_id, warehouse_id),
+        INDEX idx_product_id (product_id),
+        INDEX idx_warehouse_id (warehouse_id)
+    ) $charset_collate;";
+
     // 6. Lịch sử nhập/xuất kho
     $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_inventory_logs (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         product_id BIGINT NOT NULL,
-        type ENUM('import','export') NOT NULL,
+        warehouse_id BIGINT NOT NULL,
+        type ENUM('import','export','stocktake') NOT NULL,
         quantity INT NOT NULL,
         note TEXT,
         created_by BIGINT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_product_id (product_id),
+        INDEX idx_warehouse_id (warehouse_id),
         INDEX idx_type (type),
         INDEX idx_created_by (created_by),
         INDEX idx_created_at (created_at)
+    ) $charset_collate;";
+
+    // 6b. Phiếu chuyển kho
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_inventory_transfers (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        from_warehouse_id BIGINT NOT NULL,
+        to_warehouse_id BIGINT NOT NULL,
+        created_by BIGINT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        note TEXT,
+        INDEX idx_from_warehouse (from_warehouse_id),
+        INDEX idx_to_warehouse (to_warehouse_id),
+        INDEX idx_created_by (created_by)
+    ) $charset_collate;";
+
+    // 6c. Chi tiết sản phẩm chuyển kho
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_inventory_transfer_items (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        transfer_id BIGINT NOT NULL,
+        product_id BIGINT NOT NULL,
+        quantity INT NOT NULL,
+        INDEX idx_transfer_id (transfer_id),
+        INDEX idx_product_id (product_id)
     ) $charset_collate;";
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';

@@ -54,10 +54,6 @@ ob_start();
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label for="quantity" class="form-label">Tồn kho</label>
-                    <input type="number" name="quantity" id="quantity" value="<?php echo $is_edit ? esc_attr($product->quantity) : 0; ?>" class="form-control" min="0" required>
-                </div>
-                <div class="col-md-6 mb-3">
                     <label for="price" class="form-label">Giá bán</label>
                     <input type="number" name="price" id="price" value="<?php echo $is_edit ? esc_attr($product->price) : 0; ?>" class="form-control" min="0" step="0.01" required>
                 </div>

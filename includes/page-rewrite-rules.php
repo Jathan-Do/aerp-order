@@ -9,6 +9,9 @@ add_action('init', function () {
     add_rewrite_rule('^aerp-product-categories/?$', 'index.php?aerp_product_page=product-categories', 'top');
     add_rewrite_rule('^aerp-units/?$', 'index.php?aerp_product_page=units', 'top');
     add_rewrite_rule('^aerp-order-statuses/?$', 'index.php?aerp_order_status_page=statuses', 'top');
+    add_rewrite_rule('^aerp-stocktake/?$', 'index.php?aerp_inventory_page=stocktake', 'top');
+    add_rewrite_rule('^aerp-warehouses/?$', 'index.php?aerp_warehouse_page=warehouses', 'top');
+    add_rewrite_rule('^aerp-inventory-transfers/?$', 'index.php?aerp_inventory_transfer_page=transfers', 'top');
     $rules = get_option('rewrite_rules');
     if ($rules && !isset($rules['^aerp-order-orders/?$'])) {
         flush_rewrite_rules();
@@ -26,6 +29,18 @@ add_action('init', function () {
         flush_rewrite_rules();
     }
     if ($rules && !isset($rules['^aerp-units/?$'])) {
+        flush_rewrite_rules();
+    }
+    if ($rules && !isset($rules['^aerp-order-statuses/?$'])) {
+        flush_rewrite_rules();
+    }
+    if ($rules && !isset($rules['^aerp-stocktake/?$'])) {
+        flush_rewrite_rules();
+    }
+    if ($rules && !isset($rules['^aerp-warehouses/?$'])) {
+        flush_rewrite_rules();
+    }
+    if ($rules && !isset($rules['^aerp-inventory-transfers/?$'])) {
         flush_rewrite_rules();
     }
 });
@@ -51,6 +66,9 @@ add_filter('query_vars', function ($vars) {
     $vars[] = 'aerp_inventory_log_page';
     $vars[] = 'type';
     $vars[] = 'aerp_order_status_page';
+    $vars[] = 'aerp_inventory_page';
+    $vars[] = 'aerp_warehouse_page';
+    $vars[] = 'aerp_inventory_transfer_page';
     return $vars;
 });
 
@@ -187,6 +205,51 @@ add_action('template_redirect', function () {
             include AERP_ORDER_PATH . 'frontend/admin/' . $template_name;
             exit;
         }
+    }
+    $aerp_inventory_page = get_query_var('aerp_inventory_page');
+    if ($aerp_inventory_page === 'stocktake') {
+        include AERP_ORDER_PATH . 'frontend/admin/inventory/stocktake-form.php';
+        exit;
+    }
+    $aerp_warehouse_page = get_query_var('aerp_warehouse_page');
+    if ($aerp_warehouse_page === 'warehouses') {
+        switch ($action_from_get) {
+            case 'add':
+                $template_name = 'warehouse/form.php';
+                break;
+            case 'edit':
+                $template_name = 'warehouse/form.php';
+                break;
+            case 'delete':
+                AERP_Warehouse_Manager::handle_single_delete();
+                return;
+            case 'stock':
+                $template_name = 'warehouse/stock-list.php';
+                break;
+            default:
+                $template_name = 'warehouse/list.php';
+                break;
+        }
+        if ($template_name) {
+            include AERP_ORDER_PATH . 'frontend/admin/' . $template_name;
+            exit;
+        }
+    }
+    $aerp_inventory_transfer_page = get_query_var('aerp_inventory_transfer_page');
+    if ($aerp_inventory_transfer_page === 'transfers') {
+        switch ($action_from_get) {
+            case 'add':
+                $template_name = 'warehouse/transfer-form.php';
+                break;
+            default:
+                $template_name = 'warehouse/list-transfer.php';
+                break;
+        }
+        if ($template_name) {
+            include AERP_ORDER_PATH . 'frontend/admin/' . $template_name;
+            exit;
+        }
+        exit;
     }
 });
 

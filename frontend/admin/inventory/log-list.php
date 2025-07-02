@@ -25,6 +25,12 @@ ob_start();
             <a href="<?php echo esc_url(home_url('/aerp-inventory-logs/?action=add&type=export')); ?>" class="btn btn-danger">
                 <i class="fas fa-minus"></i> Xuất kho
             </a>
+            <a href="<?php echo esc_url(home_url('/aerp-stocktake')); ?>" class="btn btn-warning">
+                <i class="fas fa-check"></i> Kiểm kho
+            </a>
+            <!-- <a href="<?php echo esc_url(home_url('/aerp-stock-report')); ?>" class="btn btn-info">
+                <i class="fas fa-chart-line"></i> Báo cáo tồn kho
+            </a> -->
         </div>
     </div>
     <div class="card-body">

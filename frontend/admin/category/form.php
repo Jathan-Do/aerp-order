@@ -3,12 +3,19 @@ if (!defined('ABSPATH')) exit;
 $edit_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
 $edit_cat = $edit_id ? AERP_Category_Manager::get_by_id($edit_id) : null;
 $categories = AERP_Category_Manager::get_all();
+$current_user = wp_get_current_user();
 ob_start();
 ?>
-<div class="card">
-    <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
-        <h5 class="mb-0"><?php echo $edit_id ? 'Cập nhật danh mục' : 'Thêm mới danh mục'; ?></h5>
+<div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
+    <h2><?php echo $edit_id ? 'Cập nhật danh mục' : 'Thêm mới danh mục'; ?></h2>
+    <div class="user-info text-end">
+        Welcome, <?php echo esc_html($current_user->display_name); ?>
+        <a href="<?php echo wp_logout_url(home_url()); ?>" class="btn btn-sm btn-outline-danger ms-2">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
     </div>
+</div>
+<div class="card">
     <div class="card-body">
         <form method="post">
             <?php wp_nonce_field('aerp_save_category_action', 'aerp_save_category_nonce'); ?>

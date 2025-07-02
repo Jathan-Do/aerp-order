@@ -18,7 +18,8 @@ class AERP_Frontend_Order_Manager
             foreach ($_POST['order_items'] as $item) {
                 $quantity = floatval($item['quantity'] ?? 0);
                 $unit_price = floatval($item['unit_price'] ?? 0);
-                $total_amount += $quantity * $unit_price;
+                $vat_percent = floatval($item['vat_percent'] ?? 0);
+                $total_amount += $quantity * $unit_price + ($quantity * $unit_price * $vat_percent / 100);
             }
         }
 
@@ -95,6 +96,7 @@ class AERP_Frontend_Order_Manager
                     $quantity = floatval($item['quantity'] ?? 0);
                     $unit_price = floatval($item['unit_price'] ?? 0);
                     $product_id = isset($item['product_id']) && $order_type === 'product' && !empty($item['product_id']) ? absint($item['product_id']) : null;
+                    $vat_percent = isset($item['vat_percent']) && $item['vat_percent'] !== '' ? floatval($item['vat_percent']) : null;
                     if (empty($product_name) || $quantity <= 0) continue; // Bỏ qua dòng trống
 
                     $item_data = [
@@ -103,10 +105,11 @@ class AERP_Frontend_Order_Manager
                         'product_name'  => $product_name,
                         'quantity'      => $quantity,
                         'unit_price'    => $unit_price,
-                        'total_price'   => $quantity * $unit_price,
+                        'total_price'   => $quantity * $unit_price + ($quantity * $unit_price * $vat_percent / 100),
                         'unit_name'     => isset($item['unit_name']) ? sanitize_text_field($item['unit_name']) : '',
+                        'vat_percent'   => $vat_percent,
                     ];
-                    $item_format = ['%d', '%d', '%s', '%f', '%f', '%f', '%s'];
+                    $item_format = ['%d', '%d', '%s', '%f', '%f', '%f', '%s', '%f'];
 
                     if ($item_id > 0 && in_array($item_id, $existing_item_ids, true)) {
                         // Cập nhật sản phẩm đã có

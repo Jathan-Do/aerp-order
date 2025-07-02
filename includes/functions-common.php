@@ -79,21 +79,28 @@ function aerp_get_order_assigned_employees()
     return $employees;
 }
 
-if (!function_exists('aerp_get_products')) {
-    function aerp_get_products($search = '')
+if (!function_exists('aerp_get_products_select2')) {
+    function aerp_get_products_select2($q = '')
     {
         global $wpdb;
-        $sql = "SELECT p.*, u.name as unit_name FROM {$wpdb->prefix}aerp_products p LEFT JOIN {$wpdb->prefix}aerp_units u ON p.unit_id = u.id";
-        if ($search) {
-            $sql .= $wpdb->prepare(" WHERE name LIKE %s OR sku LIKE %s", '%' . $wpdb->esc_like($search) . '%', '%' . $wpdb->esc_like($search) . '%');
+        $where = '';
+        if ($q !== '') {
+            $q_like = '%' . $wpdb->esc_like($q) . '%';
+            $where = $wpdb->prepare(" AND (p.name LIKE %s OR p.sku LIKE %s )", $q_like, $q_like);
         }
-        $sql .= " ORDER BY name ASC";
-        return $wpdb->get_results($sql);
+        return $wpdb->get_results(
+            "SELECT p.*, u.name AS unit_name
+         FROM {$wpdb->prefix}aerp_products p
+         LEFT JOIN {$wpdb->prefix}aerp_units u ON p.unit_id = u.id
+         WHERE 1=1 $where
+         ORDER BY p.name ASC"
+        );
     }
 }
 
 if (!function_exists('aerp_get_product')) {
-    function aerp_get_product($product_id) {
+    function aerp_get_product($product_id)
+    {
         global $wpdb;
         return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}aerp_products WHERE id = %d", $product_id));
     }
@@ -112,4 +119,21 @@ function aerp_get_order_status($status_id)
 {
     global $wpdb;
     return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}aerp_order_statuses WHERE id = %d", $status_id));
+}
+
+function aerp_get_warehouses() {
+    global $wpdb;
+    return $wpdb->get_results("SELECT * FROM {$wpdb->prefix}aerp_warehouses ORDER BY name ASC");
+}
+function aerp_get_warehouse($id) {
+    global $wpdb;
+    return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}aerp_warehouses WHERE id = %d", $id));
+}
+
+function aerp_get_product_stock($product_id, $warehouse_id) {
+    global $wpdb;
+    return (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT quantity FROM {$wpdb->prefix}aerp_product_stocks WHERE product_id = %d AND warehouse_id = %d",
+        $product_id, $warehouse_id
+    ));
 }

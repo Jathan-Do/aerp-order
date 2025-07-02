@@ -72,7 +72,7 @@ function aerp_product_filter_products_callback()
 }
 add_action('wp_ajax_aerp_order_search_products', function() {
     $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
-    $products = function_exists('aerp_get_products') ? aerp_get_products($q) : [];
+    $products = function_exists('aerp_get_products_select2') ? aerp_get_products_select2($q) : [];
     $results = [];
     $count = 0;
     foreach ($products as $product) {
@@ -136,6 +136,149 @@ function aerp_order_status_filter_statuses_callback()
         'order' => sanitize_text_field($_POST['order'] ?? ''),
     ];
     $table = new AERP_Order_Status_Table();
+    $table->set_filters($filters);
+    ob_start();
+    $table->render();
+    $html = ob_get_clean();
+    wp_send_json_success(['html' => $html]);
+}
+
+add_action('wp_ajax_aerp_order_search_customers', function() {
+    $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
+    $customers = function_exists('aerp_get_customers_select2') ? aerp_get_customers_select2($q) : [];
+    $results = [];
+    $count = 0;
+    foreach ($customers as $customer) {
+        $results[] = [
+            'id' => $customer->id,
+            'text' => $customer->full_name . (!empty($customer->customer_code) ? ' (' . $customer->customer_code . ')' : ''),
+        ];
+        if (!$q && ++$count >= 20) break;
+    }
+    wp_send_json($results);
+});
+add_action('wp_ajax_aerp_order_search_employees', function() {
+    $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
+    $employees = function_exists('aerp_get_employees_with_location_select2') ? aerp_get_employees_with_location_select2($q) : [];
+    $results = [];
+    $count = 0;
+    foreach ($employees as $employee) {
+        $display_name = $employee->full_name;
+        if (!empty($employee->work_location_name)) {
+            $display_name .= ' - ' . $employee->work_location_name;
+        }
+        $results[] = [
+            'id' => $employee->user_id,
+            'text' => $display_name,
+        ];
+        if (!$q && ++$count >= 20) break;
+    }
+    wp_send_json($results);
+});
+
+
+add_action('wp_ajax_aerp_inventory_log_filter_inventory_logs', 'aerp_inventory_log_filter_inventory_logs_callback');
+add_action('wp_ajax_nopriv_aerp_inventory_log_filter_inventory_logs', 'aerp_inventory_log_filter_inventory_logs_callback');
+function aerp_inventory_log_filter_inventory_logs_callback()
+{
+    $filters = [
+        'search_term' => sanitize_text_field($_POST['s'] ?? ''),
+        'paged' => intval($_POST['paged'] ?? 1),
+        'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
+        'order' => sanitize_text_field($_POST['order'] ?? ''),
+    ];
+    $table = new AERP_Inventory_Log_Table();
+    $table->set_filters($filters);
+    ob_start();
+    $table->render();
+    $html = ob_get_clean();
+    wp_send_json_success(['html' => $html]);
+}
+
+add_action('wp_ajax_aerp_get_product_stock', function() {
+    global $wpdb;
+
+    $product_id   = isset($_GET['product_id']) ? intval($_GET['product_id']) : (isset($_POST['product_id']) ? intval($_POST['product_id']) : 0);
+    $warehouse_id = isset($_GET['warehouse_id']) ? intval($_GET['warehouse_id']) : (isset($_POST['warehouse_id']) ? intval($_POST['warehouse_id']) : 0);
+
+    $qty = 0;
+
+    if ($product_id && $warehouse_id) {
+        $qty = $wpdb->get_var($wpdb->prepare(
+            "SELECT quantity FROM {$wpdb->prefix}aerp_product_stocks WHERE product_id = %d AND warehouse_id = %d",
+            $product_id, $warehouse_id
+        ));
+        if ($qty === null) $qty = 0;
+    }
+
+    wp_send_json_success(['quantity' => intval($qty)]);
+});
+
+add_action('wp_ajax_nopriv_aerp_get_product_stock', function() {
+    global $wpdb;
+
+    $product_id   = isset($_GET['product_id']) ? intval($_GET['product_id']) : (isset($_POST['product_id']) ? intval($_POST['product_id']) : 0);
+    $warehouse_id = isset($_GET['warehouse_id']) ? intval($_GET['warehouse_id']) : (isset($_POST['warehouse_id']) ? intval($_POST['warehouse_id']) : 0);
+
+    $qty = 0;
+
+    if ($product_id && $warehouse_id) {
+        $qty = $wpdb->get_var($wpdb->prepare(
+            "SELECT quantity FROM {$wpdb->prefix}aerp_product_stocks WHERE product_id = %d AND warehouse_id = %d",
+            $product_id, $warehouse_id
+        ));
+        if ($qty === null) $qty = 0;
+    }
+
+    wp_send_json_success(['quantity' => intval($qty)]);
+});
+
+add_action('wp_ajax_aerp_warehouse_filter_warehouses', 'aerp_warehouse_filter_warehouses_callback');
+add_action('wp_ajax_nopriv_aerp_warehouse_filter_warehouses', 'aerp_warehouse_filter_warehouses_callback');
+function aerp_warehouse_filter_warehouses_callback()
+{
+    $filters = [
+        'search_term' => sanitize_text_field($_POST['s'] ?? ''),
+        'paged' => intval($_POST['paged'] ?? 1),
+        'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
+        'order' => sanitize_text_field($_POST['order'] ?? ''),
+    ];
+    $table = new AERP_Warehouse_Table();
+    $table->set_filters($filters);
+    ob_start();
+    $table->render();
+    $html = ob_get_clean();
+    wp_send_json_success(['html' => $html]);
+}
+add_action('wp_ajax_aerp_product_stock_filter', 'aerp_product_stock_filter_callback');
+add_action('wp_ajax_nopriv_aerp_product_stock_filter', 'aerp_product_stock_filter_callback');
+function aerp_product_stock_filter_callback()
+{
+    $filters = [
+        'search_term' => sanitize_text_field($_POST['s'] ?? ''),
+        'paged' => intval($_POST['paged'] ?? 1),
+        'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
+        'order' => sanitize_text_field($_POST['order'] ?? ''),
+    ];
+    $table = new AERP_Product_Stock_Table();
+    $table->set_filters($filters);
+    ob_start();
+    $table->render();
+    $html = ob_get_clean();
+    wp_send_json_success(['html' => $html]);
+}
+
+add_action('wp_ajax_aerp_inventory_transfer_filter_inventory_transfers', 'aerp_inventory_transfer_filter_inventory_transfers_callback');
+add_action('wp_ajax_nopriv_aerp_inventory_transfer_filter_inventory_transfers', 'aerp_inventory_transfer_filter_inventory_transfers_callback');
+function aerp_inventory_transfer_filter_inventory_transfers_callback()
+{
+    $filters = [
+        'search_term' => sanitize_text_field($_POST['s'] ?? ''),
+        'paged' => intval($_POST['paged'] ?? 1),
+        'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
+        'order' => sanitize_text_field($_POST['order'] ?? ''),
+    ];
+    $table = new AERP_Inventory_Transfer_Table();
     $table->set_filters($filters);
     ob_start();
     $table->render();

@@ -73,6 +73,8 @@ ob_start();
                         <th>Số lượng</th>
                         <th>Đơn vị</th>
                         <th>Đơn giá</th>
+                        <th>VAT (%)</th>
+                        <th>Thành tiền (có VAT)</th>
                         <th>Thành tiền</th>
                     </tr>
                 </thead>
@@ -80,7 +82,11 @@ ob_start();
                     <?php if (!empty($order_items)) :
                         foreach ($order_items as $idx => $item) :
                             $line_total = $item->quantity * $item->unit_price;
+                            $vat_percent = isset($item->vat_percent) ? floatval($item->vat_percent) : 0;
+                            $vat_amount = $vat_percent > 0 ? $line_total * $vat_percent / 100 : 0;
+                            $line_total_with_vat = $line_total + $vat_amount;
                             $total_amount += $line_total;
+                            $total_amount_with_vat = ($total_amount_with_vat ?? 0) + $line_total_with_vat;
                             $unit_name = '';
                             if (!empty($item->unit_name)) {
                                 $unit_name = $item->unit_name;
@@ -96,18 +102,21 @@ ob_start();
                                 <td><?php echo esc_html($item->quantity); ?></td>
                                 <td><?php echo esc_html($unit_name); ?></td>
                                 <td><?php echo number_format($item->unit_price, 0, ',', '.'); ?></td>
+                                <td><?php echo $vat_percent > 0 ? esc_html($vat_percent) : '--'; ?></td>
+                                <td><?php echo number_format($line_total_with_vat, 0, ',', '.'); ?></td>
                                 <td><?php echo number_format($line_total, 0, ',', '.'); ?></td>
                             </tr>
                         <?php endforeach;
                     else: ?>
                         <tr>
-                            <td colspan="5" class="text-center text-muted">Chưa có sản phẩm nào.</td>
+                            <td colspan="8" class="text-center text-muted">Chưa có sản phẩm nào.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
                 <tfoot>
                     <tr>
-                        <th colspan="5" class="text-end">Tổng cộng</th>
+                        <th colspan="6" class="text-end">Tổng cộng (có VAT)</th>
+                        <th><?php echo number_format($total_amount_with_vat ?? 0, 0, ',', '.'); ?></th>
                         <th><?php echo number_format($total_amount, 0, ',', '.'); ?></th>
                     </tr>
                 </tfoot>
@@ -197,6 +206,8 @@ ob_start();
                         <th>Số lượng</th>
                         <th>Đơn vị</th>
                         <th>Đơn giá</th>
+                        <th>VAT (%)</th>
+                        <th>Thành tiền (có VAT)</th>
                         <th>Thành tiền</th>
                     </tr>
                 </thead>
@@ -205,7 +216,11 @@ ob_start();
                         $total_amount = 0;
                         foreach ($order_items as $idx => $item) :
                             $line_total = $item->quantity * $item->unit_price;
+                            $vat_percent = isset($item->vat_percent) ? floatval($item->vat_percent) : 0;
+                            $vat_amount = $vat_percent > 0 ? $line_total * $vat_percent / 100 : 0;
+                            $line_total_with_vat = $line_total + $vat_amount;
                             $total_amount += $line_total;
+                            $total_amount_with_vat = ($total_amount_with_vat ?? 0) + $line_total_with_vat;
                             $unit_name = '';
                             if (!empty($item->unit_name)) {
                                 $unit_name = $item->unit_name;
@@ -221,18 +236,21 @@ ob_start();
                                 <td><?php echo esc_html($item->quantity); ?></td>
                                 <td><?php echo esc_html($unit_name); ?></td>
                                 <td><?php echo number_format($item->unit_price, 0, ',', '.'); ?></td>
+                                <td><?php echo $vat_percent > 0 ? esc_html($vat_percent) : '--'; ?></td>
+                                <td><?php echo number_format($line_total_with_vat, 0, ',', '.'); ?></td>
                                 <td><?php echo number_format($line_total, 0, ',', '.'); ?></td>
                             </tr>
                         <?php endforeach;
                     else: ?>
                         <tr>
-                            <td colspan="5" style="text-align:center;">Chưa có sản phẩm nào.</td>
+                            <td colspan="8" style="text-align:center;">Chưa có sản phẩm nào.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
                 <tfoot>
                     <tr>
-                        <th colspan="5" style="text-align:right;">Tổng cộng</th>
+                        <th colspan="6" style="text-align:right;">Tổng cộng (có VAT)</th>
+                        <th><?php echo number_format($total_amount_with_vat ?? 0, 0, ',', '.'); ?></th>
                         <th><?php echo number_format($total_amount, 0, ',', '.'); ?></th>
                     </tr>
                 </tfoot>

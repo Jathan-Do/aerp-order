@@ -4,6 +4,27 @@ $current_user = wp_get_current_user();
 $type = isset($_GET['type']) && $_GET['type'] === 'export' ? 'export' : 'import';
 ob_start();
 ?>
+<style>
+    .select2-container--default .select2-selection--single {
+        border: 1px solid #dee2e6 !important;
+        border-radius: 0.375rem !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        padding: 6px 12px !important;
+        background: #fff !important;
+        font-size: 1rem !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 24px !important;
+        padding-left: 0 !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px !important;
+        right: 0.75rem !important;
+    }
+</style>
 <div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
     <h2><?php echo $type === 'import' ? 'Tạo phiếu nhập kho' : 'Tạo phiếu xuất kho'; ?></h2>
     <div class="user-info text-end">
@@ -20,15 +41,20 @@ ob_start();
             <input type="hidden" name="type" value="<?php echo esc_attr($type); ?>">
             <div class="row">
                 <div class="col-md-6 mb-3">
+                    <label for="warehouse_id" class="form-label">Kho</label>
+                    <select class="form-select" id="warehouse_id" name="warehouse_id" required>
+                        <option value="">-- Chọn kho --</option>
+                        <?php foreach (AERP_Warehouse_Manager::get_all() as $w): ?>
+                            <option value="<?php echo esc_attr($w->id); ?>">
+                                <?php echo AERP_Warehouse_Manager::get_full_warehouse_name($w->id); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
                     <label for="product_id" class="form-label">Sản phẩm</label>
-                    <select class="form-select" id="product_id" name="product_id" required>
+                    <select class="form-select product-select" id="product_id" name="product_id" required style="width:100%">
                         <option value="">-- Chọn sản phẩm --</option>
-                        <?php
-                        $products = function_exists('aerp_get_products') ? aerp_get_products() : [];
-                        foreach ($products as $product) {
-                            echo '<option value="' . esc_attr($product->id) . '">' . esc_html($product->name) . ' (Tồn: ' . intval($product->quantity) . ')</option>';
-                        }
-                        ?>
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
@@ -52,4 +78,6 @@ ob_start();
 <?php
 $content = ob_get_clean();
 $title = $type === 'import' ? 'Tạo phiếu nhập kho' : 'Tạo phiếu xuất kho';
-include(AERP_HRM_PATH . 'frontend/dashboard/layout.php'); 
+?>
+<?php
+include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');

@@ -13,12 +13,11 @@ class AERP_Product_Manager
         $data = [
             'name' => sanitize_text_field($_POST['name']),
             'sku' => sanitize_text_field($_POST['sku']),
-            'quantity' => intval($_POST['quantity']),
             'price' => floatval($_POST['price']),
             'category_id' => isset($_POST['category_id']) ? intval($_POST['category_id']) : null,
             'unit_id' => isset($_POST['unit_id']) ? intval($_POST['unit_id']) : null,
         ];
-        $format = ['%s', '%s', '%d', '%f', '%d', '%d'];
+        $format = ['%s', '%s', '%f', '%d', '%d'];
         if ($id) {
             $wpdb->update($table, $data, ['id' => $id], $format, ['%d']);
             $msg = 'Đã cập nhật sản phẩm!';
@@ -26,20 +25,6 @@ class AERP_Product_Manager
             $wpdb->insert($table, $data, $format);
             $new_product_id = $wpdb->insert_id;
             $msg = 'Đã thêm sản phẩm!';
-            // Tạo phiếu nhập kho ban đầu nếu quantity > 0
-            if ($data['quantity'] > 0) {
-                $log_table = $wpdb->prefix . 'aerp_inventory_logs';
-                $log_data = [
-                    'product_id' => $new_product_id,
-                    'type' => 'import',
-                    'quantity' => $data['quantity'],
-                    'note' => 'Nhập kho ban đầu khi tạo sản phẩm',
-                    'created_by' => get_current_user_id(),
-                    'created_at' => (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d H:i:s'),
-                ];
-                $log_format = ['%d', '%s', '%d', '%s', '%d', '%s'];
-                $wpdb->insert($log_table, $log_data, $log_format);
-            }
         }
         aerp_clear_table_cache();
         set_transient('aerp_product_message', $msg, 10);
@@ -95,6 +80,11 @@ class AERP_Product_Manager
     public static function get_unit_name($id) {
         global $wpdb;
         $table = $wpdb->prefix . 'aerp_units';
+        return $wpdb->get_var($wpdb->prepare("SELECT name FROM $table WHERE id = %d", $id));
+    }
+    public static function get_product_name($id) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'aerp_products';
         return $wpdb->get_var($wpdb->prepare("SELECT name FROM $table WHERE id = %d", $id));
     }
 } 

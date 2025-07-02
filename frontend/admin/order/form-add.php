@@ -5,6 +5,7 @@ $user_id = $current_user->ID;
 if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
+$date_now = date('Y-m-d');
 ob_start();
 ?>
 <style>
@@ -44,36 +45,48 @@ ob_start();
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="customer_id" class="form-label">Khách hàng</label>
-                    <select class="form-select" id="customer_id" name="customer_id" required>
+                    <select class="form-select customer-select" id="customer_id" name="customer_id" required>
                         <?php
-                        $customers = function_exists('aerp_get_customers') ? aerp_get_customers() : [];
-                        aerp_safe_select_options($customers, '', 'id', 'full_name', true);
+                        if (!empty($_POST['customer_id'])) {
+                            $selected_id = intval($_POST['customer_id']);
+                            $selected_name = '';
+                            if (function_exists('aerp_get_customer')) {
+                                $c = aerp_get_customer($selected_id);
+                                if ($c) $selected_name = $c->full_name . (!empty($c->code) ? ' (' . $c->code . ')' : '');
+                            }
+                            if ($selected_name) {
+                                echo '<option value="' . esc_attr($selected_id) . '" selected>' . esc_html($selected_name) . '</option>';
+                            }
+                        }
                         ?>
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="employee_id" class="form-label">Nhân viên phụ trách</label>
-                    <select class="form-select" id="employee_id" name="employee_id">
-                        <option value="">-- Chọn nhân viên --</option>
+                    <select class="form-select employee-select" id="employee_id" name="employee_id">
                         <?php
-                        $employees = function_exists('aerp_get_employees_with_location') ? aerp_get_employees_with_location() : [];
-                        foreach ($employees as $employee) {
-                            $display_name = esc_html($employee->full_name);
-                            if (!empty($employee->work_location_name)) {
-                                $display_name .= ' - ' . esc_html($employee->work_location_name);
+                        if (!empty($_POST['employee_id'])) {
+                            $selected_id = intval($_POST['employee_id']);
+                            $selected_name = '';
+                            if (function_exists('aerp_get_employees_with_location')) {
+                                $employees = aerp_get_employees_with_location();
+                                foreach ($employees as $e) {
+                                    if ($e->user_id == $selected_id) {
+                                        $selected_name = $e->full_name . (!empty($e->work_location_name) ? ' - ' . $e->work_location_name : '');
+                                        break;
+                                    }
+                                }
                             }
-                            printf(
-                                '<option value="%s">%s</option>',
-                                esc_attr($employee->user_id),
-                                $display_name
-                            );
+                            if ($selected_name) {
+                                echo '<option value="' . esc_attr($selected_id) . '" selected>' . esc_html($selected_name) . '</option>';
+                            }
                         }
                         ?>
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="order_date" class="form-label">Ngày tạo đơn hàng</label>
-                    <input type="date" class="form-control bg-body" id="order_date" name="order_date" required>
+                    <input type="date" class="form-control bg-body" id="order_date" name="order_date" required value="<?php echo esc_attr($date_now); ?>">
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="status_id" class="form-label">Trạng thái</label>
@@ -92,25 +105,34 @@ ob_start();
                     </select>
                 </div>
                 <div class="col-12 mb-3">
-                    <label class="form-label">Sản phẩm trong đơn</label>
                     <div id="order-items-container">
                         <div class="row mb-2 order-item-row">
-                            <div class="col-md-4 mb-2">
+                            <div class="col-md-3 mb-2">
+                                <label class="form-label">Sản phẩm trong đơn</label><label class="form-label">Sản phẩm trong đơn</label>
                                 <input type="text" class="form-control product-name-input" name="order_items[0][product_name]" placeholder="Tên sản phẩm/dịch vụ" required>
                                 <select class="form-select product-select" name="order_items[0][product_id]" style="display:none;width:100%"></select>
                             </div>
-                            <div class="col-md-2 mb-2 d-flex align-items-center">
-                                <input type="number" class="form-control" name="order_items[0][quantity]" placeholder="Số lượng" min="0.01" step="0.01"  required>
+                            <div class="col-md-3 mb-2 d-flex align-items-end">
+                                <div class="w-100">
+                                    <label class="form-label">Số lượng</label>
+                                    <input type="number" class="form-control" name="order_items[0][quantity]" placeholder="Số lượng" min="0.01" step="0.01" required>
+                                </div>
                                 <span class="unit-label ms-2"></span>
                                 <input type="hidden" name="order_items[0][unit_name]" class="unit-name-input">
                             </div>
-                            <div class="col-md-3 mb-2">
+                            <div class="col-md-1 mb-2">
+                                <label class="form-label">VAT</label>
+                                <input type="number" class="form-control" name="order_items[0][vat_percent]" placeholder="VAT (%)" min="0" max="100" step="0.01">
+                            </div>
+                            <div class="col-md-2 mb-2">
+                                <label class="form-label">Đơn giá</label>
                                 <input type="number" class="form-control" name="order_items[0][unit_price]" placeholder="Đơn giá" min="0" step="0.01" required>
                             </div>
                             <div class="col-md-2 mb-2">
+                                <label class="form-label">Thành tiền</label>
                                 <input type="text" class="form-control total-price-field" placeholder="Thành tiền" readonly>
                             </div>
-                            <div class="col-md-1 mb-2">
+                            <div class="col-md-1 mb-2 d-flex align-items-end">
                                 <button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button>
                             </div>
                         </div>

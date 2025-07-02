@@ -49,32 +49,38 @@ ob_start();
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="customer_id" class="form-label">Khách hàng</label>
-                    <select class="form-select" id="customer_id" name="customer_id" required>
+                    <select class="form-select customer-select" id="customer_id" name="customer_id" required>
                         <?php
-                        $customers = function_exists('aerp_get_customers') ? aerp_get_customers() : [];
-                        foreach ($customers as $c) {
-                            printf('<option value="%s"%s>%s</option>', esc_attr($c->id), selected($editing->customer_id, $c->id, false), esc_html($c->full_name));
+                        $selected_id = $editing->customer_id;
+                        $selected_name = '';
+                        if (function_exists('aerp_get_customer')) {
+                            $c = aerp_get_customer($selected_id);
+                            if ($c) $selected_name = $c->full_name . (!empty($c->code) ? ' (' . $c->code . ')' : '');
+                        }
+                        if ($selected_name) {
+                            echo '<option value="' . esc_attr($selected_id) . '" selected>' . esc_html($selected_name) . '</option>';
                         }
                         ?>
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="employee_id" class="form-label">Nhân viên phụ trách</label>
-                    <select class="form-select" id="employee_id" name="employee_id">
+                    <select class="form-select employee-select" id="employee_id" name="employee_id">
                         <option value="">-- Chọn nhân viên --</option>
                         <?php
-                        $employees = function_exists('aerp_get_employees_with_location') ? aerp_get_employees_with_location() : [];
-                        foreach ($employees as $employee) {
-                            $display_name = esc_html($employee->full_name);
-                            if (!empty($employee->work_location_name)) {
-                                $display_name .= ' - ' . esc_html($employee->work_location_name);
+                        $selected_id = $editing->employee_id;
+                        $selected_name = '';
+                        if (function_exists('aerp_get_employees_with_location')) {
+                            $employees = aerp_get_employees_with_location();
+                            foreach ($employees as $e) {
+                                if ($e->user_id == $selected_id) {
+                                    $selected_name = $e->full_name . (!empty($e->work_location_name) ? ' - ' . $e->work_location_name : '');
+                                    break;
+                                }
                             }
-                            printf(
-                                '<option value="%s"%s>%s</option>',
-                                esc_attr($employee->user_id),
-                                selected($editing->employee_id, $employee->user_id, false),
-                                $display_name
-                            );
+                        }
+                        if ($selected_name) {
+                            echo '<option value="' . esc_attr($selected_id) . '" selected>' . esc_html($selected_name) . '</option>';
                         }
                         ?>
                     </select>
@@ -108,25 +114,31 @@ ob_start();
                                 echo '<div class="row mb-2 order-item-row">';
                                 echo '<input type="hidden" name="order_items[' . $idx . '][id]" value="' . esc_attr($item->id) . '">';
                                 echo '<input type="hidden" name="order_items[' . $idx . '][product_id]" value="' . esc_attr($item->product_id ?? '') . '" class="product-id-input">';
-                                echo '<div class="col-md-4 mb-2"><input type="text" class="form-control" name="order_items[' . $idx . '][product_name]" value="' . esc_attr($item->product_name) . '" placeholder="Tên sản phẩm" required></div>';
-                                echo '<div class="col-md-2 mb-2 d-flex align-items-center">';
+                                echo '<div class="col-md-3 mb-2"><input type="text" class="form-control" name="order_items[' . $idx . '][product_name]" value="' . esc_attr($item->product_name) . '" placeholder="Tên sản phẩm" required></div>';
+                                echo '<div class="col-md-3 mb-2 d-flex align-items-center">';
                                 echo '<input type="number" class="form-control" name="order_items[' . $idx . '][quantity]" value="' . esc_attr($item->quantity) . '" placeholder="Số lượng" min="0.01" step="0.01" required>';
                                 echo '<span class="unit-label ms-2">' . esc_html($item->unit_name ?? '') . '</span>';
                                 echo '<input type="hidden" name="order_items[' . $idx . '][unit_name]" value="' . esc_attr($item->unit_name ?? '') . '" class="unit-name-input">';
                                 echo '</div>';
-                                echo '<div class="col-md-3 mb-2"><input type="number" class="form-control" name="order_items[' . $idx . '][unit_price]" value="' . esc_attr($item->unit_price) . '" placeholder="Đơn giá" min="0" step="0.01" required></div>';
+                                echo '<div class="col-md-1 mb-2">';
+                                echo '<input type="number" class="form-control" name="order_items[' . $idx . '][vat_percent]" value="' . esc_attr(isset($item->vat_percent) ? $item->vat_percent : '') . '" placeholder="VAT (%)" min="0" max="100" step="0.01">';
+                                echo '</div>';
+                                echo '<div class="col-md-2 mb-2"><input type="number" class="form-control" name="order_items[' . $idx . '][unit_price]" value="' . esc_attr($item->unit_price) . '" placeholder="Đơn giá" min="0" step="0.01" required></div>';
                                 echo '<div class="col-md-2 mb-2"><input type="text" class="form-control total-price-field" value="' . number_format($item->total_price, 0, ',', '.') . '" placeholder="Thành tiền" readonly></div>';
                                 echo '<div class="col-md-1 mb-2"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>';
                                 echo '</div>';
                             }
                         } else {
                             echo '<div class="row mb-2 order-item-row">';
-                            echo '<div class="col-md-4 mb-2"><input type="text" class="form-control" name="order_items[0][product_name]" placeholder="Tên sản phẩm" required></div>';
-                            echo '<div class="col-md-2 mb-2 d-flex align-items-center">';
+                            echo '<div class="col-md-3 mb-2"><input type="text" class="form-control" name="order_items[0][product_name]" placeholder="Tên sản phẩm" required></div>';
+                            echo '<div class="col-md-3 mb-2 d-flex align-items-center">';
                             echo '<input type="number" class="form-control" name="order_items[0][quantity]" placeholder="Số lượng" min="0.01" step="0.01" value="1" required>';
                             echo '<span class="unit-label ms-2"></span>';
                             echo '</div>';
-                            echo '<div class="col-md-3 mb-2"><input type="number" class="form-control" name="order_items[0][unit_price]" placeholder="Đơn giá" min="0" step="0.01" required></div>';
+                            echo '<div class="col-md-1 mb-2">';
+                            echo '<input type="number" class="form-control" name="order_items[0][vat_percent]" placeholder="VAT (%)" min="0" max="100" step="0.01">';
+                            echo '</div>';
+                            echo '<div class="col-md-2 mb-2"><input type="number" class="form-control" name="order_items[0][unit_price]" placeholder="Đơn giá" min="0" step="0.01" required></div>';
                             echo '<div class="col-md-2 mb-2"><input type="text" class="form-control total-price-field" placeholder="Thành tiền" readonly></div>';
                             echo '<div class="col-md-1 mb-2"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>';
                             echo '</div>';
@@ -166,33 +178,41 @@ ob_start();
 </div>
 <script>
     (function($) {
-        let itemIndex = <?php echo !empty($order_items) ? count($order_items) : 1; ?>;
+    let itemIndex = <?php echo !empty($order_items) ? count($order_items) : 1; ?>;
         $('#add-order-item').on('click', function() {
-            let row = `<div class="row mb-2 order-item-row">
-            <div class="col-md-4 mb-2"><input type="text" class="form-control" name="order_items[${itemIndex}][product_name]" placeholder="Tên sản phẩm" required></div>
-            <div class="col-md-2 mb-2 d-flex align-items-center">
+        let row = `<div class="row mb-2 order-item-row">
+            <div class="col-md-3 mb-2"><input type="text" class="form-control" name="order_items[${itemIndex}][product_name]" placeholder="Tên sản phẩm" required></div>
+            <div class="col-md-3 mb-2 d-flex align-items-center">
                 <input type="number" class="form-control" name="order_items[${itemIndex}][quantity]" placeholder="Số lượng" min="0.01" step="0.01" value="1" required>
                 <span class="unit-label ms-2"></span>
             </div>
-            <div class="col-md-3 mb-2"><input type="number" class="form-control" name="order_items[${itemIndex}][unit_price]" placeholder="Đơn giá" min="0" step="0.01" required></div>
+            <div class="col-md-1 mb-2">
+                <input type="number" class="form-control" name="order_items[${itemIndex}][vat_percent]" placeholder="VAT (%)" min="0" max="100" step="0.01">
+            </div>
+            <div class="col-md-2 mb-2"><input type="number" class="form-control" name="order_items[${itemIndex}][unit_price]" placeholder="Đơn giá" min="0" step="0.01" required></div>
             <div class="col-md-2 mb-2"><input type="text" class="form-control total-price-field" placeholder="Thành tiền" readonly></div>
             <div class="col-md-1 mb-2"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>
         </div>`;
-            $('#order-items-container').append(row);
-            itemIndex++;
-        });
+        $('#order-items-container').append(row);
+        itemIndex++;
+    });
         $(document).on('click', '.remove-order-item', function() {
-            $(this).closest('.order-item-row').remove();
-        });
-        $(document).on('input', 'input[name*="[quantity]"], input[name*="[unit_price]"], input[name*="[product_name]"]', function() {
-            let row = $(this).closest('.order-item-row');
-            let qty = parseFloat(row.find('input[name*="[quantity]"]').val()) || 0;
-            let price = parseFloat(row.find('input[name*="[unit_price]"]').val()) || 0;
-            row.find('.total-price-field').val((qty * price).toLocaleString('vi-VN'));
-        });
-    })(jQuery);
+        $(this).closest('.order-item-row').remove();
+    });
+        $(document).on('input', 'input[name*="[quantity]"], input[name*="[unit_price]"], input[name*="[product_name]"], input[name*="[vat_percent]"]', function() {
+        let row = $(this).closest('.order-item-row');
+        let qty = parseFloat(row.find('input[name*="[quantity]"]').val()) || 0;
+        let price = parseFloat(row.find('input[name*="[unit_price]"]').val()) || 0;
+            let vat = parseFloat(row.find('input[name*="[vat_percent]"]').val()) || 0;
+            let total = qty * price;
+            if (vat > 0) {
+                total = total + (total * vat / 100);
+            }
+            row.find('.total-price-field').val(total.toLocaleString('vi-VN'));
+    });
+})(jQuery);
 </script>
 <?php
 $content = ob_get_clean();
 $title = 'Cập nhật đơn hàng';
-include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
+include(AERP_HRM_PATH . 'frontend/dashboard/layout.php'); 
