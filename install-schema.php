@@ -74,9 +74,9 @@ function aerp_order_install_schema()
         vat_percent FLOAT NULL,
         INDEX idx_order_id (order_id),
         INDEX idx_product_id (product_id),
-        INDEX idx_product_id (product_name)
+        INDEX idx_product_name (product_name)
     ) $charset_collate;";
-
+    
     // 3. Lịch sử trạng thái đơn
     $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_order_status_logs (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -112,6 +112,7 @@ function aerp_order_install_schema()
         name VARCHAR(255) NOT NULL,
         sku VARCHAR(100) DEFAULT NULL,
         price FLOAT DEFAULT 0,
+        whole_price FLOAT DEFAULT 0,
         category_id BIGINT NULL,
         unit_id BIGINT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -144,7 +145,7 @@ function aerp_order_install_schema()
     $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_warehouses (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        work_location_id BIGINT DEFAULT NULL
+        work_location_id BIGINT DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_name (name)
     ) $charset_collate;";
@@ -167,6 +168,7 @@ function aerp_order_install_schema()
         product_id BIGINT NOT NULL,
         warehouse_id BIGINT NOT NULL,
         type ENUM('import','export','stocktake') NOT NULL,
+        status ENUM('draft','confirmed') DEFAULT 'draft',
         quantity INT NOT NULL,
         note TEXT,
         created_by BIGINT,
@@ -205,4 +207,4 @@ function aerp_order_install_schema()
     foreach ($sqls as $sql) {
         dbDelta($sql);
     }
-} 
+}

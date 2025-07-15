@@ -1,6 +1,12 @@
 <?php
 if (!defined('ABSPATH')) exit;
 $current_user = wp_get_current_user();
+$user_id = $current_user->ID;
+
+// Check if user is logged in and has admin capabilities
+if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+    wp_die(__('You do not have sufficient permissions to access this page.'));
+}
 AERP_Warehouse_Manager::handle_form_submit();
 $is_edit = isset($_GET['id']);
 $warehouse = $is_edit ? AERP_Warehouse_Manager::get_by_id($_GET['id']) : null;

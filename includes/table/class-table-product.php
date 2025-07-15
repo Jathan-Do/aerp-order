@@ -13,10 +13,11 @@ class AERP_Product_Table extends AERP_Frontend_Table
                 'sku' => 'Mã SKU',
                 'category_id' => 'Danh mục',
                 'unit_id' => 'Đơn vị tính',
-                'price' => 'Giá bán',
+                'price' => 'Giá bán lẻ',
+                'whole_price' => 'Giá bán sỉ',
                 'created_at' => 'Ngày tạo',
             ],
-            'sortable_columns' => ['id', 'name', 'sku', 'category_id', 'unit_id', 'price', 'created_at'],
+            'sortable_columns' => ['id', 'name', 'sku', 'category_id', 'unit_id', 'price', 'whole_price', 'created_at'],
             'searchable_columns' => ['name', 'sku'],
             'primary_key' => 'id',
             'per_page' => 10,
@@ -35,6 +36,10 @@ class AERP_Product_Table extends AERP_Frontend_Table
     {
         return number_format($item->price, 0) . ' đ';
     }
+    protected function column_whole_price($item)
+    {
+        return number_format($item->whole_price, 0) . ' đ';
+    }
     protected function column_category_id($item)
     {
         return $item->category_id ? esc_html(AERP_Product_Manager::get_category_name($item->category_id)) : '';
@@ -47,4 +52,4 @@ class AERP_Product_Table extends AERP_Frontend_Table
     {
         parent::set_filters($filters); // Gọi cha để xử lý đầy đủ orderby, order, paged, search_term
     }
-} 
+}

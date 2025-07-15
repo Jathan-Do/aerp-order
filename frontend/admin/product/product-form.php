@@ -1,6 +1,12 @@
 <?php
 if (!defined('ABSPATH')) exit;
 $current_user = wp_get_current_user();
+$user_id = $current_user->ID;
+
+// Check if user is logged in and has admin capabilities
+if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+    wp_die(__('You do not have sufficient permissions to access this page.'));
+}
 $product_id = isset($_GET['id']) ? absint($_GET['id']) : (get_query_var('id') ?: 0);
 $product = AERP_Product_Manager::get_by_id($product_id);
 $is_edit = isset($product) && $product;
@@ -54,8 +60,12 @@ ob_start();
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label for="price" class="form-label">Giá bán</label>
+                    <label for="price" class="form-label">Giá bán lẻ</label>
                     <input type="number" name="price" id="price" value="<?php echo $is_edit ? esc_attr($product->price) : 0; ?>" class="form-control" min="0" step="0.01" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="whole_price" class="form-label">Giá bán sỉ</label>
+                    <input type="number" name="whole_price" id="whole_price" value="<?php echo $is_edit ? esc_attr($product->whole_price) : 0; ?>" class="form-control" min="0" step="0.01" required>
                 </div>
             </div>
             <div class="d-flex gap-2">

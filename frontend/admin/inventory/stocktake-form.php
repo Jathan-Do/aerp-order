@@ -1,6 +1,12 @@
 <?php
 if (!defined('ABSPATH')) exit;
 $current_user = wp_get_current_user();
+$user_id = $current_user->ID;
+if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+    wp_die(__('You do not have sufficient permissions to access this page.'));
+}
+$id = isset($_GET['edit']) ? absint($_GET['edit']) : 0;
+$log = $id ? AERP_Inventory_Log_Manager::get_log_by_id($id) : null;
 $success = false;
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aerp_save_stocktake'])) {
@@ -11,6 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aerp_save_stocktake']
         $error = 'Không có thay đổi tồn kho nào.';
     }
 }
+$system_qty = aerp_get_stock_qty($log->product_id, $log->warehouse_id);
+$actual_qty = $system_qty + ($log->quantity ?? 0);
 ob_start();
 ?>
 <style>
@@ -34,8 +42,9 @@ ob_start();
         right: 0.75rem !important;
     }
 </style>
+
 <div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
-    <h2>Kiểm kho</h2>
+    <h2><?php echo $id ? 'Xác nhận phiếu kiểm kho' : 'Tạo phiếu kiểm kho'; ?></h2>
     <div class="user-info text-end">
         Xin chào, <?php echo esc_html($current_user->display_name); ?>
         <a href="<?php echo wp_logout_url(home_url()); ?>" class="btn btn-sm btn-outline-danger ms-2">
@@ -43,6 +52,7 @@ ob_start();
         </a>
     </div>
 </div>
+
 <div class="card">
     <div class="card-body">
         <?php if ($success): ?>
@@ -50,103 +60,106 @@ ob_start();
         <?php elseif ($error): ?>
             <div class="alert alert-warning"><?php echo esc_html($error); ?></div>
         <?php endif; ?>
+
         <form method="post">
             <?php wp_nonce_field('aerp_save_stocktake_action', 'aerp_save_stocktake_nonce'); ?>
+            <?php if ($id): ?>
+                <input type="hidden" name="log_id" value="<?php echo esc_attr($id); ?>">
+            <?php endif; ?>
+            <div class="row">
+                <!-- Chọn kho -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Kho</label>
+                    <select class="form-select warehouse-select" name="warehouse_id" required>
+                        <option value="">-- Chọn kho --</option>
+                        <?php foreach (AERP_Warehouse_Manager::get_all() as $w): ?>
+                            <option value="<?php echo esc_attr($w->id); ?>" <?php selected($log && $log->warehouse_id == $w->id); ?>>
+                                <?php echo AERP_Warehouse_Manager::get_full_warehouse_name($w->id); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-            <div id="stocktake-items-container">
-                <div class="row mb-2 stocktake-item-row">
-                    <!-- Chọn Kho -->
-                    <div class="col-md-3 mb-2">
-                        <label class="form-label">Kho</label>
-                        <select class="form-select warehouse-select" name="products[0][warehouse_id]" required>
-                            <option value="">-- Chọn kho --</option>
-                            <?php foreach (AERP_Warehouse_Manager::get_all() as $w): ?>
-                                <option value="<?php echo esc_attr($w->id); ?>">
-                                    <?php echo AERP_Warehouse_Manager::get_full_warehouse_name($w->id); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
+                <!-- Chọn sản phẩm -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Sản phẩm</label>
+                    <select class="form-select product-select" name="product_id" required style="width:100%">
+                        <option value="">-- Chọn sản phẩm --</option>
+                        <?php if ($log && $log->product_id): ?>
+                            <?php $product = function_exists('aerp_get_product') ? aerp_get_product($log->product_id) : null; ?>
+                            <?php if ($product): ?>
+                                <option value="<?php echo esc_attr($product->id); ?>" selected><?php echo esc_html($product->name); ?></option>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    </select>
+                </div>
 
-                    <!-- Chọn SP -->
-                    <div class="col-md-3 mb-2">
-                        <label class="form-label">Sản phẩm</label>
-                        <select class="form-select product-select" name="products[0][product_id]" required style="width:100%"></select>
-                    </div>
+                <!-- Tồn kho hệ thống -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Tồn kho hệ thống</label>
+                    <input type="text" class="form-control system-qty" value="<?php echo esc_attr($system_qty); ?>" readonly>
 
-                    <!-- Tồn kho hệ thống -->
-                    <div class="col-md-2 mb-2">
-                        <label class="form-label">Tồn kho hệ thống</label>
-                        <input type="text" class="form-control system-qty" value="" readonly tabindex="-1">
-                    </div>
+                </div>
 
-                    <!-- Thực tế -->
-                    <div class="col-md-3 mb-2">
-                        <label class="form-label">Số lượng thực tế</label>
-                        <input type="number" class="form-control" name="products[0][actual_qty]" min="0" required>
-                    </div>
+                <!-- Số lượng thực tế -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Số lượng thực tế</label>
+                    <input type="number" class="form-control" name="actual_qty" min="0" required value="<?php echo esc_attr($actual_qty); ?>">
 
-                    <!-- Xóa -->
-                    <div class="col-md-1 mb-2 d-flex align-items-end">
-                        <button type="button" class="btn btn-outline-danger remove-stocktake-item">Xóa</button>
-                    </div>
+                </div>
+
+                <!-- Ghi chú -->
+                <div class="col-12 mb-3">
+                    <label class="form-label">Ghi chú</label>
+                    <textarea name="note" class="form-control" rows="2"><?php echo esc_textarea($log->note ?? ''); ?></textarea>
                 </div>
             </div>
-
-            <button type="button" class="btn btn-secondary mt-2" id="add-stocktake-item">Thêm sản phẩm</button>
-
-            <div class="mb-3 mt-3">
-                <label class="form-label">Ghi chú</label>
-                <textarea name="note" class="form-control" rows="2"></textarea>
-            </div>
-
+            <!-- Submit -->
             <div class="d-flex gap-2">
-                <button type="submit" name="aerp_save_stocktake" class="btn btn-primary">Ghi nhận kiểm kho</button>
+                <?php if (!$id): ?>
+                    <button type="submit" name="aerp_save_stocktake" class="btn btn-primary">Tạo phiếu kiểm kho</button>
+                <?php else: ?>
+                    <button type="submit" name="aerp_confirm_inventory_log" class="btn btn-success" onclick="return confirm('Xác nhận phiếu này?')">Xác nhận</button>
+                <?php endif; ?>
                 <a href="<?php echo home_url('/aerp-inventory-logs'); ?>" class="btn btn-secondary">Quay lại</a>
             </div>
         </form>
-
     </div>
 </div>
+
 <script>
     jQuery(function($) {
-        function initProductSelect2(selector) {
-            if (window.initAerpProductSelect2) {
-                window.initAerpProductSelect2(selector);
-            } else if ($.fn.select2) {
-                $(selector).select2({
-                    placeholder: '-- Chọn sản phẩm --',
-                    allowClear: true,
-                    ajax: {
-                        url: (typeof aerp_order_ajax !== 'undefined' ? aerp_order_ajax.ajaxurl : ajaxurl),
-                        dataType: 'json',
-                        delay: 250,
-                        data: function(params) {
-                            return {
-                                action: 'aerp_order_search_products',
-                                q: params.term || ''
-                            };
-                        },
-                        processResults: function(data) {
-                            return {
-                                results: data
-                            };
-                        },
-                        cache: true
+        function initSelect2() {
+            $('.product-select').select2({
+                placeholder: '-- Chọn sản phẩm --',
+                allowClear: true,
+                ajax: {
+                    url: (typeof aerp_order_ajax !== 'undefined' ? aerp_order_ajax.ajaxurl : ajaxurl),
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            action: 'aerp_order_search_products',
+                            q: params.term || ''
+                        };
                     },
-                    minimumInputLength: 0
-                });
-            }
+                    processResults: function(data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 0
+            });
 
-            // Khi chọn SP: gọi tồn kho
-            $(selector).on('select2:select', function(e) {
-                var product_id = e.params.data.id;
-                var $row = $(this).closest('.stocktake-item-row');
-                var $qty = $row.find('.system-qty');
+            $('.product-select').on('select2:select', function(e) {
+                const product_id = e.params.data.id;
+                const warehouse_id = $('.warehouse-select').val();
+                const $qty = $('.system-qty');
 
-                var warehouse_id = $row.find('.warehouse-select').val(); // 👈 lấy đúng kho dòng đó
                 if (!warehouse_id) {
-                    alert('Vui lòng chọn kho trước khi chọn sản phẩm!');
+                    alert('Vui lòng chọn kho trước!');
                     $(this).val(null).trigger('change');
                     return;
                 }
@@ -174,46 +187,15 @@ ob_start();
                 });
             });
 
-            $(selector).on('select2:clear', function() {
-                $(this).closest('.stocktake-item-row').find('.system-qty').val('');
+            $('.product-select').on('select2:clear', function() {
+                $('.system-qty').val('');
             });
         }
 
-        initProductSelect2('.stocktake-item-row .product-select');
-
-        $('#add-stocktake-item').on('click', function() {
-            var idx = $('#stocktake-items-container .stocktake-item-row').length;
-            var row = `<div class="row mb-2 stocktake-item-row">
-      <div class="col-md-3 mb-2">
-        <select class="form-select warehouse-select" name="products[${idx}][warehouse_id]" required>
-          <option value="">-- Chọn kho --</option>
-          <?php foreach (AERP_Warehouse_Manager::get_all() as $w): ?>
-            <option value="<?php echo esc_attr($w->id); ?>"><?php echo esc_html($w->name); ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
-      <div class="col-md-3 mb-2">
-        <select class="form-select product-select" name="products[${idx}][product_id]" required style="width:100%"></select>
-      </div>
-      <div class="col-md-2 mb-2">
-        <input type="text" class="form-control system-qty" value="" readonly tabindex="-1">
-      </div>
-      <div class="col-md-3 mb-2">
-        <input type="number" class="form-control" name="products[${idx}][actual_qty]" min="0" required>
-      </div>
-      <div class="col-md-1 mb-2 d-flex align-items-end">
-        <button type="button" class="btn btn-outline-danger remove-stocktake-item">Xóa</button>
-      </div>
-    </div>`;
-            $('#stocktake-items-container').append(row);
-            initProductSelect2(`#stocktake-items-container .stocktake-item-row:last .product-select`);
-        });
-
-        $(document).on('click', '.remove-stocktake-item', function() {
-            $(this).closest('.stocktake-item-row').remove();
-        });
+        initSelect2();
     });
 </script>
+
 <?php
 $content = ob_get_clean();
 $title = 'Kiểm kho';

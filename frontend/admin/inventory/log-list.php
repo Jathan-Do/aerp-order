@@ -1,6 +1,12 @@
 <?php
 if (!defined('ABSPATH')) exit;
 $current_user = wp_get_current_user();
+$user_id = $current_user->ID;
+
+// Check if user is logged in and has admin capabilities
+if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+    wp_die(__('You do not have sufficient permissions to access this page.'));
+}
 $table = new AERP_Inventory_Log_Table();
 $table->process_bulk_action();
 $message = get_transient('aerp_inventory_log_message');
@@ -34,6 +40,29 @@ ob_start();
         </div>
     </div>
     <div class="card-body">
+        <!-- Filter Form -->
+        <form id="aerp-inventory-log-filter-form" class="row g-2 mb-3 aerp-table-ajax-form" data-table-wrapper="#aerp-inventory-log-table-wrapper" data-ajax-action="aerp_inventory_log_filter_inventory_logs">
+            <div class="col-12 col-md-3 mb-2">
+                <label for="filter-type" class="form-label mb-1">Loại phiếu</label>
+                <select id="filter-type" name="type" class="form-select">
+                    <option value="">-- Tất cả --</option>
+                    <option value="import">Nhập kho</option>
+                    <option value="export">Xuất kho</option>
+                    <option value="stocktake">Kiểm kho</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-3 mb-2">
+                <label for="filter-status" class="form-label mb-1">Trạng thái</label>
+                <select id="filter-status" name="status" class="form-select">
+                    <option value="">-- Tất cả --</option>
+                    <option value="confirmed">Đã xác nhận</option>
+                    <option value="draft">Nháp</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-1 d-flex align-items-end mb-2">
+                <button type="submit" class="btn btn-primary w-100">Lọc</button>
+            </div>
+        </form>
         <?php if ($message) {
             echo '<div class="notice notice-success alert alert-success alert-dismissible fade show" role="alert">' . esc_html($message) . '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
             delete_transient('aerp_inventory_log_message');

@@ -186,6 +186,8 @@ function aerp_inventory_log_filter_inventory_logs_callback()
         'paged' => intval($_POST['paged'] ?? 1),
         'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
         'order' => sanitize_text_field($_POST['order'] ?? ''),
+        'status' => sanitize_text_field($_POST['status'] ?? ''),
+        'type' => sanitize_text_field($_POST['type'] ?? ''),
     ];
     $table = new AERP_Inventory_Log_Table();
     $table->set_filters($filters);

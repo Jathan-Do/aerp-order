@@ -106,6 +106,22 @@ if (!function_exists('aerp_get_product')) {
     }
 }
 
+function aerp_get_stock_qty($product_id, $warehouse_id) {
+    global $wpdb;
+
+    $product_id = absint($product_id);
+    $warehouse_id = absint($warehouse_id);
+
+    if (!$product_id || !$warehouse_id) return 0;
+
+    $qty = $wpdb->get_var($wpdb->prepare(
+        "SELECT quantity FROM {$wpdb->prefix}aerp_product_stocks WHERE product_id = %d AND warehouse_id = %d",
+        $product_id,
+        $warehouse_id
+    ));
+
+    return ($qty !== null) ? intval($qty) : 0;
+}
 
 /**
  * Lấy danh sách trạng thái đơn hàng

@@ -2,6 +2,12 @@
 if (!defined('ABSPATH')) exit;
 
 $current_user = wp_get_current_user();
+$user_id = $current_user->ID;
+
+// Check if user is logged in and has admin capabilities
+if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+    wp_die(__('You do not have sufficient permissions to access this page.'));
+}
 AERP_Inventory_Transfer_Manager::handle_form_submit();
 $message = get_transient('aerp_inventory_transfer_message');
 ob_start();

@@ -14,10 +14,11 @@ class AERP_Product_Manager
             'name' => sanitize_text_field($_POST['name']),
             'sku' => sanitize_text_field($_POST['sku']),
             'price' => floatval($_POST['price']),
+            'whole_price' => floatval($_POST['whole_price']),
             'category_id' => isset($_POST['category_id']) ? intval($_POST['category_id']) : null,
             'unit_id' => isset($_POST['unit_id']) ? intval($_POST['unit_id']) : null,
         ];
-        $format = ['%s', '%s', '%f', '%d', '%d'];
+        $format = ['%s', '%s', '%f', '%f', '%d', '%d'];
         if ($id) {
             $wpdb->update($table, $data, ['id' => $id], $format, ['%d']);
             $msg = 'Đã cập nhật sản phẩm!';
@@ -62,29 +63,34 @@ class AERP_Product_Manager
         $unit_table = $wpdb->prefix . 'aerp_units';
         return $wpdb->get_row($wpdb->prepare("SELECT p.*, u.name as unit_name FROM $table p LEFT JOIN $unit_table u ON p.unit_id = u.id WHERE p.id = %d", $id));
     }
-    public static function get_all_categories() {
+    public static function get_all_categories()
+    {
         global $wpdb;
         $table = $wpdb->prefix . 'aerp_product_categories';
         return $wpdb->get_results("SELECT * FROM $table ORDER BY name ASC");
     }
-    public static function get_all_units() {
+    public static function get_all_units()
+    {
         global $wpdb;
         $table = $wpdb->prefix . 'aerp_units';
         return $wpdb->get_results("SELECT * FROM $table ORDER BY name ASC");
     }
-    public static function get_category_name($id) {
+    public static function get_category_name($id)
+    {
         global $wpdb;
         $table = $wpdb->prefix . 'aerp_product_categories';
         return $wpdb->get_var($wpdb->prepare("SELECT name FROM $table WHERE id = %d", $id));
     }
-    public static function get_unit_name($id) {
+    public static function get_unit_name($id)
+    {
         global $wpdb;
         $table = $wpdb->prefix . 'aerp_units';
         return $wpdb->get_var($wpdb->prepare("SELECT name FROM $table WHERE id = %d", $id));
     }
-    public static function get_product_name($id) {
+    public static function get_product_name($id)
+    {
         global $wpdb;
         $table = $wpdb->prefix . 'aerp_products';
         return $wpdb->get_var($wpdb->prepare("SELECT name FROM $table WHERE id = %d", $id));
     }
-} 
+}

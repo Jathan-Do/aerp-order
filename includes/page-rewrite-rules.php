@@ -136,6 +136,12 @@ add_action('template_redirect', function () {
             case 'add':
                 include AERP_ORDER_PATH . 'frontend/admin/inventory/log-form.php';
                 break;
+            case 'edit':
+                include AERP_ORDER_PATH . 'frontend/admin/inventory/log-form.php';
+                break;
+            case 'delete':
+                AERP_Inventory_Log_Manager::handle_single_delete();
+                return;
             default:
                 include AERP_ORDER_PATH . 'frontend/admin/inventory/log-list.php';
                 break;

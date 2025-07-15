@@ -91,6 +91,9 @@ function aerp_order_init()
         if (method_exists($manager, 'handle_delete')) {
             add_action('init', [$manager, 'handle_delete']);
         }
+        if (method_exists($manager, 'handle_confirm_submit')) {
+            add_action('init', [$manager, 'handle_confirm_submit']);
+        }
     }
 }
 add_action('plugins_loaded', 'aerp_order_init');

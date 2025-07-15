@@ -1,5 +1,11 @@
 <?php
 $current_user = wp_get_current_user();
+$user_id = $current_user->ID;
+
+// Check if user is logged in and has admin capabilities
+if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+    wp_die(__('You do not have sufficient permissions to access this page.'));
+}
 $table = new AERP_Frontend_Order_Table();
 $table->process_bulk_action();
 ob_start();

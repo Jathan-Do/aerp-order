@@ -4,6 +4,12 @@ $edit_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
 $edit_cat = $edit_id ? AERP_Category_Manager::get_by_id($edit_id) : null;
 $categories = AERP_Category_Manager::get_all();
 $current_user = wp_get_current_user();
+$user_id = $current_user->ID;
+
+// Check if user is logged in and has admin capabilities
+if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+    wp_die(__('You do not have sufficient permissions to access this page.'));
+}
 ob_start();
 ?>
 <div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">

@@ -1,6 +1,12 @@
 <?php
 if (!defined('ABSPATH')) exit;
 $current_user = wp_get_current_user();
+$user_id = $current_user->ID;
+
+// Check if user is logged in and has admin capabilities
+if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+    wp_die(__('You do not have sufficient permissions to access this page.'));
+}
 $order_id = get_query_var('aerp_order_id');
 $order = function_exists('aerp_get_order') ? aerp_get_order($order_id) : null;
 if (!$order) wp_die('Đơn hàng không tồn tại!');

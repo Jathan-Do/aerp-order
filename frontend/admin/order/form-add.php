@@ -108,7 +108,7 @@ ob_start();
                     <div id="order-items-container">
                         <div class="row mb-2 order-item-row">
                             <div class="col-md-3 mb-2">
-                                <label class="form-label">Sản phẩm trong đơn</label><label class="form-label">Sản phẩm trong đơn</label>
+                                <label class="form-label">Sản phẩm trong đơn</label>
                                 <input type="text" class="form-control product-name-input" name="order_items[0][product_name]" placeholder="Tên sản phẩm/dịch vụ" required>
                                 <select class="form-select product-select" name="order_items[0][product_id]" style="display:none;width:100%"></select>
                             </div>

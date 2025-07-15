@@ -1,7 +1,12 @@
 <?php
 if (!defined('ABSPATH')) exit;
 $current_user = wp_get_current_user();
-if (!is_user_logged_in()) wp_die('Bạn cần đăng nhập để truy cập.');
+$user_id = $current_user->ID;
+
+// Check if user is logged in and has admin capabilities
+if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+    wp_die(__('You do not have sufficient permissions to access this page.'));
+}
 $cat_table = new AERP_Category_Table();
 $cat_table->process_bulk_action();
 $message = get_transient('aerp_category_message');
