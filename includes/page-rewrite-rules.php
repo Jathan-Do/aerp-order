@@ -12,6 +12,7 @@ add_action('init', function () {
     add_rewrite_rule('^aerp-stocktake/?$', 'index.php?aerp_inventory_page=stocktake', 'top');
     add_rewrite_rule('^aerp-warehouses/?$', 'index.php?aerp_warehouse_page=warehouses', 'top');
     add_rewrite_rule('^aerp-inventory-transfers/?$', 'index.php?aerp_inventory_transfer_page=transfers', 'top');
+    add_rewrite_rule('^aerp-suppliers/?$', 'index.php?aerp_supplier_page=suppliers', 'top');
     $rules = get_option('rewrite_rules');
     if ($rules && !isset($rules['^aerp-order-orders/?$'])) {
         flush_rewrite_rules();
@@ -43,6 +44,9 @@ add_action('init', function () {
     if ($rules && !isset($rules['^aerp-inventory-transfers/?$'])) {
         flush_rewrite_rules();
     }
+    if ($rules && !isset($rules['^aerp-suppliers/?$'])) {
+        flush_rewrite_rules();
+    }
 });
 
 add_action('template_redirect', function () {
@@ -69,6 +73,7 @@ add_filter('query_vars', function ($vars) {
     $vars[] = 'aerp_inventory_page';
     $vars[] = 'aerp_warehouse_page';
     $vars[] = 'aerp_inventory_transfer_page';
+    $vars[] = 'aerp_supplier_page';
     return $vars;
 });
 
@@ -256,6 +261,28 @@ add_action('template_redirect', function () {
             exit;
         }
         exit;
+    }
+    $aerp_supplier_page = get_query_var('aerp_supplier_page');
+    if ($aerp_supplier_page === 'suppliers') {
+        $template_name = '';
+        switch ($action_from_get) {
+            case 'add':
+                $template_name = 'supplier/form.php';
+                break;
+            case 'edit':
+                $template_name = 'supplier/form.php';
+                break;
+            case 'delete':
+                AERP_Supplier_Manager::handle_single_delete();
+                return;
+            default:
+                $template_name = 'supplier/list.php';
+                break;
+        }
+        if ($template_name) {
+            include AERP_ORDER_PATH . 'frontend/admin/' . $template_name;
+            exit;
+        }
     }
 });
 

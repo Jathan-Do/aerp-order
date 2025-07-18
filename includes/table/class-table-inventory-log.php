@@ -14,11 +14,13 @@ class AERP_Inventory_Log_Table extends AERP_Frontend_Table
                 'quantity' => 'Số lượng',
                 'note' => 'Ghi chú',
                 'status' => 'Trạng thái',
+                'warehouse_id' => 'Kho',
+                'supplier_id' => 'Nhà cung cấp',
                 'created_by' => 'Người tạo',
                 'created_at' => 'Ngày tạo',
                 'action' => 'Thao tác',
             ],
-            'sortable_columns' => ['id', 'product_id', 'note', 'quantity', 'type', 'status'],
+            'sortable_columns' => ['id', 'product_id', 'note', 'quantity', 'type', 'status', 'warehouse_id', 'supplier_id'],
             'searchable_columns' => ['product_id', 'type', 'quantity'],
             'primary_key' => 'id',
             'per_page' => 10,
@@ -75,6 +77,16 @@ class AERP_Inventory_Log_Table extends AERP_Frontend_Table
         $user = get_userdata($item->created_by);
         return $user ? esc_html($user->display_name) : 'ID: ' . intval($item->created_by);
     }
+    protected function column_warehouse_id($item)
+    {
+        $warehouse = aerp_get_warehouse($item->warehouse_id);
+        return $warehouse ? esc_html($warehouse->name) : '--';
+    }
+    protected function column_supplier_id($item)
+    {
+        $supplier = aerp_get_supplier($item->supplier_id);
+        return $supplier ? esc_html($supplier->name) : '--';
+    }
     protected function get_extra_search_conditions($search_term)
     {
         global $wpdb;
@@ -99,6 +111,14 @@ class AERP_Inventory_Log_Table extends AERP_Frontend_Table
         if (!empty($this->filters['type'])) {
             $filters[] = "type = %s";
             $params[] = $this->filters['type'];
+        }
+        if (!empty($this->filters['warehouse_id'])) {
+            $filters[] = "warehouse_id = %d";
+            $params[] = $this->filters['warehouse_id'];
+        }
+        if (!empty($this->filters['supplier_id'])) {
+            $filters[] = "supplier_id = %d";
+            $params[] = $this->filters['supplier_id'];
         }
         return [$filters, $params];
     }

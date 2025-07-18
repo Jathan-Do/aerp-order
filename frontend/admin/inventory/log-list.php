@@ -42,7 +42,7 @@ ob_start();
     <div class="card-body">
         <!-- Filter Form -->
         <form id="aerp-inventory-log-filter-form" class="row g-2 mb-3 aerp-table-ajax-form" data-table-wrapper="#aerp-inventory-log-table-wrapper" data-ajax-action="aerp_inventory_log_filter_inventory_logs">
-            <div class="col-12 col-md-3 mb-2">
+            <div class="col-12 col-md-2 mb-2">
                 <label for="filter-type" class="form-label mb-1">Loại phiếu</label>
                 <select id="filter-type" name="type" class="form-select">
                     <option value="">-- Tất cả --</option>
@@ -51,12 +51,30 @@ ob_start();
                     <option value="stocktake">Kiểm kho</option>
                 </select>
             </div>
-            <div class="col-12 col-md-3 mb-2">
+            <div class="col-12 col-md-2 mb-2">
                 <label for="filter-status" class="form-label mb-1">Trạng thái</label>
                 <select id="filter-status" name="status" class="form-select">
                     <option value="">-- Tất cả --</option>
                     <option value="confirmed">Đã xác nhận</option>
                     <option value="draft">Nháp</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-2 mb-2">
+                <label for="filter-warehouse" class="form-label mb-1">Kho</label>
+                <select id="filter-warehouse" name="warehouse_id" class="form-select">
+                    <?php
+                    $warehouses = aerp_get_warehouses();
+                    aerp_safe_select_options($warehouses, $warehouse_id, 'id', 'name', true);
+                    ?>
+                </select>
+            </div>
+            <div class="col-12 col-md-2 mb-2">
+                <label for="filter-supplier" class="form-label mb-1">Nhà cung cấp</label>
+                <select id="filter-supplier" name="supplier_id" class="form-select">
+                    <?php
+                    $suppliers = aerp_get_suppliers();
+                    aerp_safe_select_options($suppliers, $supplier_id, 'id', 'name', true);
+                    ?>
                 </select>
             </div>
             <div class="col-12 col-md-1 d-flex align-items-end mb-2">

@@ -57,7 +57,7 @@ ob_start();
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="warehouse_id" class="form-label">Kho</label>
-                    <select class="form-select" id="warehouse_id" name="warehouse_id" required>
+                    <select class="form-select warehouse-select" id="warehouse_id" name="warehouse_id" required>
                         <option value="">-- Chọn kho --</option>
                         <?php foreach (AERP_Warehouse_Manager::get_all() as $w): ?>
                             <option value="<?php echo esc_attr($w->id); ?>" <?php selected($log && $log->warehouse_id == $w->id); ?>>
@@ -92,6 +92,19 @@ ob_start();
                     <label for="note" class="form-label">Ghi chú</label>
                     <textarea name="note" id="note" class="form-control" rows="1"><?php echo esc_textarea($log->note ?? ''); ?></textarea>
                 </div>
+                <?php if ($type === 'import'): ?>
+                <div class="col-md-6 mb-3">
+                    <label for="supplier_id" class="form-label">Nhà cung cấp</label>
+                    <select class="form-select supplier-select" id="supplier_id" name="supplier_id" required style="width:100%">
+                        <option value="">-- Chọn nhà cung cấp --</option>
+                        <?php foreach (AERP_Supplier_Manager::get_all() as $s): ?>
+                            <option value="<?php echo esc_attr($s->id); ?>" <?php selected($log && $log->supplier_id == $s->id); ?>>
+                                <?php echo esc_html($s->name); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php endif; ?>
             </div>
 
             <div class="d-flex gap-2">

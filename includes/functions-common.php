@@ -91,9 +91,11 @@ if (!function_exists('aerp_get_products_select2')) {
         return $wpdb->get_results(
             "SELECT p.*, u.name AS unit_name
          FROM {$wpdb->prefix}aerp_products p
-         LEFT JOIN {$wpdb->prefix}aerp_units u ON p.unit_id = u.id
-         WHERE 1=1 $where
-         ORDER BY p.name ASC"
+            INNER JOIN {$wpdb->prefix}aerp_product_stocks s ON p.id = s.product_id
+            LEFT JOIN {$wpdb->prefix}aerp_units u ON p.unit_id = u.id
+            WHERE 1=1 $where
+            GROUP BY p.id
+            ORDER BY p.name ASC"
         );
     }
 }
@@ -106,7 +108,8 @@ if (!function_exists('aerp_get_product')) {
     }
 }
 
-function aerp_get_stock_qty($product_id, $warehouse_id) {
+function aerp_get_stock_qty($product_id, $warehouse_id)
+{
     global $wpdb;
 
     $product_id = absint($product_id);
@@ -137,19 +140,60 @@ function aerp_get_order_status($status_id)
     return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}aerp_order_statuses WHERE id = %d", $status_id));
 }
 
-function aerp_get_warehouses() {
+function aerp_get_warehouses()
+{
     global $wpdb;
     return $wpdb->get_results("SELECT * FROM {$wpdb->prefix}aerp_warehouses ORDER BY name ASC");
 }
-function aerp_get_warehouse($id) {
+function aerp_get_warehouse($id)
+{
     global $wpdb;
     return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}aerp_warehouses WHERE id = %d", $id));
 }
 
-function aerp_get_product_stock($product_id, $warehouse_id) {
+function aerp_get_product_stock($product_id, $warehouse_id)
+{
     global $wpdb;
     return (int) $wpdb->get_var($wpdb->prepare(
         "SELECT quantity FROM {$wpdb->prefix}aerp_product_stocks WHERE product_id = %d AND warehouse_id = %d",
-        $product_id, $warehouse_id
+        $product_id,
+        $warehouse_id
     ));
+}
+
+function aerp_get_supplier($id)
+{
+    global $wpdb;
+    return $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}aerp_suppliers WHERE id = %d", $id));
+}
+function aerp_get_suppliers()
+{
+    global $wpdb;
+    return $wpdb->get_results("SELECT * FROM {$wpdb->prefix}aerp_suppliers ORDER BY name ASC");
+}
+if (!function_exists('aerp_get_warehouses_select2')) {
+    function aerp_get_warehouses_select2($q = '')
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'aerp_warehouses';
+        $sql = "SELECT id, name FROM $table";
+        if ($q) {
+            $sql .= $wpdb->prepare(" WHERE name LIKE %s", '%' . $wpdb->esc_like($q) . '%');
+        }
+        $sql .= " ORDER BY name ASC LIMIT 30";
+        return $wpdb->get_results($sql);
+    }
+}
+if (!function_exists('aerp_get_suppliers_select2')) {
+    function aerp_get_suppliers_select2($q = '')
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'aerp_suppliers';
+        $sql = "SELECT id, name FROM $table";
+        if ($q) {
+            $sql .= $wpdb->prepare(" WHERE name LIKE %s", '%' . $wpdb->esc_like($q) . '%');
+        }
+        $sql .= " ORDER BY name ASC LIMIT 30";
+        return $wpdb->get_results($sql);
+    }
 }

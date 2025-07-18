@@ -164,6 +164,48 @@ jQuery(document).ready(function ($) {
             },
             minimumInputLength: 0,
         });
+        // Select2 cho kho
+        $(".warehouse-select").select2({
+            placeholder: "Chọn kho",
+            allowClear: true,
+            ajax: {
+                url: aerp_order_ajax.ajaxurl,
+                dataType: "json",
+                delay: 250,
+                data: function (params) {
+                    return {
+                        action: "aerp_order_search_warehouses",
+                        q: params.term,
+                    };
+                },
+                processResults: function (data) {
+                    return { results: data };
+                },
+                cache: true,
+            },
+            minimumInputLength: 0,
+        });
+        // Select2 cho nhà cung cấp
+        $(".supplier-select").select2({
+            placeholder: "Chọn nhà cung cấp",
+            allowClear: true,
+            ajax: {
+                url: aerp_order_ajax.ajaxurl,
+                dataType: "json",
+                delay: 250,
+                data: function (params) {
+                    return {
+                        action: "aerp_order_search_suppliers",
+                        q: params.term,
+                    };
+                },
+                processResults: function (data) {
+                    return { results: data };
+                },
+                cache: true,
+            },
+            minimumInputLength: 0,
+        });
     });
 })(jQuery);
 

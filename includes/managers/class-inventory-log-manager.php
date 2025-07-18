@@ -14,6 +14,7 @@ class AERP_Inventory_Log_Manager
         $id = isset($_POST['log_id']) ? absint($_POST['log_id']) : 0;
         $product_id = absint($_POST['product_id']);
         $warehouse_id = absint($_POST['warehouse_id']);
+        $supplier_id = isset($_POST['supplier_id']) ? absint($_POST['supplier_id']) : null;
         $type = sanitize_text_field($_POST['type']);
         $quantity = intval($_POST['quantity']);
         $note = sanitize_textarea_field($_POST['note']);
@@ -23,13 +24,14 @@ class AERP_Inventory_Log_Manager
         $data = [
             'product_id'   => $product_id,
             'warehouse_id' => $warehouse_id,
+            'supplier_id'  => $supplier_id,
             'type'         => $type,
             'quantity'     => $quantity,
             'note'         => $note,
             'created_by'   => $created_by,
             'status'       => 'draft',
         ];
-        $format = ['%d', '%d', '%s', '%d', '%s', '%d', '%s'];
+        $format = ['%d', '%d', '%d', '%s', '%d', '%s', '%d', '%s'];
 
         if ($id) {
             $log = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d", $id));
@@ -67,6 +69,7 @@ class AERP_Inventory_Log_Manager
 
         $product_id   = isset($_POST['product_id'])   ? absint($_POST['product_id'])   : intval($log->product_id);
         $warehouse_id = isset($_POST['warehouse_id']) ? absint($_POST['warehouse_id']) : intval($log->warehouse_id);
+        $supplier_id  = isset($_POST['supplier_id'])  ? absint($_POST['supplier_id'])  : (isset($log->supplier_id) ? intval($log->supplier_id) : null);
         $note         = isset($_POST['note'])         ? sanitize_textarea_field($_POST['note']) : $log->note;
 
         $stock_table = $wpdb->prefix . 'aerp_product_stocks';
@@ -132,6 +135,7 @@ class AERP_Inventory_Log_Manager
             'note'     => $note,
             'product_id' => $product_id,
             'warehouse_id' => $warehouse_id,
+            'supplier_id' => $supplier_id,
             'status'   => 'confirmed'
         ], ['id' => $id]);
 

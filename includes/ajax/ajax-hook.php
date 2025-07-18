@@ -188,6 +188,8 @@ function aerp_inventory_log_filter_inventory_logs_callback()
         'order' => sanitize_text_field($_POST['order'] ?? ''),
         'status' => sanitize_text_field($_POST['status'] ?? ''),
         'type' => sanitize_text_field($_POST['type'] ?? ''),
+        'warehouse_id' => intval($_POST['warehouse_id'] ?? 0),
+        'supplier_id' => intval($_POST['supplier_id'] ?? 0),
     ];
     $table = new AERP_Inventory_Log_Table();
     $table->set_filters($filters);
@@ -287,3 +289,51 @@ function aerp_inventory_transfer_filter_inventory_transfers_callback()
     $html = ob_get_clean();
     wp_send_json_success(['html' => $html]);
 }
+
+add_action('wp_ajax_aerp_supplier_filter_suppliers', 'aerp_supplier_filter_suppliers_callback');
+add_action('wp_ajax_nopriv_aerp_supplier_filter_suppliers', 'aerp_supplier_filter_suppliers_callback');
+function aerp_supplier_filter_suppliers_callback()
+{
+    $filters = [
+        'search_term' => sanitize_text_field($_POST['s'] ?? ''),
+        'paged' => intval($_POST['paged'] ?? 1),
+        'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
+        'order' => sanitize_text_field($_POST['order'] ?? ''),
+    ];
+    $table = new AERP_Supplier_Table();
+    $table->set_filters($filters);
+    ob_start();
+    $table->render();
+    $html = ob_get_clean();
+    wp_send_json_success(['html' => $html]);
+}
+
+add_action('wp_ajax_aerp_order_search_warehouses', function() {
+    $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
+    $warehouses = function_exists('aerp_get_warehouses_select2') ? aerp_get_warehouses_select2($q) : [];
+    $results = [];
+    $count = 0;
+    foreach ($warehouses as $warehouse) {
+        $results[] = [
+            'id' => $warehouse->id,
+            'text' => $warehouse->name,
+        ];
+        if (!$q && ++$count >= 20) break;
+    }
+    wp_send_json($results);
+});
+add_action('wp_ajax_aerp_order_search_suppliers', function() {
+    $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
+    $suppliers = function_exists('aerp_get_suppliers_select2') ? aerp_get_suppliers_select2($q) : [];
+    $results = [];
+    $count = 0;
+    foreach ($suppliers as $supplier) {
+        $results[] = [
+            'id' => $supplier->id,
+            'text' => $supplier->name,
+        ];
+        if (!$q && ++$count >= 20) break;
+    }
+    wp_send_json($results);
+});
+

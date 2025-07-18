@@ -21,6 +21,7 @@ function aerp_order_get_table_names()
         $wpdb->prefix . 'aerp_product_stocks',
         $wpdb->prefix . 'aerp_inventory_transfers',
         $wpdb->prefix . 'aerp_inventory_transfer_items',
+        $wpdb->prefix . 'aerp_suppliers',
     ];
 }
 
@@ -167,6 +168,7 @@ function aerp_order_install_schema()
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         product_id BIGINT NOT NULL,
         warehouse_id BIGINT NOT NULL,
+        supplier_id BIGINT NULL,
         type ENUM('import','export','stocktake') NOT NULL,
         status ENUM('draft','confirmed') DEFAULT 'draft',
         quantity INT NOT NULL,
@@ -175,9 +177,22 @@ function aerp_order_install_schema()
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_product_id (product_id),
         INDEX idx_warehouse_id (warehouse_id),
+        INDEX idx_supplier_id (supplier_id),
         INDEX idx_type (type),
         INDEX idx_created_by (created_by),
         INDEX idx_created_at (created_at)
+    ) $charset_collate;";
+
+    // 7. Nhà cung cấp
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_suppliers (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        phone VARCHAR(50) DEFAULT NULL,
+        email VARCHAR(100) DEFAULT NULL,
+        address TEXT DEFAULT NULL,
+        note TEXT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_name (name)
     ) $charset_collate;";
 
     // 6b. Phiếu chuyển kho
