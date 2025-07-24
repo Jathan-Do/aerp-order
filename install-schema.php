@@ -22,6 +22,7 @@ function aerp_order_get_table_names()
         $wpdb->prefix . 'aerp_inventory_transfers',
         $wpdb->prefix . 'aerp_inventory_transfer_items',
         $wpdb->prefix . 'aerp_suppliers',
+        $wpdb->prefix . 'aerp_warehouse_managers',
     ];
 }
 
@@ -41,14 +42,12 @@ function aerp_order_install_schema()
         order_date DATE,
         total_amount FLOAT,
         status_id BIGINT,
-        order_type ENUM('service','product') DEFAULT 'product',
         note TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_order_code (order_code),
         INDEX idx_customer_id (customer_id),
         INDEX idx_employee_id (employee_id),
         INDEX idx_status_id (status_id),
-        INDEX idx_order_type (order_type),
         INDEX idx_created_at (created_at)
     ) $charset_collate;";
 
@@ -73,6 +72,7 @@ function aerp_order_install_schema()
         total_price FLOAT,
         unit_name VARCHAR(255),
         vat_percent FLOAT NULL,
+        item_type VARCHAR(20) DEFAULT 'product',
         INDEX idx_order_id (order_id),
         INDEX idx_product_id (product_id),
         INDEX idx_product_name (product_name)
@@ -216,6 +216,16 @@ function aerp_order_install_schema()
         quantity INT NOT NULL,
         INDEX idx_transfer_id (transfer_id),
         INDEX idx_product_id (product_id)
+    ) $charset_collate;";
+
+    // 8. Phân quyền quản lý kho cho user (nhiều-nhiều)
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_warehouse_managers (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        warehouse_id BIGINT NOT NULL,
+        UNIQUE KEY uq_user_warehouse (user_id, warehouse_id),
+        INDEX idx_user_id (user_id),
+        INDEX idx_warehouse_id (warehouse_id)
     ) $charset_collate;";
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';

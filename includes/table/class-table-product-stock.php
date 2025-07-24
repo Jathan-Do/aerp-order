@@ -46,4 +46,15 @@ class AERP_Product_Stock_Table extends AERP_Frontend_Table
     {
         return $item->warehouse_id ? esc_html(AERP_Warehouse_Manager::get_warehouse_name($item->warehouse_id)) : '';
     }
+    protected function get_extra_filters()
+    {
+        global $wpdb;
+        $filters = [];
+        $params = [];
+        if (!empty($this->filters['manager_user_id'])) {
+            $filters[] = "warehouse_id IN (SELECT warehouse_id FROM {$wpdb->prefix}aerp_warehouse_managers WHERE user_id = %d)";
+            $params[] = (int)$this->filters['manager_user_id'];
+        }
+        return [$filters, $params];
+    }
 }

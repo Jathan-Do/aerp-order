@@ -25,7 +25,6 @@ class AERP_Frontend_Order_Manager
 
         // 2. Chuẩn hóa dữ liệu
         $order_date = !empty($_POST['order_date']) ? sanitize_text_field($_POST['order_date']) : date('Y-m-d');
-        $order_type = !empty($_POST['order_type']) ? sanitize_text_field($_POST['order_type']) : 'product';
         
         if ($id) {
             // Cập nhật đơn hàng
@@ -39,9 +38,8 @@ class AERP_Frontend_Order_Manager
                 'status_id'     => $new_status,
                 'note'          => sanitize_textarea_field($_POST['note']),
                 'total_amount'  => $total_amount,
-                'order_type'    => $order_type,
             ];
-            $format = ['%d', '%d', '%s', '%s', '%s', '%f', '%s'];
+            $format = ['%d', '%d', '%s', '%s', '%s', '%f'];
             $wpdb->update($table, $data, ['id' => $id], $format, ['%d']);
             $order_id = $id;
             $msg = 'Đã cập nhật đơn hàng!';
@@ -68,7 +66,6 @@ class AERP_Frontend_Order_Manager
                 'order_date'    => $order_date,
                 'total_amount'  => $total_amount,
                 'status_id'     => sanitize_text_field($_POST['status_id']),
-                'order_type'    => $order_type,
                 'note'          => sanitize_textarea_field($_POST['note']),
                 'created_at'    => (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d H:i:s'),
             ];
@@ -95,7 +92,7 @@ class AERP_Frontend_Order_Manager
                     $product_name = sanitize_text_field($item['product_name'] ?? '');
                     $quantity = floatval($item['quantity'] ?? 0);
                     $unit_price = floatval($item['unit_price'] ?? 0);
-                    $product_id = isset($item['product_id']) && $order_type === 'product' && !empty($item['product_id']) ? absint($item['product_id']) : null;
+                    $product_id = isset($item['product_id']) && !empty($item['product_id']) ? absint($item['product_id']) : null;
                     $vat_percent = isset($item['vat_percent']) && $item['vat_percent'] !== '' ? floatval($item['vat_percent']) : null;
                     if (empty($product_name) || $quantity <= 0) continue; // Bỏ qua dòng trống
 
@@ -108,8 +105,9 @@ class AERP_Frontend_Order_Manager
                         'total_price'   => $quantity * $unit_price + ($quantity * $unit_price * $vat_percent / 100),
                         'unit_name'     => isset($item['unit_name']) ? sanitize_text_field($item['unit_name']) : '',
                         'vat_percent'   => $vat_percent,
+                        'item_type'     => isset($item['item_type']) ? sanitize_text_field($item['item_type']) : 'product',
                     ];
-                    $item_format = ['%d', '%d', '%s', '%f', '%f', '%f', '%s', '%f'];
+                    $item_format = ['%d', '%d', '%s', '%f', '%f', '%f', '%s', '%f', '%s'];
 
                     if ($item_id > 0 && in_array($item_id, $existing_item_ids, true)) {
                         // Cập nhật sản phẩm đã có

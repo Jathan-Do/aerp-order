@@ -1,14 +1,26 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+// Get current user
 $current_user = wp_get_current_user();
 $user_id = $current_user->ID;
 
-// Check if user is logged in and has admin capabilities
-if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+if (!is_user_logged_in()) {
+    wp_die(__('You must be logged in to access this page.'));
+}
+
+// Danh sách điều kiện, chỉ cần 1 cái đúng là qua
+$access_conditions = [
+    aerp_user_has_role($user_id, 'admin'),
+    aerp_user_has_role($user_id, 'department_lead'),
+    aerp_user_has_permission($user_id,'stock_transfer'),
+
+];
+if (!in_array(true, $access_conditions, true)) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
 $table = new AERP_Inventory_Transfer_Table();
+$table->set_filters(['manager_user_id' => $user_id]);
 $table->process_bulk_action();
 
 $message = get_transient('aerp_inventory_transfer_message');

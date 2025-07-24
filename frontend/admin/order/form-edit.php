@@ -1,8 +1,21 @@
 <?php
 if (!defined('ABSPATH')) exit;
+// Get current user
 $current_user = wp_get_current_user();
 $user_id = $current_user->ID;
-if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+
+if (!is_user_logged_in()) {
+    wp_die(__('You must be logged in to access this page.'));
+}
+
+// Danh sách điều kiện, chỉ cần 1 cái đúng là qua
+$access_conditions = [
+    aerp_user_has_role($user_id, 'admin'),
+    aerp_user_has_role($user_id, 'department_lead'),
+    aerp_user_has_permission($user_id,'order_edit'),
+
+];
+if (!in_array(true, $access_conditions, true)) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
 $edit_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
@@ -98,13 +111,6 @@ ob_start();
                         ?>
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label for="order_type" class="form-label">Loại đơn hàng</label>
-                    <select class="form-select" id="order_type" name="order_type" required>
-                        <option value="product" <?php selected($editing->order_type, 'product'); ?>>Đơn hàng bán hàng</option>
-                        <option value="service" <?php selected($editing->order_type, 'service'); ?>>Đơn hàng dịch vụ</option>
-                    </select>
-                </div>
                 <div class="col-12 mb-3">
                     <label class="form-label">Sản phẩm trong đơn</label>
                     <div id="order-items-container">
@@ -113,9 +119,27 @@ ob_start();
                             foreach ($order_items as $idx => $item) {
                                 echo '<div class="row mb-2 order-item-row">';
                                 echo '<input type="hidden" name="order_items[' . $idx . '][id]" value="' . esc_attr($item->id) . '">';
-                                echo '<input type="hidden" name="order_items[' . $idx . '][product_id]" value="' . esc_attr($item->product_id ?? '') . '" class="product-id-input">';
-                                echo '<div class="col-md-3 mb-2"><input type="text" class="form-control" name="order_items[' . $idx . '][product_name]" value="' . esc_attr($item->product_name) . '" placeholder="Tên sản phẩm" required></div>';
-                                echo '<div class="col-md-3 mb-2 d-flex align-items-center">';
+                                // Select loại sản phẩm/dịch vụ
+                                $item_type = isset($item->item_type) ? $item->item_type : ((empty($item->product_id)) ? 'service' : 'product');
+                                echo '<div class="col-md-2 mb-2">';
+                                echo '<select class="form-select item-type-select" name="order_items[' . $idx . '][item_type]">';
+                                echo '<option value="product"' . selected($item_type, 'product', false) . '>Sản phẩm</option>';
+                                echo '<option value="service"' . selected($item_type, 'service', false) . '>Dịch vụ</option>';
+                                echo '</select>';
+                                echo '</div>';
+                                // Tên sản phẩm/dịch vụ
+                                echo '<div class="col-md-3 mb-2">';
+                                echo '<input type="text" class="form-control product-name-input" name="order_items[' . $idx . '][product_name]" value="' . esc_attr($item->product_name) . '" placeholder="Tên sản phẩm/dịch vụ"' . ($item_type == 'product' ? ' style="display:none"' : '') . ' required>';
+                                // Select2 sản phẩm (ẩn nếu là dịch vụ)
+                                echo '<select class="form-select product-select-all-warehouses" name="order_items[' . $idx . '][product_id]" style="width:100%;' . ($item_type == 'service' ? 'display:none;' : '') . '">';
+                                if ($item_type == 'product' && !empty($item->product_id)) {
+                                    // Hiển thị option đã chọn
+                                    echo '<option value="' . esc_attr($item->product_id) . '" selected>' . esc_html($item->product_name) . '</option>';
+                                }
+                                echo '</select>';
+                                echo '</div>';
+                                // Số lượng, đơn giá, v.v. giữ nguyên
+                                echo '<div class="col-md-2 mb-2 d-flex align-items-center">';
                                 echo '<input type="number" class="form-control" name="order_items[' . $idx . '][quantity]" value="' . esc_attr($item->quantity) . '" placeholder="Số lượng" min="0.01" step="0.01" required>';
                                 echo '<span class="unit-label ms-2">' . esc_html($item->unit_name ?? '') . '</span>';
                                 echo '<input type="hidden" name="order_items[' . $idx . '][unit_name]" value="' . esc_attr($item->unit_name ?? '') . '" class="unit-name-input">';

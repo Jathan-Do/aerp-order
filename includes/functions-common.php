@@ -99,6 +99,25 @@ if (!function_exists('aerp_get_products_select2')) {
         );
     }
 }
+if (!function_exists('aerp_get_all_products_select2')) {
+    function aerp_get_all_products_select2($q = '')
+    {
+        global $wpdb;
+        $where = '';
+        if ($q !== '') {
+            $q_like = '%' . $wpdb->esc_like($q) . '%';
+            $where = $wpdb->prepare(" AND (p.name LIKE %s OR p.sku LIKE %s )", $q_like, $q_like);
+        }
+        return $wpdb->get_results(
+            "SELECT p.*, u.name AS unit_name
+             FROM {$wpdb->prefix}aerp_products p
+             LEFT JOIN {$wpdb->prefix}aerp_units u ON p.unit_id = u.id
+             WHERE 1=1 $where
+             ORDER BY p.name ASC
+             LIMIT 30"
+        );
+    }
+}
 
 if (!function_exists('aerp_get_product')) {
     function aerp_get_product($product_id)
@@ -145,6 +164,19 @@ function aerp_get_warehouses()
     global $wpdb;
     return $wpdb->get_results("SELECT * FROM {$wpdb->prefix}aerp_warehouses ORDER BY name ASC");
 }
+function aerp_get_warehouses_by_user($user_id)
+{
+    global $wpdb;
+    $table = $wpdb->prefix . 'aerp_warehouses';
+    $manager_table = $wpdb->prefix . 'aerp_warehouse_managers';
+    return $wpdb->get_results($wpdb->prepare(
+        "SELECT w.* FROM $table w
+                 INNER JOIN $manager_table m ON w.id = m.warehouse_id
+                 WHERE m.user_id = %d
+                 ORDER BY w.name ASC",
+        $user_id
+    ));
+}
 function aerp_get_warehouse($id)
 {
     global $wpdb;
@@ -184,6 +216,27 @@ if (!function_exists('aerp_get_warehouses_select2')) {
         return $wpdb->get_results($sql);
     }
 }
+if (!function_exists('aerp_get_warehouses_by_user_select2')) {
+    function aerp_get_warehouses_by_user_select2($q = '', $user_id = null)
+    {
+        global $wpdb;
+        if ($user_id === null) {
+            $user_id = get_current_user_id();
+        }
+        $table = $wpdb->prefix . 'aerp_warehouses';
+        $manager_table = $wpdb->prefix . 'aerp_warehouse_managers';
+        $sql = "SELECT w.id, w.name FROM $table w
+                INNER JOIN $manager_table m ON w.id = m.warehouse_id
+                WHERE m.user_id = %d";
+        $params = [$user_id];
+        if ($q) {
+            $sql .= " AND w.name LIKE %s";
+            $params[] = '%' . $wpdb->esc_like($q) . '%';
+        }
+        $sql .= " ORDER BY w.name ASC LIMIT 30";
+        return $wpdb->get_results($wpdb->prepare($sql, ...$params));
+    }
+}
 if (!function_exists('aerp_get_suppliers_select2')) {
     function aerp_get_suppliers_select2($q = '')
     {
@@ -195,5 +248,29 @@ if (!function_exists('aerp_get_suppliers_select2')) {
         }
         $sql .= " ORDER BY name ASC LIMIT 30";
         return $wpdb->get_results($sql);
+    }
+}
+
+if (!function_exists('aerp_get_products_in_warehouse_select2')) {
+    function aerp_get_products_in_warehouse_select2($warehouse_id, $q = '')
+    {
+        global $wpdb;
+        $where = '';
+        $params = [$warehouse_id];
+        if ($q !== '') {
+            $q_like = '%' . $wpdb->esc_like($q) . '%';
+            $where = " AND (p.name LIKE %s OR p.sku LIKE %s)";
+            $params[] = $q_like;
+            $params[] = $q_like;
+        }
+        $sql = "SELECT p.*, u.name AS unit_name
+                FROM {$wpdb->prefix}aerp_product_stocks s
+                INNER JOIN {$wpdb->prefix}aerp_products p ON s.product_id = p.id
+                LEFT JOIN {$wpdb->prefix}aerp_units u ON p.unit_id = u.id
+                WHERE s.warehouse_id = %d $where
+                GROUP BY p.id
+                ORDER BY p.name ASC
+                LIMIT 30";
+        return $wpdb->get_results($wpdb->prepare($sql, ...$params));
     }
 }

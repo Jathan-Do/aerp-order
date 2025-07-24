@@ -1,13 +1,27 @@
 <?php
 if (!defined('ABSPATH')) exit;
+// Get current user
 $current_user = wp_get_current_user();
 $user_id = $current_user->ID;
 
-// Check if user is logged in and has admin capabilities
-if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+if (!is_user_logged_in()) {
+    wp_die(__('You must be logged in to access this page.'));
+}
+
+// Danh sách điều kiện, chỉ cần 1 cái đúng là qua
+$access_conditions = [
+    aerp_user_has_role($user_id, 'admin'),
+    aerp_user_has_role($user_id, 'department_lead'),
+    aerp_user_has_permission($user_id,'stock_adjustment'),
+
+];
+if (!in_array(true, $access_conditions, true)) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
+$warehouse_id = isset($_GET['warehouse_id']) ? intval($_GET['warehouse_id']) : '';
+$supplier_id = isset($_GET['supplier_id']) ? intval($_GET['supplier_id']) : '';
 $table = new AERP_Inventory_Log_Table();
+$table->set_filters(['manager_user_id' => $user_id]);
 $table->process_bulk_action();
 $message = get_transient('aerp_inventory_log_message');
 ob_start();
@@ -42,6 +56,7 @@ ob_start();
     <div class="card-body">
         <!-- Filter Form -->
         <form id="aerp-inventory-log-filter-form" class="row g-2 mb-3 aerp-table-ajax-form" data-table-wrapper="#aerp-inventory-log-table-wrapper" data-ajax-action="aerp_inventory_log_filter_inventory_logs">
+            <input type="hidden" name="manager_user_id" value="<?php echo esc_attr($user_id); ?>">
             <div class="col-12 col-md-2 mb-2">
                 <label for="filter-type" class="form-label mb-1">Loại phiếu</label>
                 <select id="filter-type" name="type" class="form-select">
@@ -63,7 +78,7 @@ ob_start();
                 <label for="filter-warehouse" class="form-label mb-1">Kho</label>
                 <select id="filter-warehouse" name="warehouse_id" class="form-select">
                     <?php
-                    $warehouses = aerp_get_warehouses();
+                    $warehouses = aerp_get_warehouses_by_user($user_id);
                     aerp_safe_select_options($warehouses, $warehouse_id, 'id', 'name', true);
                     ?>
                 </select>

@@ -22,8 +22,23 @@ if (!class_exists('AERP_Warehouse_Manager')) {
                 $msg = 'Đã cập nhật kho!';
             } else {
                 $wpdb->insert($table, $data, $format);
+                $id = $wpdb->insert_id;
                 $msg = 'Đã thêm kho!';
             }
+            // --- Lưu user_ids vào bảng trung gian ---
+            $user_ids = isset($_POST['user_ids']) ? (array)$_POST['user_ids'] : [];
+            $user_ids = array_filter(array_map('intval', $user_ids));
+            $manager_table = $wpdb->prefix . 'aerp_warehouse_managers';
+            // Xóa hết user cũ của kho này
+            $wpdb->delete($manager_table, ['warehouse_id' => $id]);
+            // Thêm user mới
+            foreach ($user_ids as $user_id) {
+                $wpdb->insert($manager_table, [
+                    'user_id' => $user_id,
+                    'warehouse_id' => $id
+                ], ['%d', '%d']);
+            }
+            // --- END ---
             aerp_clear_table_cache();
             set_transient('aerp_warehouse_message', $msg, 10);
             wp_redirect(home_url('/aerp-warehouses'));
@@ -93,6 +108,19 @@ if (!class_exists('AERP_Warehouse_Manager')) {
                 );
             }
             return esc_html($warehouse->name . ($location_name ? " ({$location_name})" : ''));
+        }
+        public static function aerp_get_warehouses_by_user($user_id)
+        {
+            global $wpdb;
+            $table = $wpdb->prefix . 'aerp_warehouses';
+            $manager_table = $wpdb->prefix . 'aerp_warehouse_managers';
+            return $wpdb->get_results($wpdb->prepare(
+                "SELECT w.* FROM $table w
+                 INNER JOIN $manager_table m ON w.id = m.warehouse_id
+                 WHERE m.user_id = %d
+                 ORDER BY w.name ASC",
+                $user_id
+            ));
         }
     }
 }

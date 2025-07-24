@@ -86,8 +86,13 @@ class AERP_Inventory_Log_Manager
             $quantity = isset($_POST['quantity']) ? intval($_POST['quantity']) : intval($log->quantity);
         }
 
+        // Dùng chung logic kiểm tra $has_stock như phần kiểm kho
+        $has_stock = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $stock_table WHERE product_id = %d AND warehouse_id = %d",
+            $product_id, $warehouse_id
+        ));
         if ($type === 'import') {
-            if ($system_qty !== null) {
+            if ($has_stock) {
                 $wpdb->query($wpdb->prepare(
                     "UPDATE $stock_table SET quantity = quantity + %d, updated_at = %s WHERE product_id = %d AND warehouse_id = %d",
                     $quantity, $now, $product_id, $warehouse_id
@@ -110,10 +115,10 @@ class AERP_Inventory_Log_Manager
             ));
         } elseif ($type === 'stocktake') {
             $actual_qty = $system_qty + $quantity;
-            $has_stock = $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM $stock_table WHERE product_id = %d AND warehouse_id = %d",
-                $product_id, $warehouse_id
-            ));
+            // $has_stock = $wpdb->get_var($wpdb->prepare(
+            //     "SELECT COUNT(*) FROM $stock_table WHERE product_id = %d AND warehouse_id = %d",
+            //     $product_id, $warehouse_id
+            // ));
             if ($has_stock) {
                 $wpdb->update(
                     $stock_table,

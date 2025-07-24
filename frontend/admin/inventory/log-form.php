@@ -1,15 +1,32 @@
 <?php
 if (!defined('ABSPATH')) exit;
+// Get current user
 $current_user = wp_get_current_user();
 $user_id = $current_user->ID;
 
-// Check if user is logged in and has admin capabilities
-if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+if (!is_user_logged_in()) {
+    wp_die(__('You must be logged in to access this page.'));
+}
+
+// Danh sách điều kiện, chỉ cần 1 cái đúng là qua
+$access_conditions = [
+    aerp_user_has_role($user_id, 'admin'),
+    aerp_user_has_role($user_id, 'department_lead'),
+    aerp_user_has_permission($user_id, 'stock_adjustment'),
+
+];
+if (!in_array(true, $access_conditions, true)) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
-$type = isset($_GET['type']) && $_GET['type'] === 'export' ? 'export' : 'import';
 $id = isset($_GET['edit']) ? absint($_GET['edit']) : 0;
 $log = $id ? AERP_Inventory_Log_Manager::get_log_by_id($id) : null;
+if (isset($_GET['type']) && in_array($_GET['type'], ['import', 'export', 'stocktake'])) {
+    $type = $_GET['type'];
+} elseif ($log && isset($log->type)) {
+    $type = $log->type;
+} else {
+    $type = 'import';
+}
 ob_start();
 ?>
 <style>
@@ -57,9 +74,13 @@ ob_start();
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="warehouse_id" class="form-label">Kho</label>
-                    <select class="form-select warehouse-select" id="warehouse_id" name="warehouse_id" required>
+                    <select class="form-select warehouse-select-by-user" id="warehouse_id" name="warehouse_id" required>
                         <option value="">-- Chọn kho --</option>
-                        <?php foreach (AERP_Warehouse_Manager::get_all() as $w): ?>
+                        <?php
+                        $warehouses = function_exists('aerp_get_warehouses_by_user_select2')
+                            ? aerp_get_warehouses_by_user_select2($q, $user_id)
+                            : [];
+                        foreach ($warehouses as $w): ?>
                             <option value="<?php echo esc_attr($w->id); ?>" <?php selected($log && $log->warehouse_id == $w->id); ?>>
                                 <?php echo AERP_Warehouse_Manager::get_full_warehouse_name($w->id); ?>
                             </option>
@@ -69,7 +90,7 @@ ob_start();
 
                 <div class="col-md-6 mb-3">
                     <label for="product_id" class="form-label">Sản phẩm</label>
-                    <select class="form-select product-select" id="product_id" name="product_id" required style="width:100%">
+                    <select class="form-select <?php echo ($type !== 'import') ? 'product-select-by-warehouse' : 'product-select-all'; ?>" id="product_id" name="product_id" required style="width:100%">
                         <option value="">-- Chọn sản phẩm --</option>
                         <?php if ($log && $log->product_id): ?>
                             <?php $product = function_exists('aerp_get_product') ? aerp_get_product($log->product_id) : null; ?>
@@ -85,7 +106,7 @@ ob_start();
                 <div class="col-md-6 mb-3">
                     <label for="quantity" class="form-label">Số lượng</label>
                     <input type="number" name="quantity" id="quantity" class="form-control" min="1" required
-                           value="<?php echo esc_attr($log->quantity ?? ''); ?>">
+                        value="<?php echo esc_attr($log->quantity ?? ''); ?>">
                 </div>
 
                 <div class="col-md-6 mb-3">
@@ -93,17 +114,17 @@ ob_start();
                     <textarea name="note" id="note" class="form-control" rows="1"><?php echo esc_textarea($log->note ?? ''); ?></textarea>
                 </div>
                 <?php if ($type === 'import'): ?>
-                <div class="col-md-6 mb-3">
-                    <label for="supplier_id" class="form-label">Nhà cung cấp</label>
-                    <select class="form-select supplier-select" id="supplier_id" name="supplier_id" required style="width:100%">
-                        <option value="">-- Chọn nhà cung cấp --</option>
-                        <?php foreach (AERP_Supplier_Manager::get_all() as $s): ?>
-                            <option value="<?php echo esc_attr($s->id); ?>" <?php selected($log && $log->supplier_id == $s->id); ?>>
-                                <?php echo esc_html($s->name); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="supplier_id" class="form-label">Nhà cung cấp</label>
+                        <select class="form-select supplier-select" id="supplier_id" name="supplier_id" required style="width:100%">
+                            <option value="">-- Chọn nhà cung cấp --</option>
+                            <?php foreach (AERP_Supplier_Manager::get_all() as $s): ?>
+                                <option value="<?php echo esc_attr($s->id); ?>" <?php selected($log && $log->supplier_id == $s->id); ?>>
+                                    <?php echo esc_html($s->name); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 <?php endif; ?>
             </div>
 

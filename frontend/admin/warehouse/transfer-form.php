@@ -1,11 +1,22 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+// Get current user
 $current_user = wp_get_current_user();
 $user_id = $current_user->ID;
 
-// Check if user is logged in and has admin capabilities
-if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+if (!is_user_logged_in()) {
+    wp_die(__('You must be logged in to access this page.'));
+}
+
+// Danh sách điều kiện, chỉ cần 1 cái đúng là qua
+$access_conditions = [
+    aerp_user_has_role($user_id, 'admin'),
+    aerp_user_has_role($user_id, 'department_lead'),
+    aerp_user_has_permission($user_id,'stock_transfer'),
+
+];
+if (!in_array(true, $access_conditions, true)) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
 AERP_Inventory_Transfer_Manager::handle_form_submit();
@@ -56,9 +67,12 @@ ob_start();
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Kho xuất</label>
+                    <?php
+                    $warehouses = AERP_Warehouse_Manager::aerp_get_warehouses_by_user($user_id);
+                    ?>
                     <select name="from_warehouse_id" class="form-select" required>
                         <option value="">-- Chọn kho xuất --</option>
-                        <?php foreach (AERP_Warehouse_Manager::get_all() as $w): ?>
+                        <?php foreach ($warehouses as $w): ?>
                             <option value="<?php echo esc_attr($w->id); ?>">
                                 <?php echo AERP_Warehouse_Manager::get_full_warehouse_name($w->id); ?>
                             </option>
@@ -102,7 +116,42 @@ ob_start();
 </div>
 <script>
     jQuery(function($) {
-        initAerpProductSelect2('.transfer-item-row .product-select');
+        function initProductSelect2($selector, warehouseId) {
+            $selector.select2({
+                placeholder: '-- Chọn sản phẩm --',
+                allowClear: true,
+                ajax: {
+                    url: (typeof aerp_order_ajax !== 'undefined' ? aerp_order_ajax.ajaxurl : ajaxurl),
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            action: 'aerp_order_search_products_in_warehouse',
+                            warehouse_id: warehouseId,
+                            q: params.term || ''
+                        };
+                    },
+                    processResults: function(data) {
+                        return { results: data };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 0
+            });
+        }
+        function reinitAllProductSelects() {
+            var warehouseId = $("select[name='from_warehouse_id']").val();
+            $(".product-select").each(function() {
+                if ($(this).hasClass('select2-hidden-accessible')) {
+                    $(this).select2('destroy');
+                }
+                initProductSelect2($(this), warehouseId);
+            });
+        }
+        reinitAllProductSelects();
+        $("select[name='from_warehouse_id']").on('change', function() {
+            reinitAllProductSelects();
+        });
         $('#add-transfer-item').on('click', function() {
             var idx = $('#transfer-items-container .transfer-item-row').length;
             var row = `<div class="row transfer-item-row">
@@ -117,9 +166,9 @@ ob_start();
         </div>
     </div>`;
             $('#transfer-items-container').append(row);
-            initAerpProductSelect2(`#transfer-items-container .transfer-item-row:last .product-select`);
+            var warehouseId = $("select[name='from_warehouse_id']").val();
+            initProductSelect2($('#transfer-items-container .transfer-item-row:last .product-select'), warehouseId);
         });
-
         $(document).on('click', '.remove-transfer-item', function() {
             $(this).closest('.transfer-item-row').remove();
         });

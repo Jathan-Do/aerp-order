@@ -1,15 +1,47 @@
 <?php
+// Get current user
 $current_user = wp_get_current_user();
 $user_id = $current_user->ID;
 
-// Check if user is logged in and has admin capabilities
-if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+if (!is_user_logged_in()) {
+    wp_die(__('You must be logged in to access this page.'));
+}
+
+// Danh sách điều kiện, chỉ cần 1 cái đúng là qua
+$access_conditions = [
+    aerp_user_has_role($user_id, 'admin'),
+    aerp_user_has_role($user_id, 'department_lead'),
+    aerp_user_has_permission($user_id,'order_view'),
+
+];
+if (!in_array(true, $access_conditions, true)) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
 $table = new AERP_Frontend_Order_Table();
 $table->process_bulk_action();
 ob_start();
 ?>
+<style>
+    .select2-container--default .select2-selection--single {
+        border: 1px solid #dee2e6 !important;
+        border-radius: 0.375rem !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        padding: 6px 12px !important;
+        background: #fff !important;
+        font-size: 1rem !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 24px !important;
+        padding-left: 0 !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px !important;
+        right: 0.75rem !important;
+    }
+</style>
 <div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
     <h2>Quản lý đơn hàng</h2>
     <div class="user-info text-end">
@@ -45,7 +77,7 @@ ob_start();
             </div>
             <div class="col-12 col-md-2 mb-2">
                 <label for="filter-employee" class="form-label mb-1">Nhân viên</label>
-                <select id="filter-employee" name="employee_id" class="form-select">
+                <select id="filter-employee" name="employee_id" class="form-select employee-select">
                     <?php
                     $employees = function_exists('aerp_get_order_assigned_employees') ? aerp_get_order_assigned_employees() : [];
                     aerp_safe_select_options($employees, '', 'user_id', 'full_name', true);
@@ -54,7 +86,7 @@ ob_start();
             </div>
             <div class="col-12 col-md-2 mb-2">
                 <label for="filter-customer" class="form-label mb-1">Khách hàng</label>
-                <select id="filter-customer" name="customer_id" class="form-select">
+                <select id="filter-customer" name="customer_id" class="form-select customer-select">
                     <?php
                     $customers = function_exists('aerp_get_customers') ? aerp_get_customers() : [];
                     aerp_safe_select_options($customers, '', 'id', 'full_name', true);
@@ -67,6 +99,7 @@ ob_start();
                     <option value="">Tất cả loại</option>
                     <option value="product">Bán hàng</option>
                     <option value="service">Dịch vụ</option>
+                    <option value="mixed">Tổng hợp</option>
                 </select>
             </div>
             <div class="col-12 col-md-1 d-flex align-items-end mb-2">

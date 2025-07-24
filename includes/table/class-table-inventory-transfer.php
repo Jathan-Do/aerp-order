@@ -72,18 +72,18 @@ class AERP_Inventory_Transfer_Table extends AERP_Frontend_Table
     {
         global $wpdb;
         $search_term = '%' . $wpdb->esc_like($search_term) . '%';
-    
+
         $extra = [];
         $params = [];
-    
+
         // Search tên kho xuất
         $extra[] = "from_warehouse_id IN (SELECT id FROM {$wpdb->prefix}aerp_warehouses WHERE name LIKE %s)";
         $params[] = $search_term;
-    
+
         // Search tên kho nhập
         $extra[] = "to_warehouse_id IN (SELECT id FROM {$wpdb->prefix}aerp_warehouses WHERE name LIKE %s)";
         $params[] = $search_term;
-    
+
         // ✅ Search sản phẩm
         $extra[] = "{$this->primary_key} IN (
             SELECT transfer_id 
@@ -92,8 +92,20 @@ class AERP_Inventory_Transfer_Table extends AERP_Frontend_Table
             WHERE p.name LIKE %s
         )";
         $params[] = $search_term;
-    
+
         return [$extra, $params];
     }
-    
+    protected function get_extra_filters()
+    {
+        global $wpdb;
+        $filters = [];
+        $params = [];
+        if (!empty($this->filters['manager_user_id'])) {
+            $filters[] = "(from_warehouse_id IN (SELECT warehouse_id FROM {$wpdb->prefix}aerp_warehouse_managers WHERE user_id = %d)
+                          OR to_warehouse_id IN (SELECT warehouse_id FROM {$wpdb->prefix}aerp_warehouse_managers WHERE user_id = %d))";
+            $params[] = (int)$this->filters['manager_user_id'];
+            $params[] = (int)$this->filters['manager_user_id'];
+        }
+        return [$filters, $params];
+    }
 }

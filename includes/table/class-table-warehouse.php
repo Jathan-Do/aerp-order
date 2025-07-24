@@ -4,8 +4,9 @@ class AERP_Warehouse_Table extends AERP_Frontend_Table
 {
     public function __construct()
     {
+        global $wpdb;
         parent::__construct([
-            'table_name' => $GLOBALS['wpdb']->prefix . 'aerp_warehouses',
+            'table_name' => $wpdb->prefix . 'aerp_warehouses',
             'columns' => [
                 'name' => 'Tên kho',
                 'work_location_id' => 'Vị trí',
@@ -24,6 +25,17 @@ class AERP_Warehouse_Table extends AERP_Frontend_Table
             'ajax_action' => 'aerp_warehouse_filter_warehouses',
             'table_wrapper' => '#aerp-warehouse-table-wrapper',
         ]);
+    }
+    protected function get_extra_filters()
+    {
+        global $wpdb;
+        $filters = [];
+        $params = [];
+        if (!empty($this->filters['manager_user_id'])) {
+            $filters[] = "id IN (SELECT warehouse_id FROM {$wpdb->prefix}aerp_warehouse_managers WHERE user_id = %d)";
+            $params[] = (int)$this->filters['manager_user_id'];
+        }
+        return [$filters, $params];
     }
     protected function column_work_location_id($item)
     {

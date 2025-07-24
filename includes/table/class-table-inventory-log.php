@@ -8,7 +8,7 @@ class AERP_Inventory_Log_Table extends AERP_Frontend_Table
         parent::__construct([
             'table_name' => $GLOBALS['wpdb']->prefix . 'aerp_inventory_logs',
             'columns' => [
-                'id' => 'ID',
+                // 'id' => 'ID',
                 'product_id' => 'Sản phẩm',
                 'type' => 'Loại phiếu',
                 'quantity' => 'Số lượng',
@@ -119,6 +119,10 @@ class AERP_Inventory_Log_Table extends AERP_Frontend_Table
         if (!empty($this->filters['supplier_id'])) {
             $filters[] = "supplier_id = %d";
             $params[] = $this->filters['supplier_id'];
+        }
+        if (!empty($this->filters['manager_user_id'])) {
+            $filters[] = "warehouse_id IN (SELECT warehouse_id FROM {$GLOBALS['wpdb']->prefix}aerp_warehouse_managers WHERE user_id = %d)";
+            $params[] = (int)$this->filters['manager_user_id'];
         }
         return [$filters, $params];
     }

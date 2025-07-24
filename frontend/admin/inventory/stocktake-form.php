@@ -1,8 +1,21 @@
 <?php
 if (!defined('ABSPATH')) exit;
+// Get current user
 $current_user = wp_get_current_user();
 $user_id = $current_user->ID;
-if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+
+if (!is_user_logged_in()) {
+    wp_die(__('You must be logged in to access this page.'));
+}
+
+// Danh sách điều kiện, chỉ cần 1 cái đúng là qua
+$access_conditions = [
+    aerp_user_has_role($user_id, 'admin'),
+    aerp_user_has_role($user_id, 'department_lead'),
+    aerp_user_has_permission($user_id,'stocktake'),
+
+];
+if (!in_array(true, $access_conditions, true)) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
 $id = isset($_GET['edit']) ? absint($_GET['edit']) : 0;
@@ -70,7 +83,7 @@ ob_start();
                 <!-- Chọn kho -->
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Kho</label>
-                    <select class="form-select warehouse-select" name="warehouse_id" required>
+                    <select class="form-select warehouse-select-by-user" name="warehouse_id" required>
                         <option value="">-- Chọn kho --</option>
                         <?php foreach (AERP_Warehouse_Manager::get_all() as $w): ?>
                             <option value="<?php echo esc_attr($w->id); ?>" <?php selected($log && $log->warehouse_id == $w->id); ?>>
@@ -83,7 +96,7 @@ ob_start();
                 <!-- Chọn sản phẩm -->
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Sản phẩm</label>
-                    <select class="form-select product-select" name="product_id" required style="width:100%">
+                    <select class="form-select product-select-by-warehouse" name="product_id" required style="width:100%">
                         <option value="">-- Chọn sản phẩm --</option>
                         <?php if ($log && $log->product_id): ?>
                             <?php $product = function_exists('aerp_get_product') ? aerp_get_product($log->product_id) : null; ?>
@@ -130,8 +143,8 @@ ob_start();
 <script>
     jQuery(function($) {
         function initSelect2() {
-            $('.product-select').select2({
-                placeholder: '-- Chọn sản phẩm --',
+            $('.product-select-by-warehouse').select2({
+                placeholder: '-- Chọn sản phẩm trong kho --',
                 allowClear: true,
                 ajax: {
                     url: (typeof aerp_order_ajax !== 'undefined' ? aerp_order_ajax.ajaxurl : ajaxurl),
@@ -139,8 +152,9 @@ ob_start();
                     delay: 250,
                     data: function(params) {
                         return {
-                            action: 'aerp_order_search_products',
-                            q: params.term || ''
+                            action: "aerp_order_search_products_in_warehouse",
+                            warehouse_id: $("select[name='warehouse_id']").val(), // <-- lấy động mỗi lần gọi ajax
+                            q: params.term || "",
                         };
                     },
                     processResults: function(data) {
@@ -153,9 +167,9 @@ ob_start();
                 minimumInputLength: 0
             });
 
-            $('.product-select').on('select2:select', function(e) {
+            $('.product-select-by-warehouse').on('select2:select', function(e) {
                 const product_id = e.params.data.id;
-                const warehouse_id = $('.warehouse-select').val();
+                const warehouse_id = $('.warehouse-select-by-user').val();
                 const $qty = $('.system-qty');
 
                 if (!warehouse_id) {

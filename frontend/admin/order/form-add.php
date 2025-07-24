@@ -1,10 +1,24 @@
 <?php
 if (!defined('ABSPATH')) exit;
+// Get current user
 $current_user = wp_get_current_user();
 $user_id = $current_user->ID;
-if (!is_user_logged_in() || !aerp_user_has_role($user_id, 'admin')) {
+
+if (!is_user_logged_in()) {
+    wp_die(__('You must be logged in to access this page.'));
+}
+
+// Danh sách điều kiện, chỉ cần 1 cái đúng là qua
+$access_conditions = [
+    aerp_user_has_role($user_id, 'admin'),
+    aerp_user_has_role($user_id, 'department_lead'),
+    aerp_user_has_permission($user_id, 'order_add'),
+
+];
+if (!in_array(true, $access_conditions, true)) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
+
 $date_now = date('Y-m-d');
 ob_start();
 ?>
@@ -97,22 +111,22 @@ ob_start();
                         ?>
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label for="order_type" class="form-label">Loại đơn hàng</label>
-                    <select class="form-select" id="order_type" name="order_type" required>
-                        <option value="product">Đơn hàng bán hàng</option>
-                        <option value="service">Đơn hàng dịch vụ</option>
-                    </select>
-                </div>
                 <div class="col-12 mb-3">
                     <div id="order-items-container">
                         <div class="row mb-2 order-item-row">
+                            <div class="col-md-2 mb-2">
+                                <label class="form-label">Loại</label>
+                                <select class="form-select item-type-select" name="order_items[0][item_type]">
+                                    <option value="product">Sản phẩm</option>
+                                    <option value="service">Dịch vụ</option>
+                                </select>
+                            </div>
                             <div class="col-md-3 mb-2">
                                 <label class="form-label">Sản phẩm trong đơn</label>
-                                <input type="text" class="form-control product-name-input" name="order_items[0][product_name]" placeholder="Tên sản phẩm/dịch vụ" required>
-                                <select class="form-select product-select" name="order_items[0][product_id]" style="display:none;width:100%"></select>
+                                <input type="text" class="form-control product-name-input" name="order_items[0][product_name]" placeholder="Tên sản phẩm/dịch vụ" required style="display:none">
+                                <select class="form-select product-select-all-warehouses" name="order_items[0][product_id]" style="width:100%"></select>
                             </div>
-                            <div class="col-md-3 mb-2 d-flex align-items-end">
+                            <div class="col-md-2 mb-2 d-flex align-items-end">
                                 <div class="w-100">
                                     <label class="form-label">Số lượng</label>
                                     <input type="number" class="form-control" name="order_items[0][quantity]" placeholder="Số lượng" min="0.01" step="0.01" required>
