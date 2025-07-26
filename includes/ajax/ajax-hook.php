@@ -172,24 +172,6 @@ add_action('wp_ajax_aerp_order_search_customers', function() {
     }
     wp_send_json($results);
 });
-add_action('wp_ajax_aerp_order_search_employees', function() {
-    $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
-    $employees = function_exists('aerp_get_employees_with_location_select2') ? aerp_get_employees_with_location_select2($q) : [];
-    $results = [];
-    $count = 0;
-    foreach ($employees as $employee) {
-        $display_name = $employee->full_name;
-        if (!empty($employee->work_location_name)) {
-            $display_name .= ' - ' . $employee->work_location_name;
-        }
-        $results[] = [
-            'id' => $employee->user_id,
-            'text' => $display_name,
-        ];
-        if (!$q && ++$count >= 20) break;
-    }
-    wp_send_json($results);
-});
 
 
 add_action('wp_ajax_aerp_inventory_log_filter_inventory_logs', 'aerp_inventory_log_filter_inventory_logs_callback');
