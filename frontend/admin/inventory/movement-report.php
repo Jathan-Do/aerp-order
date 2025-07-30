@@ -133,12 +133,12 @@ ob_start();
 
             <div class="col-md-2">
                 <label for="start_date" class="form-label">Từ ngày</label>
-                <input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo esc_attr($start_date); ?>">
+                <input type="date" class="form-control bg-body" id="start_date" name="start_date" value="<?php echo esc_attr($start_date); ?>">
             </div>
 
             <div class="col-md-2">
                 <label for="end_date" class="form-label">Đến ngày</label>
-                <input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo esc_attr($end_date); ?>">
+                <input type="date" class="form-control bg-body" id="end_date" name="end_date" value="<?php echo esc_attr($end_date); ?>">
             </div>
 
             <div class="col-md-2">
