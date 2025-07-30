@@ -19,8 +19,14 @@ $access_conditions = [
 if (!in_array(true, $access_conditions, true)) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
+// Lấy employee_id từ user_id
+global $wpdb;
+$employee_id = $wpdb->get_var($wpdb->prepare(
+    "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+    $user_id
+));
 $table = new AERP_Inventory_Transfer_Table();
-$table->set_filters(['manager_user_id' => $user_id]);
+$table->set_filters(['manager_user_id' => $employee_id]);
 $table->process_bulk_action();
 
 $message = get_transient('aerp_inventory_transfer_message');

@@ -53,12 +53,13 @@ function aerp_order_init()
     require_once AERP_ORDER_PATH . 'includes/table/class-table-product-stock.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-inventory-transfer.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-supplier.php';
-    
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-low-stock.php';
     // Load các class cần thiết manager
     $includes = [
         'class-frontend-order-manager.php',
         'class-product-manager.php',
         'class-inventory-log-manager.php',
+        'class-inventory-report-manager.php',
         'class-unit-manager.php',
         'class-category-manager.php',
         'class-order-status-manager.php',
@@ -76,6 +77,7 @@ function aerp_order_init()
         'AERP_Frontend_Order_Manager',
         'AERP_Product_Manager',
         'AERP_Inventory_Log_Manager',
+        'AERP_Inventory_Report_Manager',
         'AERP_Unit_Manager',
         'AERP_Category_Manager',
         'AERP_Order_Status_Manager',
@@ -130,3 +132,4 @@ add_action('wp_enqueue_scripts', function () {
 
 // Ajax hooks nếu có
 require_once AERP_ORDER_PATH . 'includes/ajax/ajax-hook.php';
+require_once AERP_ORDER_PATH . 'includes/ajax/class-inventory-report-ajax.php';

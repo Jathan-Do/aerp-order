@@ -18,8 +18,14 @@ $access_conditions = [
 if (!in_array(true, $access_conditions, true)) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
+// Lấy employee_id từ user_id
+global $wpdb;
+$employee_id = $wpdb->get_var($wpdb->prepare(
+    "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+    $user_id
+));
 $table = new AERP_Product_Stock_Table();
-$table->set_filters(['manager_user_id' => $user_id]);
+$table->set_filters(['manager_user_id' => $employee_id]);
 $table->process_bulk_action();
 ob_start();
 $message = get_transient('aerp_product_stock_message');
@@ -37,6 +43,9 @@ $message = get_transient('aerp_product_stock_message');
     <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
         <h5 class="mb-0">Tồn kho tại kho</h5>
         <div class="d-flex gap-2 flex-column flex-md-row">
+            <a href="<?php echo home_url('/aerp-stock-timeline'); ?>" class="btn btn-primary">
+                <i class="fas fa-chart-line"></i> Báo cáo tồn kho
+            </a>
             <a href="<?php echo esc_url(home_url('/aerp-inventory-logs')); ?>" class="btn btn-success">
                 <i class="fas fa-plus"></i> Nhập/ Xuất kho
             </a>

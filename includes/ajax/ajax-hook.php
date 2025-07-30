@@ -426,14 +426,14 @@ add_action('wp_ajax_aerp_get_users_by_work_location', function() {
     
     // Lấy branch của user hiện tại
     $current_user_branch = $wpdb->get_var($wpdb->prepare(
-        "SELECT work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+        "SELECT work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE id = %d",
         $current_user_id
     ));
     
-    $sql = "SELECT e.user_id, e.full_name, wl.name AS work_location_name 
+    $sql = "SELECT e.id, e.full_name, wl.name AS work_location_name 
             FROM {$wpdb->prefix}aerp_hrm_employees e
             LEFT JOIN {$wpdb->prefix}aerp_hrm_work_locations wl ON e.work_location_id = wl.id
-            WHERE 1=1";
+            WHERE 1=1 AND e.status = 'active'";
     $params = [];
     
     // Filter theo branch của user hiện tại (nếu có)
@@ -463,10 +463,32 @@ add_action('wp_ajax_aerp_get_users_by_work_location', function() {
             $display_name .= ' - ' . $user->work_location_name;
         }
         $results[] = [
-            'id' => $user->user_id,
+            'id' => $user->id,
             'text' => $display_name,
         ];
     }
     wp_send_json($results);
 });
 
+add_action('wp_ajax_aerp_low_stock_filter_table', 'aerp_low_stock_filter_table_callback');
+add_action('wp_ajax_nopriv_aerp_low_stock_filter_table', 'aerp_low_stock_filter_table_callback');
+function aerp_low_stock_filter_table_callback()
+{
+    $filters = [
+        'search_term' => sanitize_text_field($_POST['s'] ?? ''),
+        'paged' => intval($_POST['paged'] ?? 1),
+        'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
+        'order' => sanitize_text_field($_POST['order'] ?? ''),
+        'warehouse_id' => intval($_POST['warehouse_id'] ?? 0),
+        'product_id' => intval($_POST['product_id'] ?? 0),
+        'threshold' => intval($_POST['threshold'] ?? get_option('aerp_low_stock_threshold', 10)),
+        'manager_user_id' => get_current_user_id(),
+    ];
+    
+    $table = new AERP_Low_Stock_Table();
+    $table->set_filters($filters);
+    ob_start();
+    $table->render();
+    $html = ob_get_clean();
+    wp_send_json_success(['html' => $html]);
+}

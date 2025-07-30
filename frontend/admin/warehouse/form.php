@@ -36,11 +36,21 @@ if ($is_edit && $warehouse) {
     if (!empty($user_ids_selected)) {
         $placeholders = implode(',', array_fill(0, count($user_ids_selected), '%d'));
         $users = $wpdb->get_results($wpdb->prepare(
-            "SELECT user_id, full_name FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id IN ($placeholders)",
+            "SELECT e.id, e.full_name, wl.name as work_location_name
+             FROM {$wpdb->prefix}aerp_hrm_employees e
+             LEFT JOIN {$wpdb->prefix}aerp_hrm_work_locations wl ON e.work_location_id = wl.id
+             WHERE e.id IN ($placeholders)",
             ...$user_ids_selected
         ));
         foreach ($users as $u) {
-            $selected_users[] = ['id' => $u->user_id, 'text' => $u->full_name];
+            $display = $u->full_name;
+            if (!empty($u->work_location_name)) {
+                $display .= ' - ' . $u->work_location_name;
+            }
+            $selected_users[] = [
+                'id' => $u->id,
+                'text' => $display,
+            ];
         }
     }
 }
@@ -101,7 +111,7 @@ ob_start();
     <div class="card-body">
         <form method="post">
             <?php wp_nonce_field('aerp_save_warehouse_action', 'aerp_save_warehouse_nonce'); ?>
-            <?php if ($is_edit): ?><input type="hidden" name="edit_id" value="<?php echo esc_attr($warehouse->id); ?>"><?php endif; ?>
+            <?php if ($is_edit): ?><input type="hidden" name="id" value="<?php echo esc_attr($warehouse->id); ?>"><?php endif; ?>
             <div class="mb-3">
                 <label class="form-label">Tên kho</label>
                 <input type="text" name="name" class="form-control" value="<?php echo esc_attr($warehouse->name ?? ''); ?>" required>

@@ -13,6 +13,10 @@ add_action('init', function () {
     add_rewrite_rule('^aerp-warehouses/?$', 'index.php?aerp_warehouse_page=warehouses', 'top');
     add_rewrite_rule('^aerp-inventory-transfers/?$', 'index.php?aerp_inventory_transfer_page=transfers', 'top');
     add_rewrite_rule('^aerp-suppliers/?$', 'index.php?aerp_supplier_page=suppliers', 'top');
+    // Routes cho báo cáo kho
+    add_rewrite_rule('^aerp-stock-timeline/?$', 'index.php?aerp_report_page=stock_timeline', 'top');
+    add_rewrite_rule('^aerp-movement-report/?$', 'index.php?aerp_report_page=movement_report', 'top');
+    add_rewrite_rule('^aerp-low-stock-alert/?$', 'index.php?aerp_report_page=low_stock_alert', 'top');
     $rules = get_option('rewrite_rules');
     if ($rules && !isset($rules['^aerp-order-orders/?$'])) {
         flush_rewrite_rules();
@@ -47,6 +51,15 @@ add_action('init', function () {
     if ($rules && !isset($rules['^aerp-suppliers/?$'])) {
         flush_rewrite_rules();
     }
+    if ($rules && !isset($rules['^aerp-stock-timeline/?$'])) {
+        flush_rewrite_rules();
+    }
+    if ($rules && !isset($rules['^aerp-movement-report/?$'])) {
+        flush_rewrite_rules();
+    }
+    if ($rules && !isset($rules['^aerp-low-stock-alert/?$'])) {
+        flush_rewrite_rules();
+    }
 });
 
 add_action('template_redirect', function () {
@@ -74,6 +87,7 @@ add_filter('query_vars', function ($vars) {
     $vars[] = 'aerp_warehouse_page';
     $vars[] = 'aerp_inventory_transfer_page';
     $vars[] = 'aerp_supplier_page';
+    $vars[] = 'aerp_report_page';
     return $vars;
 });
 
@@ -281,6 +295,22 @@ add_action('template_redirect', function () {
         }
         if ($template_name) {
             include AERP_ORDER_PATH . 'frontend/admin/' . $template_name;
+            exit;
+        }
+    }
+    
+    // Xử lý các trang báo cáo kho
+    $aerp_report_page = get_query_var('aerp_report_page');
+    if ($aerp_report_page) {
+        switch ($aerp_report_page) {
+            case 'stock_timeline':
+                include AERP_ORDER_PATH . 'frontend/admin/inventory/stock-timeline-report.php';
+                exit;
+            case 'movement_report':
+                include AERP_ORDER_PATH . 'frontend/admin/inventory/movement-report.php';
+                exit;
+            case 'low_stock_alert':
+                include AERP_ORDER_PATH . 'frontend/admin/inventory/low-stock-alert.php';
             exit;
         }
     }

@@ -18,14 +18,40 @@ $access_conditions = [
 if (!in_array(true, $access_conditions, true)) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
+// Lấy employee_id từ user_id
+global $wpdb;
+$employee_id = $wpdb->get_var($wpdb->prepare(
+    "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+    $user_id
+));
 $warehouse_id = isset($_GET['warehouse_id']) ? intval($_GET['warehouse_id']) : '';
 $supplier_id = isset($_GET['supplier_id']) ? intval($_GET['supplier_id']) : '';
 $table = new AERP_Inventory_Log_Table();
-$table->set_filters(['manager_user_id' => $user_id]);
+$table->set_filters(['manager_user_id' => $employee_id]);
 $table->process_bulk_action();
 $message = get_transient('aerp_inventory_log_message');
 ob_start();
 ?>
+<style>
+    .select2-container--default .select2-selection--single {
+        border: 1px solid #dee2e6 !important;
+        border-radius: 0.375rem !important;
+        height: 38px !important;
+        padding: 6px 12px !important;
+        background: #fff !important;
+        font-size: 1rem !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 24px !important;
+        padding-left: 0 !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px !important;
+        right: 0.75rem !important;
+    }
+</style>
 <div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
     <h2>Lịch sử nhập/xuất kho</h2>
     <div class="user-info text-end">
@@ -76,7 +102,7 @@ ob_start();
             </div>
             <div class="col-12 col-md-2 mb-2">
                 <label for="filter-warehouse" class="form-label mb-1">Kho</label>
-                <select id="filter-warehouse" name="warehouse_id" class="form-select">
+                <select id="filter-warehouse" name="warehouse_id" class="form-select warehouse-select-by-user">
                     <?php
                     $warehouses = aerp_get_warehouses_by_user($user_id);
                     aerp_safe_select_options($warehouses, $warehouse_id, 'id', 'name', true);
@@ -85,7 +111,7 @@ ob_start();
             </div>
             <div class="col-12 col-md-2 mb-2">
                 <label for="filter-supplier" class="form-label mb-1">Nhà cung cấp</label>
-                <select id="filter-supplier" name="supplier_id" class="form-select">
+                <select id="filter-supplier" name="supplier_id" class="form-select supplier-select">
                     <?php
                     $suppliers = aerp_get_suppliers();
                     aerp_safe_select_options($suppliers, $supplier_id, 'id', 'name', true);

@@ -10,7 +10,11 @@ class AERP_Inventory_Log_Manager
 
         global $wpdb;
         $table = $wpdb->prefix . 'aerp_inventory_logs';
-
+        $user_id = get_current_user_id();
+        $employee_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+            $user_id
+        ));
         $id = isset($_POST['log_id']) ? absint($_POST['log_id']) : 0;
         $product_id = absint($_POST['product_id']);
         $warehouse_id = absint($_POST['warehouse_id']);
@@ -18,7 +22,7 @@ class AERP_Inventory_Log_Manager
         $type = sanitize_text_field($_POST['type']);
         $quantity = intval($_POST['quantity']);
         $note = sanitize_textarea_field($_POST['note']);
-        $created_by = get_current_user_id();
+        $created_by = $employee_id;
         $now = (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d H:i:s');
 
         $data = [
@@ -185,6 +189,10 @@ class AERP_Inventory_Log_Manager
 
         $notes = sanitize_textarea_field($post['note'] ?? '');
         $user_id = get_current_user_id();
+        $employee_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+            $user_id
+        ));
         $changed = 0;
         $warehouse_id = absint($post['warehouse_id'] ?? 0);
         $product_id   = absint($post['product_id'] ?? 0);
@@ -208,7 +216,7 @@ class AERP_Inventory_Log_Manager
                 'type'         => 'stocktake',
                 'quantity'     => $diff,
                 'note'         => $notes,
-                'created_by'   => $user_id,
+                'created_by'   => $employee_id,
                 'status'       => 'draft',
                 'created_at'   => (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d H:i:s'),
             ]);

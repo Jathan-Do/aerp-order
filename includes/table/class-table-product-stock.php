@@ -33,9 +33,17 @@ class AERP_Product_Stock_Table extends AERP_Frontend_Table
         $search_term = '%' . $wpdb->esc_like($search_term) . '%';
         $extra = [];
         $params = [];
-        $extra[] = "product_id IN (SELECT id FROM {$wpdb->prefix}aerp_products WHERE name LIKE %s OR sku LIKE %s)";
-        $params[] = $search_term;
-        $params[] = $search_term;
+
+        // Search theo tên sản phẩm hoặc SKU
+        $extra[] = "(
+            product_id IN (SELECT id FROM {$wpdb->prefix}aerp_products WHERE name LIKE %s OR sku LIKE %s)
+            OR
+            warehouse_id IN (SELECT id FROM {$wpdb->prefix}aerp_warehouses WHERE name LIKE %s)
+        )";
+        $params[] = $search_term; // product name
+        $params[] = $search_term; // product sku
+        $params[] = $search_term; // warehouse name
+
         return [$extra, $params];
     }
     protected function column_product_id($item)

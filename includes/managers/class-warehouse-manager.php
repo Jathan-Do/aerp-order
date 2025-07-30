@@ -10,7 +10,7 @@ if (!class_exists('AERP_Warehouse_Manager')) {
             if (!wp_verify_nonce($_POST['aerp_save_warehouse_nonce'], 'aerp_save_warehouse_action')) wp_die('Invalid nonce for warehouse save.');
             global $wpdb;
             $table = $wpdb->prefix . 'aerp_warehouses';
-            $id = isset($_POST['edit_id']) ? absint($_POST['edit_id']) : 0;
+            $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
             $data = [
                 'name' => sanitize_text_field($_POST['name']),
                 'work_location_id' => absint($_POST['work_location_id']), // ✅ dùng ID
