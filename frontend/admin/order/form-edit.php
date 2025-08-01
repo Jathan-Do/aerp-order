@@ -1,5 +1,6 @@
 <?php
 if (!defined('ABSPATH')) exit;
+
 // Get current user
 $current_user = wp_get_current_user();
 $user_id = $current_user->ID;
@@ -12,7 +13,7 @@ if (!is_user_logged_in()) {
 $access_conditions = [
     aerp_user_has_role($user_id, 'admin'),
     aerp_user_has_role($user_id, 'department_lead'),
-    aerp_user_has_permission($user_id,'order_edit'),
+    aerp_user_has_permission($user_id, 'order_edit'),
 
 ];
 if (!in_array(true, $access_conditions, true)) {
@@ -22,6 +23,21 @@ $edit_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
 $editing = AERP_Frontend_Order_Manager::get_by_id($edit_id);
 if (!$editing) wp_die(__('Order not found.'));
 $order_items = function_exists('aerp_get_order_items') ? aerp_get_order_items($edit_id) : [];
+
+// Xử lý xác nhận đơn hàng
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aerp_confirm_order'], $_POST['order_id'])) {
+    global $wpdb;
+    $order_id = absint($_POST['order_id']);
+    // 1 là status_id của trạng thái đã xác nhận, bạn thay đúng giá trị nếu khác
+    $wpdb->update(
+        $wpdb->prefix . 'aerp_order_orders',
+        ['status' => 'confirmed'],
+        ['id' => $order_id]
+    );
+    // Có thể set message hoặc redirect
+    wp_redirect(home_url('/aerp-order-orders'));
+    exit;
+}
 ob_start();
 ?>
 <style>
@@ -86,7 +102,7 @@ ob_start();
                         if (function_exists('aerp_get_employees_with_location')) {
                             $employees = aerp_get_employees_with_location();
                             foreach ($employees as $e) {
-                                if ($e->user_id == $selected_id) {
+                                if ($e->id == $selected_id) {
                                     $selected_name = $e->full_name . (!empty($e->work_location_name) ? ' - ' . $e->work_location_name : '');
                                     break;
                                 }
@@ -192,9 +208,26 @@ ob_start();
                     <label for="note" class="form-label">Ghi chú</label>
                     <textarea class="form-control" id="note" name="note" rows="2"><?php echo esc_textarea($editing->note); ?></textarea>
                 </div>
+
+                <?php if (!empty($editing->cancel_reason)): ?>
+                    <div class="col-12 mb-3">
+                        <div class="alert alert-danger">
+                            <strong>Đơn hàng đã bị hủy</strong><br>
+                            <strong>Lý do:</strong> <?php echo esc_html($editing->cancel_reason); ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
             <div class="d-flex gap-2">
                 <button type="submit" name="aerp_save_order" class="btn btn-primary">Cập nhật</button>
+                <?php
+                if (
+                    (aerp_user_has_role($user_id, 'accountant') || aerp_user_has_role($user_id, 'admin'))
+                    && (empty($editing->status) || $editing->status !== 'confirmed')
+                ) {
+                    echo '<button type="submit" name="aerp_confirm_order" class="btn btn-success" onclick="return confirm(\'Xác nhận đơn này?\')">Xác nhận</button>';
+                }
+                ?>
                 <a href="<?php echo home_url('/aerp-order-orders'); ?>" class="btn btn-secondary">Quay lại</a>
             </div>
         </form>
@@ -202,9 +235,9 @@ ob_start();
 </div>
 <script>
     (function($) {
-    let itemIndex = <?php echo !empty($order_items) ? count($order_items) : 1; ?>;
+        let itemIndex = <?php echo !empty($order_items) ? count($order_items) : 1; ?>;
         $('#add-order-item').on('click', function() {
-        let row = `<div class="row mb-2 order-item-row">
+            let row = `<div class="row mb-2 order-item-row">
             <div class="col-md-3 mb-2"><input type="text" class="form-control" name="order_items[${itemIndex}][product_name]" placeholder="Tên sản phẩm" required></div>
             <div class="col-md-3 mb-2 d-flex align-items-center">
                 <input type="number" class="form-control" name="order_items[${itemIndex}][quantity]" placeholder="Số lượng" min="0.01" step="0.01" value="1" required>
@@ -217,26 +250,26 @@ ob_start();
             <div class="col-md-2 mb-2"><input type="text" class="form-control total-price-field" placeholder="Thành tiền" readonly></div>
             <div class="col-md-1 mb-2"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>
         </div>`;
-        $('#order-items-container').append(row);
-        itemIndex++;
-    });
+            $('#order-items-container').append(row);
+            itemIndex++;
+        });
         $(document).on('click', '.remove-order-item', function() {
-        $(this).closest('.order-item-row').remove();
-    });
+            $(this).closest('.order-item-row').remove();
+        });
         $(document).on('input', 'input[name*="[quantity]"], input[name*="[unit_price]"], input[name*="[product_name]"], input[name*="[vat_percent]"]', function() {
-        let row = $(this).closest('.order-item-row');
-        let qty = parseFloat(row.find('input[name*="[quantity]"]').val()) || 0;
-        let price = parseFloat(row.find('input[name*="[unit_price]"]').val()) || 0;
+            let row = $(this).closest('.order-item-row');
+            let qty = parseFloat(row.find('input[name*="[quantity]"]').val()) || 0;
+            let price = parseFloat(row.find('input[name*="[unit_price]"]').val()) || 0;
             let vat = parseFloat(row.find('input[name*="[vat_percent]"]').val()) || 0;
             let total = qty * price;
             if (vat > 0) {
                 total = total + (total * vat / 100);
             }
             row.find('.total-price-field').val(total.toLocaleString('vi-VN'));
-    });
-})(jQuery);
+        });
+    })(jQuery);
 </script>
 <?php
 $content = ob_get_clean();
 $title = 'Cập nhật đơn hàng';
-include(AERP_HRM_PATH . 'frontend/dashboard/layout.php'); 
+include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');

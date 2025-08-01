@@ -78,24 +78,7 @@ ob_start();
                 <div class="col-md-6 mb-3">
                     <label for="employee_id" class="form-label">Nhân viên phụ trách</label>
                     <select class="form-select employee-select" id="employee_id" name="employee_id">
-                        <?php
-                        if (!empty($_POST['employee_id'])) {
-                            $selected_id = intval($_POST['employee_id']);
-                            $selected_name = '';
-                            if (function_exists('aerp_get_employees_with_location')) {
-                                $employees = aerp_get_employees_with_location();
-                                foreach ($employees as $e) {
-                                    if ($e->user_id == $selected_id) {
-                                        $selected_name = $e->full_name . (!empty($e->work_location_name) ? ' - ' . $e->work_location_name : '');
-                                        break;
-                                    }
-                                }
-                            }
-                            if ($selected_name) {
-                                echo '<option value="' . esc_attr($selected_id) . '" selected>' . esc_html($selected_name) . '</option>';
-                            }
-                        }
-                        ?>
+                        
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">

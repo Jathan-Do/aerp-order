@@ -102,7 +102,7 @@ jQuery(document).ready(function ($) {
                             delay: 250,
                             data: function (params) {
                                 return {
-                                    action: "aerp_order_search_products_in_warehouse",
+                                    action: "aerp_order_search_products_in_warehouse_in_worklocation",
                                     warehouse_id: 0,
                                     q: params.term || "",
                                 };
@@ -140,7 +140,7 @@ jQuery(document).ready(function ($) {
                         delay: 250,
                         data: function (params) {
                             return {
-                                action: "aerp_order_search_products_in_warehouse",
+                                action: "aerp_order_search_products_in_warehouse_in_worklocation",
                                 warehouse_id: 0,
                                 q: params.term || "",
                             };
@@ -364,7 +364,7 @@ jQuery(document).ready(function ($) {
                 delay: 250,
                 data: function (params) {
                     return {
-                        action: "aerp_order_search_products_in_warehouse",
+                        action: "aerp_order_search_products_in_warehouse_in_worklocation",
                         warehouse_id: 0, // Tìm trong tất cả kho user quản lý
                         q: params.term || "",
                     };

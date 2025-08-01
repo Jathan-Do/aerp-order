@@ -12,7 +12,7 @@ if (!is_user_logged_in()) {
 $access_conditions = [
     aerp_user_has_role($user_id, 'admin'),
     aerp_user_has_role($user_id, 'department_lead'),
-    aerp_user_has_permission($user_id,'order_view'),
+    aerp_user_has_permission($user_id, 'order_view'),
 
 ];
 if (!in_array(true, $access_conditions, true)) {
@@ -204,94 +204,96 @@ ob_start();
                 ?>
             </div>
         </div>
-    <?php endif; ?>
-    <!-- Template hóa đơn in ẩn -->
-    <div id="aerp-invoice-print-area" style="display:none; font-family: Arial, sans-serif;">
-        <div style="max-width:700px;margin:0 auto;padding:24px;">
-            <h2 style="text-align:center;">HÓA ĐƠN BÁN HÀNG</h2>
-            <div style="margin-bottom:16px;">
-                <strong>Mã đơn hàng:</strong> <?php echo esc_html($order->order_code); ?><br>
-                <strong>Ngày lập:</strong> <?php echo esc_html($order->order_date); ?><br>
-                <strong>Khách hàng:</strong> <?php echo $customer ? esc_html($customer->full_name) : '--'; ?><br>
-                <strong>Nhân viên phụ trách:</strong> <?php echo $employee ? esc_html($employee) : '--'; ?><br>
-            </div>
-            <table border="1" cellpadding="6" cellspacing="0" width="100%" style="border-collapse:collapse;">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Tên sản phẩm</th>
-                        <th>Số lượng</th>
-                        <th>Đơn vị</th>
-                        <th>Đơn giá</th>
-                        <th>VAT (%)</th>
-                        <th>Thành tiền (có VAT)</th>
-                        <th>Thành tiền</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (!empty($order_items)) :
-                        $total_amount = 0;
-                        foreach ($order_items as $idx => $item) :
-                            $line_total = $item->quantity * $item->unit_price;
-                            $vat_percent = isset($item->vat_percent) ? floatval($item->vat_percent) : 0;
-                            $vat_amount = $vat_percent > 0 ? $line_total * $vat_percent / 100 : 0;
-                            $line_total_with_vat = $line_total + $vat_amount;
-                            $total_amount += $line_total;
-                            $total_amount_with_vat = ($total_amount_with_vat ?? 0) + $line_total_with_vat;
-                            $unit_name = '';
-                            if (!empty($item->unit_name)) {
-                                $unit_name = $item->unit_name;
-                            } elseif (!empty($item->product_id)) {
-                                if (class_exists('AERP_Product_Manager')) {
-                                    $unit_name = AERP_Product_Manager::get_unit_name($item->product_id);
-                                }
+    </div>
+<?php endif; ?>
+<!-- Template hóa đơn in ẩn -->
+<div id="aerp-invoice-print-area" style="display:none; font-family: Arial, sans-serif;">
+    <div style="max-width:700px;margin:0 auto;padding:24px;">
+        <h2 style="text-align:center;">HÓA ĐƠN BÁN HÀNG</h2>
+        <div style="margin-bottom:16px;">
+            <strong>Mã đơn hàng:</strong> <?php echo esc_html($order->order_code); ?><br>
+            <strong>Ngày lập:</strong> <?php echo esc_html($order->order_date); ?><br>
+            <strong>Khách hàng:</strong> <?php echo $customer ? esc_html($customer->full_name) : '--'; ?><br>
+            <strong>Nhân viên phụ trách:</strong> <?php echo $employee ? esc_html($employee) : '--'; ?><br>
+        </div>
+        <table border="1" cellpadding="6" cellspacing="0" width="100%" style="border-collapse:collapse;">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Tên sản phẩm</th>
+                    <th>Số lượng</th>
+                    <th>Đơn vị</th>
+                    <th>Đơn giá</th>
+                    <th>VAT (%)</th>
+                    <th>Thành tiền (có VAT)</th>
+                    <th>Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($order_items)) :
+                    $total_amount = 0;
+                    foreach ($order_items as $idx => $item) :
+                        $line_total = $item->quantity * $item->unit_price;
+                        $vat_percent = isset($item->vat_percent) ? floatval($item->vat_percent) : 0;
+                        $vat_amount = $vat_percent > 0 ? $line_total * $vat_percent / 100 : 0;
+                        $line_total_with_vat = $line_total + $vat_amount;
+                        $total_amount += $line_total;
+                        // $total_amount_with_vat = ($total_amount_with_vat ?? 0) + $line_total_with_vat;
+
+                        $unit_name = '';
+                        if (!empty($item->unit_name)) {
+                            $unit_name = $item->unit_name;
+                        } elseif (!empty($item->product_id)) {
+                            if (class_exists('AERP_Product_Manager')) {
+                                $unit_name = AERP_Product_Manager::get_unit_name($item->product_id);
                             }
-                    ?>
-                            <tr>
-                                <td><?php echo $idx + 1; ?></td>
-                                <td><?php echo esc_html($item->product_name); ?></td>
-                                <td><?php echo esc_html($item->quantity); ?></td>
-                                <td><?php echo esc_html($unit_name); ?></td>
-                                <td><?php echo number_format($item->unit_price, 0, ',', '.'); ?></td>
-                                <td><?php echo $vat_percent > 0 ? esc_html($vat_percent) : '--'; ?></td>
-                                <td><?php echo number_format($line_total_with_vat, 0, ',', '.'); ?></td>
-                                <td><?php echo number_format($line_total, 0, ',', '.'); ?></td>
-                            </tr>
-                        <?php endforeach;
-                    else: ?>
+                        }
+                ?>
                         <tr>
-                            <td colspan="8" style="text-align:center;">Chưa có sản phẩm nào.</td>
+                            <td><?php echo $idx + 1; ?></td>
+                            <td><?php echo esc_html($item->product_name); ?></td>
+                            <td><?php echo esc_html($item->quantity); ?></td>
+                            <td><?php echo esc_html($unit_name); ?></td>
+                            <td><?php echo number_format($item->unit_price, 0, ',', '.'); ?></td>
+                            <td><?php echo $vat_percent > 0 ? esc_html($vat_percent) : '--'; ?></td>
+                            <td><?php echo number_format($line_total_with_vat, 0, ',', '.'); ?></td>
+                            <td><?php echo number_format($line_total, 0, ',', '.'); ?></td>
                         </tr>
-                    <?php endif; ?>
-                </tbody>
-                <tfoot>
+                    <?php endforeach;
+                else: ?>
                     <tr>
-                        <th colspan="6" style="text-align:right;">Tổng cộng (có VAT)</th>
-                        <th><?php echo number_format($total_amount_with_vat ?? 0, 0, ',', '.'); ?></th>
-                        <th><?php echo number_format($total_amount, 0, ',', '.'); ?></th>
+                        <td colspan="8" style="text-align:center;">Chưa có sản phẩm nào.</td>
                     </tr>
-                </tfoot>
-            </table>
-            <div style="margin-top:32px;display:flex;justify-content:space-between;">
-                <div><strong>Khách hàng</strong><br><br><br>__________________</div>
-                <div><strong>Người lập hóa đơn</strong><br><br><br>__________________</div>
-            </div>
+                <?php endif; ?>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="6" style="text-align:right;">Tổng cộng (có VAT)</th>
+                    <th><?php echo number_format($total_amount_with_vat ?? 0, 0, ',', '.'); ?></th>
+                    <th><?php echo number_format($total_amount, 0, ',', '.'); ?></th>
+                </tr>
+            </tfoot>
+        </table>
+        <div style="margin-top:32px;display:flex;justify-content:space-between;">
+            <div><strong>Khách hàng</strong><br><br><br>__________________</div>
+            <div><strong>Người lập hóa đơn</strong><br><br><br>__________________</div>
         </div>
     </div>
+</div>
 
-    <script>
-        jQuery(function($) {
-            $('#print-invoice-btn').on('click', function() {
-                var printContents = document.getElementById('aerp-invoice-print-area').innerHTML;
-                var originalContents = document.body.innerHTML;
-                document.body.innerHTML = printContents;
-                window.print();
-                document.body.innerHTML = originalContents;
-                location.reload();
-            });
+<script>
+    jQuery(function($) {
+        $('#print-invoice-btn').on('click', function() {
+            var printContents = document.getElementById('aerp-invoice-print-area').innerHTML;
+            var originalContents = document.body.innerHTML;
+            document.body.innerHTML = printContents;
+            window.print();
+            document.body.innerHTML = originalContents;
+            location.reload();
         });
-    </script>
-    <?php
-    $content = ob_get_clean();
-    $title = 'Chi tiết đơn hàng';
-    include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
+    });
+</script>
+<?php
+$content = ob_get_clean();
+$title = 'Chi tiết đơn hàng';
+include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');

@@ -17,13 +17,15 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
                 'status_id' => 'Trạng thái',
                 'order_type' => 'Loại đơn',
                 'note' => 'Ghi chú',
+                'status' => 'Tình trạng',
                 'created_at' => 'Ngày tạo',
+                'action' => 'Thao tác',
             ],
             'sortable_columns' => ['id', 'order_code', 'order_date', 'status', 'total_amount', 'created_at'],
             'searchable_columns' => ['order_code'],
             'primary_key' => 'id',
             'per_page' => 10,
-            'actions' => ['edit', 'delete'],
+            'actions' => [],
             'bulk_actions' => ['delete'],
             'base_url' => home_url('/aerp-order-orders'),
             'delete_item_callback' => ['AERP_Frontend_Order_Manager', 'delete_order_by_id'],
@@ -43,28 +45,37 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
         global $wpdb;
         $filters = [];
         $params = [];
-        
-        // Filter theo chi nhánh của user hiện tại
+
+        // Lấy thông tin user hiện tại
         $current_user_id = get_current_user_id();
-        $current_user_branch = $wpdb->get_var($wpdb->prepare(
-            "SELECT work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+        $current_user_employee = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
             $current_user_id
         ));
-        
-        if ($current_user_branch) {
-            // Lấy tất cả employee_id thuộc chi nhánh này
-            $branch_employee_ids = $wpdb->get_col($wpdb->prepare(
-                "SELECT user_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE work_location_id = %d",
-                $current_user_branch
-            ));
-            
-            if (!empty($branch_employee_ids)) {
-                $placeholders = implode(',', array_fill(0, count($branch_employee_ids), '%d'));
-                $filters[] = "employee_id IN ($placeholders)";
-                $params = array_merge($params, $branch_employee_ids);
+
+        if ($current_user_employee) {
+            // Kiểm tra quyền order_view_full
+            if (aerp_user_has_permission($current_user_id, 'order_view_full')) {
+                // Có quyền xem full: hiển thị tất cả đơn hàng thuộc chi nhánh
+                if ($current_user_employee->work_location_id) {
+                    $branch_employee_ids = $wpdb->get_col($wpdb->prepare(
+                        "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE work_location_id = %d",
+                        $current_user_employee->work_location_id
+                    ));
+
+                    if (!empty($branch_employee_ids)) {
+                        $placeholders = implode(',', array_fill(0, count($branch_employee_ids), '%d'));
+                        $filters[] = "employee_id IN ($placeholders)";
+                        $params = array_merge($params, $branch_employee_ids);
+                    }
+                }
+            } else {
+                // Không có quyền: chỉ hiển thị đơn hàng của user hiện tại
+                $filters[] = "employee_id = %d";
+                $params[] = $current_user_employee->id;
             }
         }
-        
+
         if (!empty($this->filters['status_id'])) {
             $filters[] = "status_id = %d";
             $params[] = (int)$this->filters['status_id'];
@@ -158,5 +169,52 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
             'mixed'   => '<span class="badge bg-warning">Tổng hợp</span>',
         ];
         return $types[$type] ?? esc_html($type);
+    }
+
+    protected function column_action($item)
+    {
+        $id = intval($item->id);
+        $user_id = get_current_user_id();
+        $is_admin = function_exists('aerp_user_has_role') ? aerp_user_has_role($user_id, 'admin') : false;
+
+
+        // Kiểm tra trạng thái đã xác nhận (status có thể là chuỗi hoặc số, tùy hệ thống)
+        $is_confirmed = (isset($item->status) && $item->status === 'confirmed');
+        $is_cancelled = (isset($item->status) && $item->status === 'cancelled') || !empty($item->cancel_reason);
+
+
+        if ($is_confirmed && !$is_admin) {
+            return '<a href="#" class="btn btn-sm btn-success disabled mb-2 mb-md-0"><i class="fas fa-edit"></i></a> 
+            <a href="#" class="btn btn-sm btn-danger disabled"><i class="fas fa-trash"></i></a>';
+        }
+        $edit_url = add_query_arg(['action' => 'edit', 'id' => $id], $this->base_url);
+        $delete_url = wp_nonce_url(add_query_arg(['action' => 'delete', 'id' => $id], $this->base_url), $this->nonce_action_prefix . $id);
+
+        $cancel_btn = '';
+        if (!$is_cancelled) {
+            $cancel_btn = sprintf(
+                '<button type="button" class="btn btn-sm btn-warning cancel-order-btn" data-order-id="%d" data-order-code="%s"><i class="fas fa-times"></i></button>',
+                $id,
+                esc_attr($item->order_code)
+            );
+        }
+        return sprintf(
+            '<a href="%s" class="btn btn-sm btn-success mb-2 mb-md-0"><i class="fas fa-edit"></i></a> 
+            <a href="%s" class="btn btn-sm btn-danger" onclick="return confirm(\'Bạn có chắc muốn xóa?\')"><i class="fas fa-trash"></i></a>
+            %s',
+            esc_url($edit_url),
+            esc_url($delete_url),
+            $cancel_btn
+        );
+    }
+    protected function column_status($item)
+    {
+        $status = isset($item->status) ? $item->status : 'draft';
+        $map = [
+            'draft'     => '<span class="badge bg-secondary">Nháp</span>',
+            'confirmed' => '<span class="badge bg-success">Đã xác nhận</span>',
+            'cancelled' => '<span class="badge bg-danger">Đã hủy</span>',
+        ];
+        return $map[$status] ?? esc_html($status);
     }
 }

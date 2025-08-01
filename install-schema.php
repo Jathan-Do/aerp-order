@@ -42,6 +42,8 @@ function aerp_order_install_schema()
         order_date DATE,
         total_amount FLOAT,
         status_id BIGINT,
+        status ENUM('draft','confirmed','cancelled') DEFAULT 'draft',
+        cancel_reason TEXT DEFAULT NULL,
         note TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_order_code (order_code),

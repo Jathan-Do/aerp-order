@@ -7,7 +7,7 @@ class AERP_Frontend_Order_Manager
     {
         if (!isset($_POST['aerp_save_order'])) return;
         if (!wp_verify_nonce($_POST['aerp_save_order_nonce'], 'aerp_save_order_action')) wp_die('Invalid nonce for order save.');
-        
+
         global $wpdb;
         $table = $wpdb->prefix . 'aerp_order_orders';
         $id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
@@ -25,7 +25,7 @@ class AERP_Frontend_Order_Manager
 
         // 2. Chuẩn hóa dữ liệu
         $order_date = !empty($_POST['order_date']) ? sanitize_text_field($_POST['order_date']) : date('Y-m-d');
-        
+
         if ($id) {
             // Cập nhật đơn hàng
             // --- Lấy trạng thái cũ để ghi log nếu có thay đổi ---
@@ -39,6 +39,13 @@ class AERP_Frontend_Order_Manager
                 'note'          => sanitize_textarea_field($_POST['note']),
                 'total_amount'  => $total_amount,
             ];
+
+            // Nếu có lý do hủy, thêm vào data
+            if (!empty($_POST['cancel_reason'])) {
+                $data['cancel_reason'] = sanitize_textarea_field($_POST['cancel_reason']);
+                $data['status'] = 'cancelled';
+            }
+
             $format = ['%d', '%d', '%s', '%s', '%s', '%f'];
             $wpdb->update($table, $data, ['id' => $id], $format, ['%d']);
             $order_id = $id;
@@ -79,11 +86,11 @@ class AERP_Frontend_Order_Manager
             self::handle_attachment_upload($order_id);
             // --- Logic mới: Cập nhật, Thêm, Xóa riêng biệt để giữ ID ---
             $item_table = $wpdb->prefix . 'aerp_order_items';
-            
+
             // 1. Lấy ID các sản phẩm hiện có trong DB
             $existing_item_ids = $wpdb->get_col($wpdb->prepare("SELECT id FROM $item_table WHERE order_id = %d", $order_id));
             $existing_item_ids = array_map('intval', $existing_item_ids);
-            
+
             $submitted_item_ids = [];
 
             if (!empty($_POST['order_items']) && is_array($_POST['order_items'])) {
@@ -128,7 +135,7 @@ class AERP_Frontend_Order_Manager
                 $wpdb->query($wpdb->prepare("DELETE FROM $item_table WHERE id IN ($ids_placeholder)", $items_to_delete));
             }
         }
-        
+
         aerp_clear_table_cache();
         set_transient('aerp_order_message', $msg, 10);
         wp_redirect(home_url('/aerp-order-orders'));
@@ -184,9 +191,10 @@ class AERP_Frontend_Order_Manager
         return 'DH-' . $next_number;
     }
 
-    public static function handle_attachment_upload($order_id) {
+    public static function handle_attachment_upload($order_id)
+    {
         if (empty($_FILES['attachments']['name'][0])) return;
-        
+
         global $wpdb;
         if (!function_exists('wp_handle_upload')) {
             require_once(ABSPATH . 'wp-admin/includes/file.php');
@@ -195,7 +203,7 @@ class AERP_Frontend_Order_Manager
         $upload_overrides = ['test_form' => false];
         foreach ($_FILES['attachments']['name'] as $key => $filename) {
             if ($_FILES['attachments']['error'][$key] !== UPLOAD_ERR_OK) continue;
-            
+
             $file = [
                 'name'     => $_FILES['attachments']['name'][$key],
                 'type'     => $_FILES['attachments']['type'][$key],
@@ -220,7 +228,8 @@ class AERP_Frontend_Order_Manager
         }
     }
 
-    public static function handle_delete_attachment_ajax() {
+    public static function handle_delete_attachment_ajax()
+    {
         check_ajax_referer('aerp_delete_order_attachment_nonce', '_wpnonce');
 
         $attachment_id = isset($_POST['attachment_id']) ? absint($_POST['attachment_id']) : 0;
@@ -247,4 +256,25 @@ class AERP_Frontend_Order_Manager
             wp_send_json_error('Không thể xóa file khỏi cơ sở dữ liệu.');
         }
     }
-} 
+
+    public static function cancel_order($order_id, $reason)
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'aerp_order_orders';
+
+        $data = [
+            'cancel_reason' => sanitize_textarea_field($reason),
+            'status' => 'cancelled'
+        ];
+
+        $result = $wpdb->update(
+            $table,
+            $data,
+            ['id' => $order_id],
+            ['%s', '%s'],
+            ['%d']
+        );
+        aerp_clear_table_cache();
+        return $result !== false;
+    }
+}

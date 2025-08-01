@@ -12,6 +12,7 @@ $access_conditions = [
     aerp_user_has_role($user_id, 'admin'),
     aerp_user_has_role($user_id, 'department_lead'),
     aerp_user_has_permission($user_id,'order_view'),
+    aerp_user_has_permission($user_id,'order_view_full'),
 
 ];
 if (!in_array(true, $access_conditions, true)) {
@@ -119,6 +120,79 @@ ob_start();
         </div>
     </div>
 </div>
+
+<!-- Modal hủy đơn hàng -->
+<div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-labelledby="cancelOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelOrderModalLabel">Hủy đơn hàng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc muốn hủy đơn hàng <strong id="cancelOrderCode"></strong>?</p>
+                <div class="mb-3">
+                    <label for="cancelReason" class="form-label">Lý do hủy đơn <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="cancelReason" rows="3" placeholder="Nhập lý do hủy đơn..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-warning" id="confirmCancelOrder">Hủy đơn</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+jQuery(document).ready(function($) {
+    let currentOrderId = null;
+    
+    // Xử lý click nút hủy đơn
+    $(document).on('click', '.cancel-order-btn', function() {
+        currentOrderId = $(this).data('order-id');
+        let orderCode = $(this).data('order-code');
+        
+        $('#cancelOrderCode').text(orderCode);
+        $('#cancelReason').val('');
+        $('#cancelOrderModal').modal('show');
+    });
+    
+    // Xử lý xác nhận hủy đơn
+    $('#confirmCancelOrder').on('click', function() {
+        let reason = $('#cancelReason').val().trim();
+        
+        if (!reason) {
+            alert('Vui lòng nhập lý do hủy đơn.');
+            return;
+        }
+        
+        $.ajax({
+            url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'aerp_cancel_order',
+                order_id: currentOrderId,
+                reason: reason,
+                _wpnonce: '<?php echo wp_create_nonce('aerp_cancel_order_nonce'); ?>'
+            },
+            success: function(response) {
+                if (response.success) {
+                    alert(response.data);
+                    $('#cancelOrderModal').modal('hide');
+                    location.reload(); // Reload trang để cập nhật trạng thái
+                } else {
+                    alert('Lỗi: ' + response.data);
+                }
+            },
+            error: function() {
+                alert('Có lỗi xảy ra khi hủy đơn hàng.');
+            }
+        });
+    });
+});
+</script>
+
 <?php
 $content = ob_get_clean();
 $title = 'Quản lý đơn hàng';

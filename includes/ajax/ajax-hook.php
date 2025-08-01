@@ -70,7 +70,7 @@ function aerp_product_filter_products_callback()
     $html = ob_get_clean();
     wp_send_json_success(['html' => $html]);
 }
-add_action('wp_ajax_aerp_order_search_products', function() {
+add_action('wp_ajax_aerp_order_search_products', function () {
     $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
     $products = function_exists('aerp_get_products_select2') ? aerp_get_products_select2($q) : [];
     $results = [];
@@ -86,7 +86,7 @@ add_action('wp_ajax_aerp_order_search_products', function() {
     }
     wp_send_json($results);
 });
-add_action('wp_ajax_aerp_order_search_all_products', function() {
+add_action('wp_ajax_aerp_order_search_all_products', function () {
     $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
     $products = function_exists('aerp_get_all_products_select2') ? aerp_get_all_products_select2($q) : [];
     $results = [];
@@ -158,7 +158,7 @@ function aerp_order_status_filter_statuses_callback()
     wp_send_json_success(['html' => $html]);
 }
 
-add_action('wp_ajax_aerp_order_search_customers', function() {
+add_action('wp_ajax_aerp_order_search_customers', function () {
     $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
     $customers = function_exists('aerp_get_customers_select2') ? aerp_get_customers_select2($q) : [];
     $results = [];
@@ -198,7 +198,7 @@ function aerp_inventory_log_filter_inventory_logs_callback()
     wp_send_json_success(['html' => $html]);
 }
 
-add_action('wp_ajax_aerp_get_product_stock', function() {
+add_action('wp_ajax_aerp_get_product_stock', function () {
     global $wpdb;
 
     $product_id   = isset($_GET['product_id']) ? intval($_GET['product_id']) : (isset($_POST['product_id']) ? intval($_POST['product_id']) : 0);
@@ -209,7 +209,8 @@ add_action('wp_ajax_aerp_get_product_stock', function() {
     if ($product_id && $warehouse_id) {
         $qty = $wpdb->get_var($wpdb->prepare(
             "SELECT quantity FROM {$wpdb->prefix}aerp_product_stocks WHERE product_id = %d AND warehouse_id = %d",
-            $product_id, $warehouse_id
+            $product_id,
+            $warehouse_id
         ));
         if ($qty === null) $qty = 0;
     }
@@ -217,7 +218,7 @@ add_action('wp_ajax_aerp_get_product_stock', function() {
     wp_send_json_success(['quantity' => intval($qty)]);
 });
 
-add_action('wp_ajax_nopriv_aerp_get_product_stock', function() {
+add_action('wp_ajax_nopriv_aerp_get_product_stock', function () {
     global $wpdb;
 
     $product_id   = isset($_GET['product_id']) ? intval($_GET['product_id']) : (isset($_POST['product_id']) ? intval($_POST['product_id']) : 0);
@@ -228,7 +229,8 @@ add_action('wp_ajax_nopriv_aerp_get_product_stock', function() {
     if ($product_id && $warehouse_id) {
         $qty = $wpdb->get_var($wpdb->prepare(
             "SELECT quantity FROM {$wpdb->prefix}aerp_product_stocks WHERE product_id = %d AND warehouse_id = %d",
-            $product_id, $warehouse_id
+            $product_id,
+            $warehouse_id
         ));
         if ($qty === null) $qty = 0;
     }
@@ -246,7 +248,7 @@ function aerp_warehouse_filter_warehouses_callback()
         'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
         'order' => sanitize_text_field($_POST['order'] ?? ''),
         'manager_user_id' => sanitize_text_field($_POST['manager_user_id'] ?? ''),
-        
+
     ];
     $table = new AERP_Warehouse_Table();
     $table->set_filters($filters);
@@ -311,7 +313,7 @@ function aerp_supplier_filter_suppliers_callback()
     wp_send_json_success(['html' => $html]);
 }
 
-add_action('wp_ajax_aerp_order_search_warehouses', function() {
+add_action('wp_ajax_aerp_order_search_warehouses', function () {
     $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
     $warehouses = function_exists('aerp_get_warehouses_select2') ? aerp_get_warehouses_select2($q) : [];
     $results = [];
@@ -325,10 +327,15 @@ add_action('wp_ajax_aerp_order_search_warehouses', function() {
     }
     wp_send_json($results);
 });
-add_action('wp_ajax_aerp_order_search_warehouses_by_user', function() {
+add_action('wp_ajax_aerp_order_search_warehouses_by_user', function () {
     $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
     $user_id = get_current_user_id();
-    $warehouses = function_exists('aerp_get_warehouses_by_user_select2') ? aerp_get_warehouses_by_user_select2($q, $user_id) : [];
+    global $wpdb;
+    $employee_id = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+        $user_id
+    ));
+    $warehouses = function_exists('aerp_get_warehouses_by_user_select2') ? aerp_get_warehouses_by_user_select2($q, $employee_id) : [];
     $results = [];
     $count = 0;
     foreach ($warehouses as $warehouse) {
@@ -340,7 +347,7 @@ add_action('wp_ajax_aerp_order_search_warehouses_by_user', function() {
     }
     wp_send_json($results);
 });
-add_action('wp_ajax_aerp_order_search_suppliers', function() {
+add_action('wp_ajax_aerp_order_search_suppliers', function () {
     $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
     $suppliers = function_exists('aerp_get_suppliers_select2') ? aerp_get_suppliers_select2($q) : [];
     $results = [];
@@ -355,47 +362,84 @@ add_action('wp_ajax_aerp_order_search_suppliers', function() {
     wp_send_json($results);
 });
 
-add_action('wp_ajax_aerp_order_search_products_in_warehouse', function() {
+add_action('wp_ajax_aerp_order_search_products_in_warehouse_in_worklocation', function () {
     global $wpdb;
     $warehouse_id = isset($_GET['warehouse_id']) ? intval($_GET['warehouse_id']) : 0;
     $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
     $current_user_id = get_current_user_id();
+    $employee_id = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+        $current_user_id
+    ));
     $results = [];
-    
-    // Lấy tất cả kho mà user quản lý
-    $user_warehouses = aerp_get_warehouses_by_user($current_user_id);
-    $warehouse_ids = array_column($user_warehouses, 'id');
-    
+
+    // Lấy work_location_id của user hiện tại
+    $work_location_id = $wpdb->get_var($wpdb->prepare(
+        "SELECT work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE id = %d",
+        $employee_id
+    ));
+
+    // 1. Lấy tất cả kho mà user hiện tại quản lý (không phụ thuộc chi nhánh)
+    $user_warehouse_ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT warehouse_id FROM {$wpdb->prefix}aerp_warehouse_managers WHERE user_id = %d",
+        $employee_id
+    ));
+    $user_warehouse_ids = array_map('intval', $user_warehouse_ids);
+
+    // 2. Lấy tất cả kho thuộc cùng chi nhánh với user hiện tại
+    $branch_warehouse_ids = [];
+    if ($work_location_id) {
+        $branch_warehouse_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}aerp_warehouses WHERE work_location_id = %d",
+            $work_location_id
+        ));
+        $branch_warehouse_ids = array_map('intval', $branch_warehouse_ids);
+    }
+
+    // 3. Xác định danh sách kho hợp lệ
+    if (!empty($user_warehouse_ids)) {
+        // Nếu user có quản lý kho, lấy cả kho quản lý và kho cùng chi nhánh
+        $warehouse_ids = array_unique(array_merge($user_warehouse_ids, $branch_warehouse_ids));
+    } else {
+        // Nếu không quản lý kho nào, chỉ lấy kho cùng chi nhánh
+        $warehouse_ids = $branch_warehouse_ids;
+    }
+
+    // Nếu không có kho nào hợp lệ thì trả về rỗng
     if (empty($warehouse_ids)) {
         wp_send_json($results);
         return;
     }
-    
-    // Nếu có warehouse_id cụ thể và > 0, chỉ tìm trong kho đó
+
+    // Nếu có warehouse_id cụ thể và > 0, chỉ tìm trong kho đó nếu kho đó hợp lệ
     if ($warehouse_id > 0) {
-        $warehouse_ids = [$warehouse_id];
+        if (in_array($warehouse_id, $warehouse_ids)) {
+            $warehouse_ids = [$warehouse_id];
+        } else {
+            wp_send_json($results); // Không có quyền xem kho này
+            return;
+        }
     }
-    // Nếu warehouse_id = 0, tìm trong tất cả kho user quản lý
-    
+
     $warehouse_ids_str = implode(',', array_map('intval', $warehouse_ids));
-    
+
     $sql = "SELECT DISTINCT p.id, p.name, p.sku, p.price, u.name AS unit_name, w.name AS warehouse_name
             FROM {$wpdb->prefix}aerp_products p
             INNER JOIN {$wpdb->prefix}aerp_product_stocks s ON p.id = s.product_id
             LEFT JOIN {$wpdb->prefix}aerp_units u ON p.unit_id = u.id
             LEFT JOIN {$wpdb->prefix}aerp_warehouses w ON s.warehouse_id = w.id
             WHERE s.warehouse_id IN ($warehouse_ids_str)";
-    
+
     $params = [];
     if ($q !== '') {
         $sql .= " AND (p.name LIKE %s OR p.sku LIKE %s)";
         $params[] = '%' . $wpdb->esc_like($q) . '%';
         $params[] = '%' . $wpdb->esc_like($q) . '%';
     }
-    
+
     $sql .= " ORDER BY p.name ASC LIMIT 30";
     $products = $wpdb->get_results($params ? $wpdb->prepare($sql, ...$params) : $sql);
-    
+
     $count = 0;
     foreach ($products as $product) {
         $display_name = $product->name;
@@ -405,7 +449,7 @@ add_action('wp_ajax_aerp_order_search_products_in_warehouse', function() {
         if (!empty($product->warehouse_name)) {
             $display_name .= ' - ' . $product->warehouse_name;
         }
-        
+
         $results[] = [
             'id' => $product->id,
             'text' => $display_name,
@@ -416,60 +460,67 @@ add_action('wp_ajax_aerp_order_search_products_in_warehouse', function() {
     }
     wp_send_json($results);
 });
-
-add_action('wp_ajax_aerp_get_users_by_work_location', function() {
+add_action('wp_ajax_aerp_order_search_products_in_warehouse', function () {
     global $wpdb;
-    $work_location_id = isset($_GET['work_location_id']) ? intval($_GET['work_location_id']) : 0;
+    $warehouse_id = isset($_GET['warehouse_id']) ? intval($_GET['warehouse_id']) : 0;
     $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
     $current_user_id = get_current_user_id();
     $results = [];
-    
-    // Lấy branch của user hiện tại
-    $current_user_branch = $wpdb->get_var($wpdb->prepare(
-        "SELECT work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE id = %d",
-        $current_user_id
-    ));
-    
-    $sql = "SELECT e.id, e.full_name, wl.name AS work_location_name 
-            FROM {$wpdb->prefix}aerp_hrm_employees e
-            LEFT JOIN {$wpdb->prefix}aerp_hrm_work_locations wl ON e.work_location_id = wl.id
-            WHERE 1=1 AND e.status = 'active'";
+
+    // Lấy tất cả kho mà user quản lý
+    $user_warehouses = aerp_get_warehouses_by_user($current_user_id);
+    $warehouse_ids = array_column($user_warehouses, 'id');
+
+    if (empty($warehouse_ids)) {
+        wp_send_json($results);
+        return;
+    }
+
+    // Nếu có warehouse_id cụ thể và > 0, chỉ tìm trong kho đó
+    if ($warehouse_id > 0) {
+        $warehouse_ids = [$warehouse_id];
+    }
+    // Nếu warehouse_id = 0, tìm trong tất cả kho user quản lý
+
+    $warehouse_ids_str = implode(',', array_map('intval', $warehouse_ids));
+
+    $sql = "SELECT DISTINCT p.id, p.name, p.sku, p.price, u.name AS unit_name, w.name AS warehouse_name
+            FROM {$wpdb->prefix}aerp_products p
+            INNER JOIN {$wpdb->prefix}aerp_product_stocks s ON p.id = s.product_id
+            LEFT JOIN {$wpdb->prefix}aerp_units u ON p.unit_id = u.id
+            LEFT JOIN {$wpdb->prefix}aerp_warehouses w ON s.warehouse_id = w.id
+            WHERE s.warehouse_id IN ($warehouse_ids_str)";
+
     $params = [];
-    
-    // Filter theo branch của user hiện tại (nếu có)
-    if ($current_user_branch) {
-        $sql .= " AND e.work_location_id = %d";
-        $params[] = $current_user_branch;
-    }
-    
-    // Filter theo work_location_id được truyền (nếu có)
-    if ($work_location_id) {
-        $sql .= " AND e.work_location_id = %d";
-        $params[] = $work_location_id;
-    }
-    
     if ($q !== '') {
-        $sql .= " AND (e.full_name LIKE %s OR wl.name LIKE %s)";
+        $sql .= " AND (p.name LIKE %s OR p.sku LIKE %s)";
         $params[] = '%' . $wpdb->esc_like($q) . '%';
         $params[] = '%' . $wpdb->esc_like($q) . '%';
     }
-    
-    $sql .= " ORDER BY e.full_name ASC LIMIT 30";
-    $users = $wpdb->get_results($params ? $wpdb->prepare($sql, ...$params) : $sql);
-    
-    foreach ($users as $user) {
-        $display_name = $user->full_name;
-        if (!empty($user->work_location_name)) {
-            $display_name .= ' - ' . $user->work_location_name;
+
+    $sql .= " ORDER BY p.name ASC LIMIT 30";
+    $products = $wpdb->get_results($params ? $wpdb->prepare($sql, ...$params) : $sql);
+
+    $count = 0;
+    foreach ($products as $product) {
+        $display_name = $product->name;
+        if (!empty($product->sku)) {
+            $display_name .= ' (' . $product->sku . ')';
         }
+        if (!empty($product->warehouse_name)) {
+            $display_name .= ' - ' . $product->warehouse_name;
+        }
+
         $results[] = [
-            'id' => $user->id,
+            'id' => $product->id,
             'text' => $display_name,
+            'price' => $product->price,
+            'unit_name' => $product->unit_name ?? '',
         ];
+        if (!$q && ++$count >= 30) break;
     }
     wp_send_json($results);
 });
-
 add_action('wp_ajax_aerp_low_stock_filter_table', 'aerp_low_stock_filter_table_callback');
 add_action('wp_ajax_nopriv_aerp_low_stock_filter_table', 'aerp_low_stock_filter_table_callback');
 function aerp_low_stock_filter_table_callback()
@@ -484,11 +535,36 @@ function aerp_low_stock_filter_table_callback()
         'threshold' => intval($_POST['threshold'] ?? get_option('aerp_low_stock_threshold', 10)),
         'manager_user_id' => get_current_user_id(),
     ];
-    
+
     $table = new AERP_Low_Stock_Table();
     $table->set_filters($filters);
     ob_start();
     $table->render();
     $html = ob_get_clean();
     wp_send_json_success(['html' => $html]);
+}
+
+// Hủy đơn hàng
+add_action('wp_ajax_aerp_cancel_order', 'aerp_cancel_order_ajax');
+function aerp_cancel_order_ajax() {
+    check_ajax_referer('aerp_cancel_order_nonce', '_wpnonce');
+    
+    $order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
+    $reason = isset($_POST['reason']) ? sanitize_textarea_field($_POST['reason']) : '';
+    
+    if (!$order_id) {
+        wp_send_json_error('Thiếu ID đơn hàng.');
+    }
+    
+    if (empty($reason)) {
+        wp_send_json_error('Vui lòng nhập lý do hủy đơn.');
+    }
+    
+    $result = AERP_Frontend_Order_Manager::cancel_order($order_id, $reason);
+    
+    if ($result) {
+        wp_send_json_success('Đã hủy đơn hàng thành công.');
+    } else {
+        wp_send_json_error('Không thể hủy đơn hàng.');
+    }
 }
