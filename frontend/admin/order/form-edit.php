@@ -127,6 +127,23 @@ ob_start();
                         ?>
                     </select>
                 </div>
+                <div class="col-md-6 mb-3">
+                    <label for="cost" class="form-label">Chi phí đơn hàng</label>
+                    <input type="number" class="form-control" id="cost" name="cost" min="0" step="0.01" value="<?php echo esc_attr($editing->cost ?? 0); ?>">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="customer_source" class="form-label">Nguồn khách hàng</label>
+                    <select class="form-select" id="customer_source" name="customer_source">
+                        <option value="">-- Chọn nguồn --</option>
+                        <option value="fb" <?php selected($editing->customer_source ?? '', 'fb'); ?>>Facebook</option>
+                        <option value="zalo" <?php selected($editing->customer_source ?? '', 'zalo'); ?>>Zalo</option>
+                        <option value="tiktok" <?php selected($editing->customer_source ?? '', 'tiktok'); ?>>Tiktok</option>
+                        <option value="youtube" <?php selected($editing->customer_source ?? '', 'youtube'); ?>>Youtube</option>
+                        <option value="web" <?php selected($editing->customer_source ?? '', 'web'); ?>>Website</option>
+                        <option value="referral" <?php selected($editing->customer_source ?? '', 'referral'); ?>>KH cũ giới thiệu</option>
+                        <option value="other" <?php selected($editing->customer_source ?? '', 'other'); ?>>Khác</option>
+                    </select>
+                </div>
                 <div class="col-12 mb-3">
                     <label class="form-label">Sản phẩm trong đơn</label>
                     <div id="order-items-container">
@@ -221,9 +238,10 @@ ob_start();
             <div class="d-flex gap-2">
                 <button type="submit" name="aerp_save_order" class="btn btn-primary">Cập nhật</button>
                 <?php
+                // Chỉ hiển thị nút xác nhận nếu trạng thái KHÔNG phải là 'confirmed' hoặc 'cancelled'
                 if (
                     (aerp_user_has_role($user_id, 'accountant') || aerp_user_has_role($user_id, 'admin'))
-                    && (empty($editing->status) || $editing->status !== 'confirmed')
+                    && (!isset($editing->status) || ($editing->status !== 'confirmed' && $editing->status !== 'cancelled'))
                 ) {
                     echo '<button type="submit" name="aerp_confirm_order" class="btn btn-success" onclick="return confirm(\'Xác nhận đơn này?\')">Xác nhận</button>';
                 }

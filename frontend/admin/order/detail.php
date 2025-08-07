@@ -68,6 +68,36 @@ ob_start();
                 <label class="fw-bold form-label text-muted small mb-1">Ngày tạo đơn hàng</label>
                 <p class="mb-0"><?php echo esc_html($order->order_date); ?></p>
             </div>
+            <div class="col-md-6 mb-2">
+                <label class="fw-bold form-label text-muted small mb-1">Chi phí</label>
+                <p class="mb-0"><?php echo number_format($order->cost ?? 0, 0, ',', '.'); ?> đ</p>
+            </div>
+            <div class="col-md-6 mb-2">
+                <label class="fw-bold form-label text-muted small mb-1">Lợi nhuận</label>
+                <?php 
+                $profit = ($order->total_amount ?? 0) - ($order->cost ?? 0);
+                $profit_color = $profit >= 0 ? 'text-success' : 'text-danger';
+                ?>
+                <p class="mb-0 fw-bold <?php echo $profit_color; ?>"><?php echo number_format($profit, 0, ',', '.'); ?> đ</p>
+            </div>
+            <div class="col-md-6 mb-2">
+                <label class="fw-bold form-label text-muted small mb-1">Nguồn khách hàng</label>
+                <p class="mb-0">
+                    <?php
+                    $source = $order->customer_source ?? '';
+                    $source_map = [
+                        'fb' => 'Facebook',
+                        'zalo' => 'Zalo',
+                        'tiktok' => 'Tiktok',
+                        'youtube' => 'Youtube',
+                        'web' => 'Website',
+                        'referral' => 'KH cũ giới thiệu',
+                        'other' => 'Khác'
+                    ];
+                    echo $source_map[$source] ?? ($source ? esc_html($source) : '<span class="text-muted">--</span>');
+                    ?>
+                </p>
+            </div>
 
             <div class="col-md-12 mb-2">
                 <label class="fw-bold form-label text-muted small mb-1">Ghi chú</label>

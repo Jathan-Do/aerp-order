@@ -94,6 +94,23 @@ ob_start();
                         ?>
                     </select>
                 </div>
+                <div class="col-md-6 mb-3">
+                    <label for="cost" class="form-label">Chi phí đơn hàng</label>
+                    <input type="number" class="form-control" id="cost" name="cost" min="0" step="0.01" value="0">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="customer_source" class="form-label">Nguồn khách hàng</label>
+                    <select class="form-select" id="customer_source" name="customer_source">
+                        <option value="">-- Chọn nguồn --</option>
+                        <option value="fb">Facebook</option>
+                        <option value="zalo">Zalo</option>
+                        <option value="tiktok">Tiktok</option>
+                        <option value="youtube">Youtube</option>
+                        <option value="web">Website</option>
+                        <option value="referral">KH cũ giới thiệu</option>
+                        <option value="other">Khác</option>
+                    </select>
+                </div>
                 <div class="col-12 mb-3">
                     <div id="order-items-container">
                         <div class="row mb-2 order-item-row">

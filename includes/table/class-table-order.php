@@ -13,7 +13,10 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
                 'customer_id' => 'Khách hàng',
                 'employee_id' => 'Nhân viên',
                 'order_date' => 'Ngày lập hóa đơn',
+                'cost' => 'Chi phí',
                 'total_amount' => 'Tổng tiền',
+                'profit' => 'Lợi nhuận',
+                'customer_source' => 'Nguồn KH',
                 'status_id' => 'Trạng thái',
                 'order_type' => 'Loại đơn',
                 'note' => 'Ghi chú',
@@ -21,7 +24,7 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
                 'created_at' => 'Ngày tạo',
                 'action' => 'Thao tác',
             ],
-            'sortable_columns' => ['id', 'order_code', 'order_date', 'status', 'total_amount', 'created_at'],
+            'sortable_columns' => ['id', 'order_code', 'order_date', 'status', 'total_amount', 'created_at','cost','customer_id'],
             'searchable_columns' => ['order_code'],
             'primary_key' => 'id',
             'per_page' => 10,
@@ -88,6 +91,18 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
             $filters[] = "customer_id = %d";
             $params[] = (int)$this->filters['customer_id'];
         }
+        if (!empty($this->filters['customer_source'])) {
+            $filters[] = "customer_source = %s";
+            $params[] = $this->filters['customer_source'];
+        }
+        if (!empty($this->filters['date_from'])) {
+            $filters[] = "order_date >= %s";
+            $params[] = $this->filters['date_from'];
+        }
+        if (!empty($this->filters['date_to'])) {
+            $filters[] = "order_date <= %s";
+            $params[] = $this->filters['date_to'];
+        }
         // Bổ sung filter loại đơn hàng động
         if (!empty($this->filters['order_type'])) {
             global $wpdb;
@@ -142,6 +157,33 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
     protected function column_total_amount($item)
     {
         return sprintf('%s %s', number_format($item->total_amount, 0), 'đ');
+    }
+
+    protected function column_cost($item)
+    {
+        return sprintf('%s %s', number_format($item->cost ?? 0, 0), 'đ');
+    }
+
+    protected function column_profit($item)
+    {
+        $profit = ($item->total_amount ?? 0) - ($item->cost ?? 0);
+        $color_class = $profit >= 0 ? 'text-success' : 'text-danger';
+        return sprintf('<span class="%s fw-bold">%s %s</span>', $color_class, number_format($profit, 0), 'đ');
+    }
+
+    protected function column_customer_source($item)
+    {
+        $source = $item->customer_source ?? '';
+        $map = [
+            'fb' => '<span class="badge bg-primary">Facebook</span>',
+            'zalo' => '<span class="badge bg-info">Zalo</span>',
+            'tiktok' => '<span class="badge bg-dark">Tiktok</span>',
+            'youtube' => '<span class="badge bg-danger">Youtube</span>',
+            'web' => '<span class="badge bg-success">Website</span>',
+            'referral' => '<span class="badge bg-warning">KH cũ giới thiệu</span>',
+            'other' => '<span class="badge bg-secondary">Khác</span>'
+        ];
+        return $map[$source] ?? ($source ? esc_html($source) : '<span class="text-muted">--</span>');
     }
     protected function column_order_type($item)
     {

@@ -11,8 +11,8 @@ if (!is_user_logged_in()) {
 $access_conditions = [
     aerp_user_has_role($user_id, 'admin'),
     aerp_user_has_role($user_id, 'department_lead'),
-    aerp_user_has_permission($user_id,'order_view'),
-    aerp_user_has_permission($user_id,'order_view_full'),
+    aerp_user_has_permission($user_id, 'order_view'),
+    aerp_user_has_permission($user_id, 'order_view_full'),
 
 ];
 if (!in_array(true, $access_conditions, true)) {
@@ -66,46 +66,72 @@ ob_start();
     </div>
     <div class="card-body">
         <!-- Filter Form -->
-        <form id="aerp-order-filter-form" class="row g-2 mb-3 aerp-table-ajax-form" data-table-wrapper="#aerp-order-table-wrapper" data-ajax-action="aerp_order_filter_orders">
-            <div class="col-12 col-md-2 mb-2">
-                <label for="filter-status" class="form-label mb-1">Trạng thái</label>
-                <select id="filter-status" name="status_id" class="form-select">
-                    <?php
-                    $statuses = aerp_get_order_statuses();
-                    aerp_safe_select_options($statuses, '', 'id', 'name', true);
-                    ?>
-                </select>
+        <form id="aerp-order-filter-form" class="g-2 mb-3 aerp-table-ajax-form" data-table-wrapper="#aerp-order-table-wrapper" data-ajax-action="aerp_order_filter_orders">
+            <div class="row">
+                <div class="col-12 col-md-2 mb-2">
+                    <label for="filter-status" class="form-label mb-1">Trạng thái</label>
+                    <select id="filter-status" name="status_id" class="form-select">
+                        <?php
+                        $statuses = aerp_get_order_statuses();
+                        aerp_safe_select_options($statuses, '', 'id', 'name', true);
+                        ?>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2 mb-2">
+                    <label for="filter-employee" class="form-label mb-1">Nhân viên</label>
+                    <select id="filter-employee" name="employee_id" class="form-select employee-select">
+                        <?php
+                        $employees = function_exists('aerp_get_order_assigned_employees') ? aerp_get_order_assigned_employees() : [];
+                        aerp_safe_select_options($employees, '', 'user_id', 'full_name', true);
+                        ?>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2 mb-2">
+                    <label for="filter-customer" class="form-label mb-1">Khách hàng</label>
+                    <select id="filter-customer" name="customer_id" class="form-select customer-select">
+                        <?php
+                        $customers = function_exists('aerp_get_customers') ? aerp_get_customers() : [];
+                        aerp_safe_select_options($customers, '', 'id', 'full_name', true);
+                        ?>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2 mb-2">
+                    <label for="filter-order-type" class="form-label mb-1">Loại đơn</label>
+                    <select id="filter-order-type" name="order_type" class="form-select">
+                        <option value="">Tất cả loại</option>
+                        <option value="product">Bán hàng</option>
+                        <option value="service">Dịch vụ</option>
+                        <option value="mixed">Tổng hợp</option>
+                    </select>
+                </div>
             </div>
-            <div class="col-12 col-md-2 mb-2">
-                <label for="filter-employee" class="form-label mb-1">Nhân viên</label>
-                <select id="filter-employee" name="employee_id" class="form-select employee-select">
-                    <?php
-                    $employees = function_exists('aerp_get_order_assigned_employees') ? aerp_get_order_assigned_employees() : [];
-                    aerp_safe_select_options($employees, '', 'user_id', 'full_name', true);
-                    ?>
-                </select>
+            <div class="row">
+                <div class="col-12 col-md-2 mb-2">
+                    <label for="filter-customer-source" class="form-label mb-1">Nguồn khách hàng</label>
+                    <select id="filter-customer-source" name="customer_source" class="form-select">
+                        <option value="">Tất cả nguồn</option>
+                        <option value="fb">Facebook</option>
+                        <option value="zalo">Zalo</option>
+                        <option value="tiktok">Tiktok</option>
+                        <option value="youtube">Youtube</option>
+                        <option value="web">Website</option>
+                        <option value="referral">KH cũ giới thiệu</option>
+                        <option value="other">Khác</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2 mb-2">
+                    <label for="filter-date-from" class="form-label mb-1">Từ ngày</label>
+                    <input type="date" id="filter-date-from" name="date_from" class="form-control">
+                </div>
+                <div class="col-12 col-md-2 mb-2">
+                    <label for="filter-date-to" class="form-label mb-1">Đến ngày</label>
+                    <input type="date" id="filter-date-to" name="date_to" class="form-control">
+                </div>
+                <div class="col-12 col-md-1 d-flex align-items-end mb-2">
+                    <button type="submit" class="btn btn-primary w-100">Lọc</button>
+                </div>
             </div>
-            <div class="col-12 col-md-2 mb-2">
-                <label for="filter-customer" class="form-label mb-1">Khách hàng</label>
-                <select id="filter-customer" name="customer_id" class="form-select customer-select">
-                    <?php
-                    $customers = function_exists('aerp_get_customers') ? aerp_get_customers() : [];
-                    aerp_safe_select_options($customers, '', 'id', 'full_name', true);
-                    ?>
-                </select>
-            </div>
-            <div class="col-12 col-md-2 mb-2">
-                <label for="filter-order-type" class="form-label mb-1">Loại đơn</label>
-                <select id="filter-order-type" name="order_type" class="form-select">
-                    <option value="">Tất cả loại</option>
-                    <option value="product">Bán hàng</option>
-                    <option value="service">Dịch vụ</option>
-                    <option value="mixed">Tổng hợp</option>
-                </select>
-            </div>
-            <div class="col-12 col-md-1 d-flex align-items-end mb-2">
-                <button type="submit" class="btn btn-primary w-100">Lọc</button>
-            </div>
+
         </form>
         <?php $message = get_transient('aerp_order_message');
         if ($message) {
@@ -145,52 +171,52 @@ ob_start();
 </div>
 
 <script>
-jQuery(document).ready(function($) {
-    let currentOrderId = null;
-    
-    // Xử lý click nút hủy đơn
-    $(document).on('click', '.cancel-order-btn', function() {
-        currentOrderId = $(this).data('order-id');
-        let orderCode = $(this).data('order-code');
-        
-        $('#cancelOrderCode').text(orderCode);
-        $('#cancelReason').val('');
-        $('#cancelOrderModal').modal('show');
-    });
-    
-    // Xử lý xác nhận hủy đơn
-    $('#confirmCancelOrder').on('click', function() {
-        let reason = $('#cancelReason').val().trim();
-        
-        if (!reason) {
-            alert('Vui lòng nhập lý do hủy đơn.');
-            return;
-        }
-        
-        $.ajax({
-            url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'aerp_cancel_order',
-                order_id: currentOrderId,
-                reason: reason,
-                _wpnonce: '<?php echo wp_create_nonce('aerp_cancel_order_nonce'); ?>'
-            },
-            success: function(response) {
-                if (response.success) {
-                    alert(response.data);
-                    $('#cancelOrderModal').modal('hide');
-                    location.reload(); // Reload trang để cập nhật trạng thái
-                } else {
-                    alert('Lỗi: ' + response.data);
-                }
-            },
-            error: function() {
-                alert('Có lỗi xảy ra khi hủy đơn hàng.');
+    jQuery(document).ready(function($) {
+        let currentOrderId = null;
+
+        // Xử lý click nút hủy đơn
+        $(document).on('click', '.cancel-order-btn', function() {
+            currentOrderId = $(this).data('order-id');
+            let orderCode = $(this).data('order-code');
+
+            $('#cancelOrderCode').text(orderCode);
+            $('#cancelReason').val('');
+            $('#cancelOrderModal').modal('show');
+        });
+
+        // Xử lý xác nhận hủy đơn
+        $('#confirmCancelOrder').on('click', function() {
+            let reason = $('#cancelReason').val().trim();
+
+            if (!reason) {
+                alert('Vui lòng nhập lý do hủy đơn.');
+                return;
             }
+
+            $.ajax({
+                url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'aerp_cancel_order',
+                    order_id: currentOrderId,
+                    reason: reason,
+                    _wpnonce: '<?php echo wp_create_nonce('aerp_cancel_order_nonce'); ?>'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        alert(response.data);
+                        $('#cancelOrderModal').modal('hide');
+                        location.reload(); // Reload trang để cập nhật trạng thái
+                    } else {
+                        alert('Lỗi: ' + response.data);
+                    }
+                },
+                error: function() {
+                    alert('Có lỗi xảy ra khi hủy đơn hàng.');
+                }
+            });
         });
     });
-});
 </script>
 
 <?php

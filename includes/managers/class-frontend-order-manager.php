@@ -38,6 +38,8 @@ class AERP_Frontend_Order_Manager
                 'status_id'     => $new_status,
                 'note'          => sanitize_textarea_field($_POST['note']),
                 'total_amount'  => $total_amount,
+                'cost'          => floatval($_POST['cost'] ?? 0),
+                'customer_source' => sanitize_text_field($_POST['customer_source'] ?? ''),
             ];
 
             // Nếu có lý do hủy, thêm vào data
@@ -46,7 +48,7 @@ class AERP_Frontend_Order_Manager
                 $data['status'] = 'cancelled';
             }
 
-            $format = ['%d', '%d', '%s', '%s', '%s', '%f'];
+            $format = ['%d', '%d', '%s', '%s', '%s', '%f', '%f', '%s'];
             $wpdb->update($table, $data, ['id' => $id], $format, ['%d']);
             $order_id = $id;
             $msg = 'Đã cập nhật đơn hàng!';
@@ -74,9 +76,11 @@ class AERP_Frontend_Order_Manager
                 'total_amount'  => $total_amount,
                 'status_id'     => sanitize_text_field($_POST['status_id']),
                 'note'          => sanitize_textarea_field($_POST['note']),
+                'cost'          => floatval($_POST['cost'] ?? 0),
+                'customer_source' => sanitize_text_field($_POST['customer_source'] ?? ''),
                 'created_at'    => (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d H:i:s'),
             ];
-            $format = ['%s', '%d', '%d', '%s', '%f', '%s', '%s', '%s'];
+            $format = ['%s', '%d', '%d', '%s', '%f', '%s', '%s', '%f', '%s', '%s'];
             $wpdb->insert($table, $data, $format);
             $order_id = $wpdb->insert_id;
             $msg = 'Đã thêm đơn hàng!';
