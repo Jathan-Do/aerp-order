@@ -17,6 +17,7 @@ add_action('init', function () {
     add_rewrite_rule('^aerp-stock-timeline/?$', 'index.php?aerp_report_page=stock_timeline', 'top');
     add_rewrite_rule('^aerp-movement-report/?$', 'index.php?aerp_report_page=movement_report', 'top');
     add_rewrite_rule('^aerp-low-stock-alert/?$', 'index.php?aerp_report_page=low_stock_alert', 'top');
+    add_rewrite_rule('^aerp-devices/?$', 'index.php?aerp_device_page=devices', 'top');
     $rules = get_option('rewrite_rules');
     if ($rules && !isset($rules['^aerp-order-orders/?$'])) {
         flush_rewrite_rules();
@@ -60,6 +61,9 @@ add_action('init', function () {
     if ($rules && !isset($rules['^aerp-low-stock-alert/?$'])) {
         flush_rewrite_rules();
     }
+    if ($rules && !isset($rules['^aerp-devices/?$'])) {
+        flush_rewrite_rules();
+    }
 });
 
 add_action('template_redirect', function () {
@@ -88,6 +92,7 @@ add_filter('query_vars', function ($vars) {
     $vars[] = 'aerp_inventory_transfer_page';
     $vars[] = 'aerp_supplier_page';
     $vars[] = 'aerp_report_page';
+    $vars[] = 'aerp_device_page';
     return $vars;
 });
 
@@ -311,6 +316,28 @@ add_action('template_redirect', function () {
                 exit;
             case 'low_stock_alert':
                 include AERP_ORDER_PATH . 'frontend/admin/inventory/low-stock-alert.php';
+            exit;
+        }
+    }
+    $aerp_device_page = get_query_var('aerp_device_page');
+    if ($aerp_device_page === 'devices') {
+        $template_name = '';
+        switch ($action_from_get) {
+            case 'add':
+                $template_name = 'device/form.php';
+                break;
+            case 'edit':
+                $template_name = 'device/form.php';
+                break;
+            case 'delete':
+                AERP_Device_Manager::handle_single_delete();
+                return;
+            default:
+                $template_name = 'device/list.php';
+                break;
+        }
+        if ($template_name) {
+            include AERP_ORDER_PATH . 'frontend/admin/' . $template_name;
             exit;
         }
     }

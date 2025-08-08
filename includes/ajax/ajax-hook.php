@@ -571,3 +571,22 @@ function aerp_cancel_order_ajax() {
         wp_send_json_error('Không thể hủy đơn hàng.');
     }
 }
+
+add_action('wp_ajax_aerp_device_filter_devices', 'aerp_device_filter_devices_callback');
+add_action('wp_ajax_nopriv_aerp_device_filter_devices', 'aerp_device_filter_devices_callback');
+function aerp_device_filter_devices_callback()
+{
+    $filters = [
+        'search_term' => sanitize_text_field($_POST['s'] ?? ''),
+        'paged' => intval($_POST['paged'] ?? 1),
+        'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
+        'order' => sanitize_text_field($_POST['order'] ?? ''),
+        'partner_id' => intval($_POST['partner_id'] ?? 0),
+    ];
+    $table = new AERP_Device_Table();
+    $table->set_filters($filters);
+    ob_start();
+    $table->render();
+    $html = ob_get_clean();
+    wp_send_json_success(['html' => $html]);
+}

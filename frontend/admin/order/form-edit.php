@@ -23,7 +23,10 @@ $edit_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
 $editing = AERP_Frontend_Order_Manager::get_by_id($edit_id);
 if (!$editing) wp_die(__('Order not found.'));
 $order_items = function_exists('aerp_get_order_items') ? aerp_get_order_items($edit_id) : [];
-
+// Lấy danh sách thiết bị
+global $wpdb;
+$device_list = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}aerp_order_devices WHERE order_id = %d", $edit_id));
+$order_type = (!empty($device_list)) ? 'device' : 'product';
 // Xử lý xác nhận đơn hàng
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aerp_confirm_order'], $_POST['order_id'])) {
     global $wpdb;
@@ -144,6 +147,13 @@ ob_start();
                         <option value="other" <?php selected($editing->customer_source ?? '', 'other'); ?>>Khác</option>
                     </select>
                 </div>
+                <div class="col-md-6 mb-3">
+                    <label for="order_type" class="form-label">Loại đơn</label>
+                    <select class="form-select" id="order_type" name="order_type" required>
+                        <option value="product" <?= $order_type === 'product' ? ' selected' : '' ?>>Bán hàng/ Dịch vụ</option>
+                        <option value="device" <?= $order_type === 'device' ? ' selected' : '' ?>>Nhận thiết bị</option>
+                    </select>
+                </div>
                 <div class="col-12 mb-3">
                     <label class="form-label">Sản phẩm trong đơn</label>
                     <div id="order-items-container">
@@ -204,6 +214,76 @@ ob_start();
                     </div>
                     <button type="button" class="btn btn-secondary mt-2" id="add-order-item">Thêm sản phẩm</button>
                 </div>
+                <div class="col-12 mb-3" id="device-list-section" style="display:<?= $order_type === 'device' ? 'block' : 'none' ?>">
+                    <div id="device-list-table">
+                        <?php if (!empty($device_list)) :
+                            foreach ($device_list as $idx => $device) : ?>
+                                <div class="row mb-2">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Tên thiết bị</label>
+                                        <input type="text" class="form-control" name="devices[<?= $idx ?>][device_name]" value="<?= esc_attr($device->device_name) ?>" required placeholder="Tên thiết bị">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Serial/IMEI</label>
+                                        <input type="text" class="form-control" name="devices[<?= $idx ?>][serial_number]" value="<?= esc_attr($device->serial_number) ?>" placeholder="Serial/IMEI">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Tình trạng</label>
+                                        <input type="text" class="form-control" name="devices[<?= $idx ?>][status]" value="<?= esc_attr($device->status) ?>" placeholder="Tình trạng">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Ghi chú</label>
+                                        <input type="text" class="form-control" name="devices[<?= $idx ?>][note]" value="<?= esc_attr($device->note) ?>" placeholder="Ghi chú">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Đối tác sửa</label>
+                                        <select class="form-select partner-select supplier-select" style="width:100%" name="devices[<?= $idx ?>][partner_id]">
+                                            <option value="">-- Chọn nhà cung cấp --</option>
+                                            <?php foreach (AERP_Supplier_Manager::get_all() as $s): ?>
+                                                <option value="<?php echo esc_attr($s->id); ?>" <?php selected($device && $device->partner_id == $s->id); ?>>
+                                                    <?php echo esc_html($s->name); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-1 mt-2 d-flex align-items-end">
+                                        <button type="button" class="btn btn-outline-danger remove-device-row">Xóa</button>
+                                    </div>
+                                </div>
+                            <?php endforeach;
+                        else : ?>
+                            <div class="row mb-2">
+                                <div class="col-md-3">
+                                    <label class="form-label">Tên thiết bị</label>
+                                    <input type="text" class="form-control" name="devices[0][device_name]" placeholder="Tên thiết bị">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Serial/IMEI</label>
+                                    <input type="text" class="form-control" name="devices[0][serial_number]" placeholder="Serial/IMEI">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Tình trạng</label>
+                                    <input type="text" class="form-control" name="devices[0][status]" placeholder="Tình trạng">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Ghi chú</label>
+                                    <input type="text" class="form-control" name="devices[0][note]" placeholder="Ghi chú">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Đối tác sửa</label>
+                                    <select class="form-select partner-select supplier-select" style="width:100%" name="devices[0][partner_id]">
+                                        <option value="">-- Chọn nhà cung cấp --</option>
+                                        
+                                    </select>
+                                </div>
+                                <div class="col-md-1 mt-2 d-flex align-items-end">
+                                    <button type="button" class="btn btn-outline-danger remove-device-row">Xóa</button>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <button type="button" class="btn btn-secondary mt-2" id="add-device-row">Thêm thiết bị</button>
+                </div>
                 <div class="col-12 mb-3 overflow-hidden">
                     <label for="attachments" class="form-label">File đính kèm mới</label>
                     <input type="file" class="form-control" id="attachments" name="attachments[]" multiple>
@@ -252,40 +332,73 @@ ob_start();
     </div>
 </div>
 <script>
-    (function($) {
-        let itemIndex = <?php echo !empty($order_items) ? count($order_items) : 1; ?>;
-        $('#add-order-item').on('click', function() {
-            let row = `<div class="row mb-2 order-item-row">
-            <div class="col-md-3 mb-2"><input type="text" class="form-control" name="order_items[${itemIndex}][product_name]" placeholder="Tên sản phẩm" required></div>
-            <div class="col-md-3 mb-2 d-flex align-items-center">
-                <input type="number" class="form-control" name="order_items[${itemIndex}][quantity]" placeholder="Số lượng" min="0.01" step="0.01" value="1" required>
-                <span class="unit-label ms-2"></span>
-            </div>
-            <div class="col-md-1 mb-2">
-                <input type="number" class="form-control" name="order_items[${itemIndex}][vat_percent]" placeholder="VAT (%)" min="0" max="100" step="0.01">
-            </div>
-            <div class="col-md-2 mb-2"><input type="number" class="form-control" name="order_items[${itemIndex}][unit_price]" placeholder="Đơn giá" min="0" step="0.01" required></div>
-            <div class="col-md-2 mb-2"><input type="text" class="form-control total-price-field" placeholder="Thành tiền" readonly></div>
-            <div class="col-md-1 mb-2"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>
-        </div>`;
-            $('#order-items-container').append(row);
-            itemIndex++;
-        });
-        $(document).on('click', '.remove-order-item', function() {
-            $(this).closest('.order-item-row').remove();
-        });
-        $(document).on('input', 'input[name*="[quantity]"], input[name*="[unit_price]"], input[name*="[product_name]"], input[name*="[vat_percent]"]', function() {
-            let row = $(this).closest('.order-item-row');
-            let qty = parseFloat(row.find('input[name*="[quantity]"]').val()) || 0;
-            let price = parseFloat(row.find('input[name*="[unit_price]"]').val()) || 0;
-            let vat = parseFloat(row.find('input[name*="[vat_percent]"]').val()) || 0;
-            let total = qty * price;
-            if (vat > 0) {
-                total = total + (total * vat / 100);
+    jQuery(document).ready(function($) {
+        function toggleDeviceSection() {
+            if ($('#order_type').val() === 'device') {
+                $('#device-list-section').show();
+                $('#order-items-container').hide();
+                $('#add-order-item').hide();
+                // Bật required cho input thiết bị
+                $('#device-list-section input, #device-list-section select').prop('required', true);
+                $('#order-items-container input, #order-items-container select').prop('required', false);
+            } else {
+                $('#device-list-section').hide();
+                $('#order-items-container').show();
+                $('#add-order-item').show();
+                // Tắt required cho input thiết bị
+                $('#device-list-section input, #device-list-section select').prop('required', false);
+                $('#order-items-container input, #order-items-container select').prop('required', true);
             }
-            row.find('.total-price-field').val(total.toLocaleString('vi-VN'));
+        }
+        $('#order_type').on('change', toggleDeviceSection);
+        toggleDeviceSection();
+        // Thêm dòng thiết bị
+        let deviceIndex = $('#device-list-table .row').length;
+        $('#add-device-row').on('click', function() {
+            let row = `<div class="row mb-2 device-row">
+            <div class="col-md-3 mb-2"><input type="text" class="form-control" name="devices[${deviceIndex}][device_name]" placeholder="Tên thiết bị"></div>
+            <div class="col-md-2 mb-2"><input type="text" class="form-control" name="devices[${deviceIndex}][serial_number]" placeholder="Serial/IMEI"></div>
+            <div class="col-md-2 mb-2"><input type="text" class="form-control" name="devices[${deviceIndex}][status]" placeholder="Tình trạng"></div>
+            <div class="col-md-3 mb-2"><input type="text" class="form-control" name="devices[${deviceIndex}][note]" placeholder="Ghi chú"></div>
+            <div class="col-md-2 mb-2">
+                <select class="form-select partner-select supplier-select" style="width:100%" name="devices[${deviceIndex}][partner_id]">
+                    <option value="">-- Chọn đối tác --</option>
+                </select>
+            </div>
+            <div class="col-md-1 mb-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-danger remove-device-row">Xóa</button>
+            </div>
+        </div>`;
+            $('#device-list-table').append(row);
+            deviceIndex++;
+            $('#device-list-table .supplier-select').select2({
+                placeholder: "Chọn nhà cung cấp/ Đối tác",
+                allowClear: true,
+                ajax: {
+                    url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+                    dataType: "json",
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            action: "aerp_order_search_suppliers",
+                            q: params.term,
+                        };
+                    },
+                    processResults: function(data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true,
+                },
+                minimumInputLength: 0,
+            });
         });
-    })(jQuery);
+        $(document).on('click', '.remove-device-row', function() {
+            $(this).closest('.device-row').remove();
+        });
+        // TODO: AJAX load đối tác sửa chữa cho .partner-select
+    });
 </script>
 <?php
 $content = ob_get_clean();

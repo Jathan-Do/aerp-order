@@ -78,7 +78,7 @@ ob_start();
                 <div class="col-md-6 mb-3">
                     <label for="employee_id" class="form-label">Nhân viên phụ trách</label>
                     <select class="form-select employee-select" id="employee_id" name="employee_id">
-                        
+
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
@@ -110,6 +110,45 @@ ob_start();
                         <option value="referral">KH cũ giới thiệu</option>
                         <option value="other">Khác</option>
                     </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="order_type" class="form-label">Loại đơn</label>
+                    <select class="form-select" id="order_type" name="order_type" required>
+                        <option value="product">Bán hàng/ Dịch vụ</option>
+                        <option value="device">Nhận thiết bị</option>
+                    </select>
+                </div>
+                <div class="col-12 mb-3" id="device-list-section" style="display:none">
+                    <div id="device-list-table">
+                        <div class="row mb-2 device-row">
+                            <div class="col-md-3">
+                                <label class="form-label">Tên thiết bị</label>
+                                <input type="text" class="form-control" name="devices[0][device_name]" required placeholder="Tên thiết bị">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Serial/IMEI</label>
+                                <input type="text" class="form-control" name="devices[0][serial_number]" placeholder="Serial/IMEI">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Tình trạng</label>
+                                <input type="text" class="form-control" name="devices[0][status]" placeholder="Tình trạng">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Ghi chú</label>
+                                <input type="text" class="form-control" name="devices[0][note]" placeholder="Ghi chú">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Đối tác sửa</label>
+                                <select class="form-select partner-select supplier-select" style="width:100%" name="devices[0][partner_id]">
+                                    <option value="">-- Chọn đối tác --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-1 mt-2 d-flex align-items-end">
+                                <button type="button" class="btn btn-outline-danger remove-device-row">Xóa</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary mt-2" id="add-device-row">Thêm thiết bị</button>
                 </div>
                 <div class="col-12 mb-3">
                     <div id="order-items-container">
@@ -173,3 +212,72 @@ ob_start();
 $content = ob_get_clean();
 $title = 'Thêm đơn hàng mới';
 include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
+?>
+<script>
+    jQuery(document).ready(function($) {
+        function toggleDeviceSection() {
+            if ($('#order_type').val() === 'device') {
+                $('#device-list-section').show();
+                $('#order-items-container').hide();
+                $('#add-order-item').hide();
+                $('#device-list-section input, #device-list-section select').prop('required', true);
+                $('#order-items-container input, #order-items-container select').prop('required', false);
+            } else {
+                $('#device-list-section').hide();
+                $('#order-items-container').show();
+                $('#add-order-item').show();
+                $('#device-list-section input, #device-list-section select').prop('required', false);
+                $('#order-items-container input, #order-items-container select').prop('required', true);
+            }
+        }
+        $('#order_type').on('change', toggleDeviceSection);
+        toggleDeviceSection();
+
+        // Thêm dòng thiết bị
+        let deviceIndex = 1;
+        $('#add-device-row').on('click', function() {
+            let row = `<div class="row mb-2 device-row">
+            <div class="col-md-3 mb-2"><input type="text" class="form-control" name="devices[${deviceIndex}][device_name]" placeholder="Tên thiết bị"></div>
+            <div class="col-md-2 mb-2"><input type="text" class="form-control" name="devices[${deviceIndex}][serial_number]" placeholder="Serial/IMEI"></div>
+            <div class="col-md-2 mb-2"><input type="text" class="form-control" name="devices[${deviceIndex}][status]" placeholder="Tình trạng"></div>
+            <div class="col-md-2 mb-2"><input type="text" class="form-control" name="devices[${deviceIndex}][note]" placeholder="Ghi chú"></div>
+            <div class="col-md-2 mb-2">
+                <select class="form-select partner-select supplier-select" style="width:100%" name="devices[${deviceIndex}][partner_id]">
+                    <option value="">-- Chọn đối tác --</option>
+                </select>
+            </div>
+            <div class="col-md-1 mb-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-danger remove-device-row">Xóa</button>
+            </div>
+        </div>`;
+            $('#device-list-table').append(row);
+            deviceIndex++;
+            $('#device-list-table .supplier-select').select2({
+                placeholder: "Chọn nhà cung cấp/ Đối tác",
+                allowClear: true,
+                ajax: {
+                    url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+                    dataType: "json",
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            action: "aerp_order_search_suppliers",
+                            q: params.term,
+                        };
+                    },
+                    processResults: function(data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true,
+                },
+                minimumInputLength: 0,
+            });
+        });
+        $(document).on('click', '.remove-device-row', function() {
+            $(this).closest('.device-row').remove();
+        });
+        // TODO: AJAX load đối tác sửa chữa cho .partner-select
+    });
+</script>

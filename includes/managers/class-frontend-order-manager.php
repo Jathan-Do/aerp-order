@@ -24,6 +24,7 @@ class AERP_Frontend_Order_Manager
         }
 
         // 2. Chuẩn hóa dữ liệu
+        $order_type = isset($_POST['order_type']) ? sanitize_text_field($_POST['order_type']) : 'product';
         $order_date = !empty($_POST['order_date']) ? sanitize_text_field($_POST['order_date']) : date('Y-m-d');
 
         if ($id) {
@@ -66,6 +67,25 @@ class AERP_Frontend_Order_Manager
                     ['%d', '%d', '%d', '%d', '%s']
                 );
             }
+            // Xử lý thiết bị nhận nếu là đơn nhận thiết bị
+            if ($order_type === 'device') {
+                $device_table = $wpdb->prefix . 'aerp_order_devices';
+                // Xóa thiết bị cũ
+                $wpdb->delete($device_table, ['order_id' => $order_id]);
+                if (!empty($_POST['devices']) && is_array($_POST['devices'])) {
+                    foreach ($_POST['devices'] as $device) {
+                        $device_data = [
+                            'order_id' => $order_id,
+                            'device_name' => sanitize_text_field($device['device_name'] ?? ''),
+                            'serial_number' => sanitize_text_field($device['serial_number'] ?? ''),
+                            'status' => sanitize_text_field($device['status'] ?? ''),
+                            'note' => sanitize_text_field($device['note'] ?? ''),
+                            'partner_id' => !empty($device['partner_id']) ? absint($device['partner_id']) : null,
+                        ];
+                        $wpdb->insert($device_table, $device_data, ['%d','%s','%s','%s','%s','%d']);
+                    }
+                }
+            }
         } else {
             // Thêm mới đơn hàng
             $data = [
@@ -84,6 +104,23 @@ class AERP_Frontend_Order_Manager
             $wpdb->insert($table, $data, $format);
             $order_id = $wpdb->insert_id;
             $msg = 'Đã thêm đơn hàng!';
+            // Xử lý thiết bị nhận nếu là đơn nhận thiết bị
+            if ($order_type === 'device') {
+                $device_table = $wpdb->prefix . 'aerp_order_devices';
+                if (!empty($_POST['devices']) && is_array($_POST['devices'])) {
+                    foreach ($_POST['devices'] as $device) {
+                        $device_data = [
+                            'order_id' => $order_id,
+                            'device_name' => sanitize_text_field($device['device_name'] ?? ''),
+                            'serial_number' => sanitize_text_field($device['serial_number'] ?? ''),
+                            'status' => sanitize_text_field($device['status'] ?? ''),
+                            'note' => sanitize_text_field($device['note'] ?? ''),
+                            'partner_id' => !empty($device['partner_id']) ? absint($device['partner_id']) : null,
+                        ];
+                        $wpdb->insert($device_table, $device_data, ['%d','%s','%s','%s','%s','%d']);
+                    }
+                }
+            }
         }
 
         if ($order_id) {

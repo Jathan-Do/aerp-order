@@ -66,6 +66,22 @@ function aerp_order_install_schema()
         INDEX idx_name (name)
     ) $charset_collate;";
 
+    // 1c. Thiết bị nhận từ khách (gắn với đơn hàng)
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_order_devices (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        order_id BIGINT NOT NULL,
+        device_name VARCHAR(255) NOT NULL,
+        serial_number VARCHAR(100) DEFAULT NULL,
+        status VARCHAR(100) DEFAULT NULL,
+        note TEXT DEFAULT NULL,
+        partner_id BIGINT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_order_id (order_id),
+        INDEX idx_device_name (device_name),
+        INDEX idx_serial_number (serial_number),
+        INDEX idx_partner_id (partner_id)
+    ) $charset_collate;";
+
     // 2. Sản phẩm trong đơn
     $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_order_items (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,

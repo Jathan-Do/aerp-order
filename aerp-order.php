@@ -54,6 +54,7 @@ function aerp_order_init()
     require_once AERP_ORDER_PATH . 'includes/table/class-table-inventory-transfer.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-supplier.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-low-stock.php';
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-device.php';
     // Load các class cần thiết manager
     $includes = [
         'class-frontend-order-manager.php',
@@ -67,6 +68,7 @@ function aerp_order_init()
         'class-product-stock-manager.php',
         'class-inventory-transfer-manager.php',
         'class-supplier-manager.php',
+        'class-device-manager.php',
     ];
     foreach ($includes as $file) {
         require_once AERP_ORDER_PATH . 'includes/managers/' . $file;
@@ -85,6 +87,7 @@ function aerp_order_init()
         'AERP_Product_Stock_Manager',
         'AERP_Inventory_Transfer_Manager',
         'AERP_Supplier_Manager',
+        'AERP_Device_Manager',
         ];
     foreach ($managers as $manager) {
         if (method_exists($manager, 'handle_submit')) {

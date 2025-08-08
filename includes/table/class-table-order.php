@@ -24,7 +24,7 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
                 'created_at' => 'Ngày tạo',
                 'action' => 'Thao tác',
             ],
-            'sortable_columns' => ['id', 'order_code', 'order_date', 'status', 'total_amount', 'created_at','cost','customer_id'],
+            'sortable_columns' => ['id', 'order_code', 'order_date', 'status', 'total_amount', 'created_at', 'cost', 'customer_id'],
             'searchable_columns' => ['order_code'],
             'primary_key' => 'id',
             'per_page' => 10,
@@ -189,7 +189,17 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
     {
         global $wpdb;
         $order_id = $item->id;
-        // Đếm số dòng sản phẩm và dịch vụ
+
+        // 1. Nếu có thiết bị nhận thì là đơn nhận thiết bị
+        $device_count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_devices WHERE order_id = %d",
+            $order_id
+        ));
+        if ($device_count > 0) {
+            return '<span class="badge bg-primary">Nhận thiết bị</span>';
+        }
+
+        // 2. Nếu không, xác định như cũ
         $count_product = $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d AND (item_type = 'product' OR (item_type IS NULL AND product_id IS NOT NULL))",
             $order_id

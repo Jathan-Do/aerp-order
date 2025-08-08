@@ -292,7 +292,7 @@ jQuery(document).ready(function ($) {
         });
         // Select2 cho nhà cung cấp
         $(".supplier-select").select2({
-            placeholder: "Chọn nhà cung cấp",
+            placeholder: "Chọn nhà cung cấp/ Đối tác",
             allowClear: true,
             ajax: {
                 url: aerp_order_ajax.ajaxurl,
