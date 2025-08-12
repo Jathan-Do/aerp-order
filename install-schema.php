@@ -42,7 +42,7 @@ function aerp_order_install_schema()
         order_date DATE,
         total_amount FLOAT,
         cost FLOAT DEFAULT 0,
-        customer_source VARCHAR(50) DEFAULT NULL,
+        customer_source_id BIGINT DEFAULT NULL,
         status_id BIGINT,
         status ENUM('draft','confirmed','cancelled') DEFAULT 'draft',
         cancel_reason TEXT DEFAULT NULL,
@@ -52,7 +52,7 @@ function aerp_order_install_schema()
         INDEX idx_customer_id (customer_id),
         INDEX idx_employee_id (employee_id),
         INDEX idx_status_id (status_id),
-        INDEX idx_customer_source (customer_source),
+        INDEX idx_customer_source_id (customer_source_id),
         INDEX idx_created_at (created_at)
     ) $charset_collate;";
 

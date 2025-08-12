@@ -61,15 +61,28 @@ ob_start();
                     <label for="customer_id" class="form-label">Khách hàng</label>
                     <select class="form-select customer-select" id="customer_id" name="customer_id" required>
                         <?php
+                        // Check if customer_id is passed via GET parameter (from customer detail page)
+                        $customer_id_from_url = isset($_GET['customer_id']) ? intval($_GET['customer_id']) : 0;
+                        
                         if (!empty($_POST['customer_id'])) {
                             $selected_id = intval($_POST['customer_id']);
                             $selected_name = '';
                             if (function_exists('aerp_get_customer')) {
                                 $c = aerp_get_customer($selected_id);
-                                if ($c) $selected_name = $c->full_name . (!empty($c->code) ? ' (' . $c->code . ')' : '');
+                                if ($c) $selected_name = $c->full_name . (!empty($c->customer_code) ? ' (' . $c->customer_code . ')' : '');
                             }
                             if ($selected_name) {
                                 echo '<option value="' . esc_attr($selected_id) . '" selected>' . esc_html($selected_name) . '</option>';
+                            }
+                        } elseif ($customer_id_from_url > 0) {
+                            // Auto-select customer from URL parameter
+                            $selected_name = '';
+                            if (function_exists('aerp_get_customer')) {
+                                $c = aerp_get_customer($customer_id_from_url);
+                                if ($c) $selected_name = $c->full_name . (!empty($c->customer_code) ? ' (' . $c->customer_code . ')' : '');
+                            }
+                            if ($selected_name) {
+                                echo '<option value="' . esc_attr($customer_id_from_url) . '" selected>' . esc_html($selected_name) . '</option>';
                             }
                         }
                         ?>
@@ -99,16 +112,21 @@ ob_start();
                     <input type="number" class="form-control" id="cost" name="cost" min="0" step="0.01" value="0">
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label for="customer_source" class="form-label">Nguồn khách hàng</label>
-                    <select class="form-select" id="customer_source" name="customer_source">
+                    <label for="customer_source_id" class="form-label">Nguồn khách hàng</label>
+                    <select class="form-select" id="customer_source_id" name="customer_source_id">
                         <option value="">-- Chọn nguồn --</option>
-                        <option value="fb">Facebook</option>
-                        <option value="zalo">Zalo</option>
-                        <option value="tiktok">Tiktok</option>
-                        <option value="youtube">Youtube</option>
-                        <option value="web">Website</option>
-                        <option value="referral">KH cũ giới thiệu</option>
-                        <option value="other">Khác</option>
+                        <?php
+                        $customer_sources = function_exists('aerp_get_customer_sources') ? aerp_get_customer_sources() : [];
+                        if ($customer_sources) {
+                            foreach ($customer_sources as $source) {
+                                printf(
+                                    '<option value="%s">%s</option>',
+                                    esc_attr($source->id),
+                                    esc_html($source->name)
+                                );
+                            }
+                        }
+                        ?>
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
@@ -279,5 +297,36 @@ include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
             $(this).closest('.device-row').remove();
         });
         // TODO: AJAX load đối tác sửa chữa cho .partner-select
+        
+        // Initialize customer select with pre-selected value
+        <?php if ($customer_id_from_url > 0): ?>
+        $(document).ready(function() {
+            // If customer is pre-selected from URL, initialize Select2 with that value
+            if ($('#customer_id option:selected').val()) {
+                $('.customer-select').select2({
+                    placeholder: "Chọn khách hàng",
+                    allowClear: true,
+                    ajax: {
+                        url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+                        dataType: "json",
+                        delay: 250,
+                        data: function(params) {
+                            return {
+                                action: "aerp_order_search_customers",
+                                q: params.term,
+                            };
+                        },
+                        processResults: function(data) {
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true,
+                    },
+                    minimumInputLength: 0,
+                });
+            }
+        });
+        <?php endif; ?>
     });
 </script>

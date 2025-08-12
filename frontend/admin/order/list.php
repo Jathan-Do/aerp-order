@@ -108,15 +108,20 @@ ob_start();
             <div class="row">
                 <div class="col-12 col-md-2 mb-2">
                     <label for="filter-customer-source" class="form-label mb-1">Nguồn khách hàng</label>
-                    <select id="filter-customer-source" name="customer_source" class="form-select">
+                    <select id="filter-customer-source" name="customer_source_id" class="form-select">
                         <option value="">Tất cả nguồn</option>
-                        <option value="fb">Facebook</option>
-                        <option value="zalo">Zalo</option>
-                        <option value="tiktok">Tiktok</option>
-                        <option value="youtube">Youtube</option>
-                        <option value="web">Website</option>
-                        <option value="referral">KH cũ giới thiệu</option>
-                        <option value="other">Khác</option>
+                        <?php
+                        $customer_sources = function_exists('aerp_get_customer_sources') ? aerp_get_customer_sources() : [];
+                        if ($customer_sources) {
+                            foreach ($customer_sources as $source) {
+                                printf(
+                                    '<option value="%s">%s</option>',
+                                    esc_attr($source->id),
+                                    esc_html($source->name)
+                                );
+                            }
+                        }
+                        ?>
                     </select>
                 </div>
                 <div class="col-12 col-md-2 mb-2">

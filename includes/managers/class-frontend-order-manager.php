@@ -40,7 +40,7 @@ class AERP_Frontend_Order_Manager
                 'note'          => sanitize_textarea_field($_POST['note']),
                 'total_amount'  => $total_amount,
                 'cost'          => floatval($_POST['cost'] ?? 0),
-                'customer_source' => sanitize_text_field($_POST['customer_source'] ?? ''),
+                'customer_source_id' => !empty($_POST['customer_source_id']) ? absint($_POST['customer_source_id']) : null,
             ];
 
             // Nếu có lý do hủy, thêm vào data
@@ -97,7 +97,7 @@ class AERP_Frontend_Order_Manager
                 'status_id'     => sanitize_text_field($_POST['status_id']),
                 'note'          => sanitize_textarea_field($_POST['note']),
                 'cost'          => floatval($_POST['cost'] ?? 0),
-                'customer_source' => sanitize_text_field($_POST['customer_source'] ?? ''),
+                'customer_source_id' => !empty($_POST['customer_source_id']) ? absint($_POST['customer_source_id']) : null,
                 'created_at'    => (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d H:i:s'),
             ];
             $format = ['%s', '%d', '%d', '%s', '%f', '%s', '%s', '%f', '%s', '%s'];

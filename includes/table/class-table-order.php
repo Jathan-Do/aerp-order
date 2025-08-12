@@ -91,9 +91,9 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
             $filters[] = "customer_id = %d";
             $params[] = (int)$this->filters['customer_id'];
         }
-        if (!empty($this->filters['customer_source'])) {
-            $filters[] = "customer_source = %s";
-            $params[] = $this->filters['customer_source'];
+        if (!empty($this->filters['customer_source_id'])) {
+            $filters[] = "customer_source_id = %d";
+            $params[] = (int)$this->filters['customer_source_id'];
         }
         if (!empty($this->filters['date_from'])) {
             $filters[] = "order_date >= %s";
@@ -173,17 +173,18 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
 
     protected function column_customer_source($item)
     {
-        $source = $item->customer_source ?? '';
-        $map = [
-            'fb' => '<span class="badge bg-primary">Facebook</span>',
-            'zalo' => '<span class="badge bg-info">Zalo</span>',
-            'tiktok' => '<span class="badge bg-dark">Tiktok</span>',
-            'youtube' => '<span class="badge bg-danger">Youtube</span>',
-            'web' => '<span class="badge bg-success">Website</span>',
-            'referral' => '<span class="badge bg-warning">KH cũ giới thiệu</span>',
-            'other' => '<span class="badge bg-secondary">Khác</span>'
-        ];
-        return $map[$source] ?? ($source ? esc_html($source) : '<span class="text-muted">--</span>');
+        $source_id = $item->customer_source_id ?? null;
+        if ($source_id) {
+            $source = function_exists('aerp_get_customer_source') ? aerp_get_customer_source($source_id) : null;
+            if ($source) {
+                $color = !empty($source->color) ? $source->color : 'secondary';
+                return sprintf('<span class="badge" style="background-color: %s; color: white;">%s</span>', 
+                    esc_attr($color), 
+                    esc_html($source->name)
+                );
+            }
+        }
+        return '<span class="text-muted">--</span>';
     }
     protected function column_order_type($item)
     {

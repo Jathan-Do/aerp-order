@@ -135,16 +135,22 @@ ob_start();
                     <input type="number" class="form-control" id="cost" name="cost" min="0" step="0.01" value="<?php echo esc_attr($editing->cost ?? 0); ?>">
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label for="customer_source" class="form-label">Nguồn khách hàng</label>
-                    <select class="form-select" id="customer_source" name="customer_source">
+                    <label for="customer_source_id" class="form-label">Nguồn khách hàng</label>
+                    <select class="form-select" id="customer_source_id" name="customer_source_id">
                         <option value="">-- Chọn nguồn --</option>
-                        <option value="fb" <?php selected($editing->customer_source ?? '', 'fb'); ?>>Facebook</option>
-                        <option value="zalo" <?php selected($editing->customer_source ?? '', 'zalo'); ?>>Zalo</option>
-                        <option value="tiktok" <?php selected($editing->customer_source ?? '', 'tiktok'); ?>>Tiktok</option>
-                        <option value="youtube" <?php selected($editing->customer_source ?? '', 'youtube'); ?>>Youtube</option>
-                        <option value="web" <?php selected($editing->customer_source ?? '', 'web'); ?>>Website</option>
-                        <option value="referral" <?php selected($editing->customer_source ?? '', 'referral'); ?>>KH cũ giới thiệu</option>
-                        <option value="other" <?php selected($editing->customer_source ?? '', 'other'); ?>>Khác</option>
+                        <?php
+                        $customer_sources = function_exists('aerp_get_customer_sources') ? aerp_get_customer_sources() : [];
+                        if ($customer_sources) {
+                            foreach ($customer_sources as $source) {
+                                printf(
+                                    '<option value="%s" %s>%s</option>',
+                                    esc_attr($source->id),
+                                    selected($editing->customer_source_id ?? '', $source->id, false),
+                                    esc_html($source->name)
+                                );
+                            }
+                        }
+                        ?>
                     </select>
                 </div>
                 <div class="col-md-6 mb-3">
