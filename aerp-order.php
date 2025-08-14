@@ -55,6 +55,7 @@ function aerp_order_init()
     require_once AERP_ORDER_PATH . 'includes/table/class-table-supplier.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-low-stock.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-device.php';
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-implementation-template.php';
     // Load các class cần thiết manager
     $includes = [
         'class-frontend-order-manager.php',
@@ -69,6 +70,7 @@ function aerp_order_init()
         'class-inventory-transfer-manager.php',
         'class-supplier-manager.php',
         'class-device-manager.php',
+        'class-implementation-template-manager.php',
     ];
     foreach ($includes as $file) {
         require_once AERP_ORDER_PATH . 'includes/managers/' . $file;
@@ -88,6 +90,7 @@ function aerp_order_init()
         'AERP_Inventory_Transfer_Manager',
         'AERP_Supplier_Manager',
         'AERP_Device_Manager',
+        'AERP_Implementation_Template_Manager',
         ];
     foreach ($managers as $manager) {
         if (method_exists($manager, 'handle_submit')) {
@@ -128,6 +131,17 @@ add_action('wp_enqueue_scripts', function () {
             'ajaxurl' => admin_url('admin-ajax.php'),
             '_wpnonce_delete_attachment' => wp_create_nonce('aerp_delete_order_attachment_nonce'),
         ));
+        
+        // Enqueue order actions script
+        wp_enqueue_script('aerp-order-actions', AERP_ORDER_URL . 'assets/js/order-actions.js', ['jquery'], AERP_ORDER_VERSION, true);
+        wp_localize_script('aerp-order-actions', 'aerp_ajax', array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'reject_order_nonce' => wp_create_nonce('aerp_reject_order_nonce'),
+            'complete_order_nonce' => wp_create_nonce('aerp_complete_order_nonce'),
+            'mark_paid_nonce' => wp_create_nonce('aerp_mark_paid_nonce'),
+            'cancel_order_nonce' => wp_create_nonce('aerp_cancel_order_nonce'),
+        ));
+        
         wp_enqueue_style('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css');
         wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', ['jquery'], null, true);
     // }

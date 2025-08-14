@@ -31,17 +31,14 @@ class AERP_Order_Status_Table extends AERP_Frontend_Table
 
     protected function column_color($item)
     {
-        $bootstrap_colors = [
-            'primary' => 'Xanh dương',
-            'secondary' => 'Xám',
-            'success' => 'Xanh lá',
-            'danger' => 'Đỏ',
-            'warning' => 'Vàng',
-            'info' => 'Xanh nhạt',
-            'dark' => 'Đen',
-        ];
-        $label = $bootstrap_colors[$item->color] ?? $item->color;
-        return '<span class="badge bg-' . esc_attr($item->color) . '">' . esc_html($label) . '</span>';
+        if (!empty($item->color)) {
+            return sprintf(
+                '<span class="badge" style="background-color: %s; color: white;">%s</span>',
+                esc_attr($item->color),
+                esc_html($item->color)
+            );
+        }
+        return '<span class="text-muted">--</span>';
     }
     protected function get_extra_filters()
     {

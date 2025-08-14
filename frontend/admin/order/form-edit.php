@@ -27,20 +27,7 @@ $order_items = function_exists('aerp_get_order_items') ? aerp_get_order_items($e
 global $wpdb;
 $device_list = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}aerp_order_devices WHERE order_id = %d", $edit_id));
 $order_type = (!empty($device_list)) ? 'device' : 'product';
-// Xử lý xác nhận đơn hàng
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aerp_confirm_order'], $_POST['order_id'])) {
-    global $wpdb;
-    $order_id = absint($_POST['order_id']);
-    // 1 là status_id của trạng thái đã xác nhận, bạn thay đúng giá trị nếu khác
-    $wpdb->update(
-        $wpdb->prefix . 'aerp_order_orders',
-        ['status' => 'confirmed'],
-        ['id' => $order_id]
-    );
-    // Có thể set message hoặc redirect
-    wp_redirect(home_url('/aerp-order-orders'));
-    exit;
-}
+
 ob_start();
 ?>
 <style>
@@ -75,7 +62,7 @@ ob_start();
 </div>
 <div class="card">
     <div class="card-body">
-        <form method="post" enctype="multipart/form-data">
+        <form class="aerp-order-form" method="post" enctype="multipart/form-data">
             <?php wp_nonce_field('aerp_save_order_action', 'aerp_save_order_nonce'); ?>
             <input type="hidden" name="order_id" value="<?php echo esc_attr($edit_id); ?>">
             <div class="row">
@@ -178,9 +165,9 @@ ob_start();
                                 echo '</div>';
                                 // Tên sản phẩm/dịch vụ
                                 echo '<div class="col-md-3 mb-2">';
-                                echo '<input type="text" class="form-control product-name-input" name="order_items[' . $idx . '][product_name]" value="' . esc_attr($item->product_name) . '" placeholder="Tên sản phẩm/dịch vụ"' . ($item_type == 'product' ? ' style="display:none"' : '') . ' required>';
+                                echo '<input type="text" class="form-control product-name-input" name="order_items[' . $idx . '][product_name]" value="' . esc_attr($item->product_name) . '" placeholder="Tên sản phẩm/dịch vụ"' . ($item_type == 'service' ? '' : ' style="display:none"') . ($item_type == 'service' ? ' required' : '') . '>';
                                 // Select2 sản phẩm (ẩn nếu là dịch vụ)
-                                echo '<select class="form-select product-select-all-warehouses" name="order_items[' . $idx . '][product_id]" style="width:100%;' . ($item_type == 'service' ? 'display:none;' : '') . '">';
+                                echo '<select class="form-select product-select-all-warehouses" name="order_items[' . $idx . '][product_id]" style="width:100%;' . ($item_type == 'service' ? 'display:none;' : '') . '"' . ($item_type == 'product' ? ' required' : '') . '>';
                                 if ($item_type == 'product' && !empty($item->product_id)) {
                                     // Hiển thị option đã chọn
                                     echo '<option value="' . esc_attr($item->product_id) . '" selected>' . esc_html($item->product_name) . '</option>';
@@ -203,16 +190,33 @@ ob_start();
                             }
                         } else {
                             echo '<div class="row mb-2 order-item-row">';
-                            echo '<div class="col-md-3 mb-2"><input type="text" class="form-control" name="order_items[0][product_name]" placeholder="Tên sản phẩm" required></div>';
-                            echo '<div class="col-md-3 mb-2 d-flex align-items-center">';
+                            // Select loại sản phẩm/dịch vụ mặc định product
+                            echo '<div class="col-md-2 mb-2">';
+                            echo '<select class="form-select item-type-select" name="order_items[0][item_type]">';
+                            echo '<option value="product" selected>Sản phẩm</option>';
+                            echo '<option value="service">Dịch vụ</option>';
+                            echo '</select>';
+                            echo '</div>';
+                            // Tên sản phẩm/dịch vụ + select2 sản phẩm
+                            echo '<div class="col-md-3 mb-2">';
+                            echo '<input type="text" class="form-control product-name-input" name="order_items[0][product_name]" placeholder="Tên sản phẩm/dịch vụ" required style="display:none">';
+                            echo '<select class="form-select product-select-all-warehouses" name="order_items[0][product_id]" style="width:100%"></select>';
+                            echo '<input type="hidden" name="order_items[0][unit_name]" class="unit-name-input">';
+                            echo '</div>';
+                            // Số lượng
+                            echo '<div class="col-md-2 mb-2 d-flex align-items-center">';
                             echo '<input type="number" class="form-control" name="order_items[0][quantity]" placeholder="Số lượng" min="0.01" step="0.01" value="1" required>';
                             echo '<span class="unit-label ms-2"></span>';
                             echo '</div>';
+                            // VAT
                             echo '<div class="col-md-1 mb-2">';
                             echo '<input type="number" class="form-control" name="order_items[0][vat_percent]" placeholder="VAT (%)" min="0" max="100" step="0.01">';
                             echo '</div>';
+                            // Đơn giá
                             echo '<div class="col-md-2 mb-2"><input type="number" class="form-control" name="order_items[0][unit_price]" placeholder="Đơn giá" min="0" step="0.01" required></div>';
+                            // Thành tiền
                             echo '<div class="col-md-2 mb-2"><input type="text" class="form-control total-price-field" placeholder="Thành tiền" readonly></div>';
+                            // Xóa dòng
                             echo '<div class="col-md-1 mb-2"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>';
                             echo '</div>';
                         }
@@ -311,6 +315,20 @@ ob_start();
                     <label for="note" class="form-label">Ghi chú</label>
                     <textarea class="form-control" id="note" name="note" rows="2"><?php echo esc_textarea($editing->note); ?></textarea>
                 </div>
+                <div class="col-12 mb-3">
+                    <label for="requirements_content" class="form-label">Nội dung yêu cầu</label>
+                    <textarea class="form-control" id="requirements_content" name="requirements_content" rows="4" placeholder="Mô tả yêu cầu của khách hàng..."><?php echo esc_textarea($editing->requirements_content ?? ''); ?></textarea>
+                </div>
+                <div class="col-12 mb-3">
+                    <label for="implementation_content" class="form-label">Nội dung triển khai</label>
+                    <div class="mb-2">
+                        <select class="form-select implementation-template-select" id="implementation_template_select" style="width:100%">
+                            <option value="">-- Chọn template nội dung triển khai --</option>
+                        </select>
+                    </div>
+                    <textarea class="form-control" id="implementation_content" name="implementation_content" rows="6" placeholder="Nội dung triển khai chi tiết..."><?php echo esc_textarea($editing->implementation_content ?? ''); ?></textarea>
+                    <small class="form-text text-muted">Có thể chọn template từ danh sách trên và chỉnh sửa nội dung theo yêu cầu cụ thể</small>
+                </div>
 
                 <?php if (!empty($editing->cancel_reason)): ?>
                     <div class="col-12 mb-3">
@@ -323,15 +341,6 @@ ob_start();
             </div>
             <div class="d-flex gap-2">
                 <button type="submit" name="aerp_save_order" class="btn btn-primary">Cập nhật</button>
-                <?php
-                // Chỉ hiển thị nút xác nhận nếu trạng thái KHÔNG phải là 'confirmed' hoặc 'cancelled'
-                if (
-                    (aerp_user_has_role($user_id, 'accountant') || aerp_user_has_role($user_id, 'admin'))
-                    && (!isset($editing->status) || ($editing->status !== 'confirmed' && $editing->status !== 'cancelled'))
-                ) {
-                    echo '<button type="submit" name="aerp_confirm_order" class="btn btn-success" onclick="return confirm(\'Xác nhận đơn này?\')">Xác nhận</button>';
-                }
-                ?>
                 <a href="<?php echo home_url('/aerp-order-orders'); ?>" class="btn btn-secondary">Quay lại</a>
             </div>
         </form>
@@ -404,6 +413,48 @@ ob_start();
             $(this).closest('.device-row').remove();
         });
         // TODO: AJAX load đối tác sửa chữa cho .partner-select
+    });
+</script>
+<script>
+    jQuery(document).ready(function($) {
+        // Initialize implementation template select
+        $('#implementation_template_select').select2({
+            placeholder: "Chọn template nội dung triển khai",
+            allowClear: true,
+            ajax: {
+                url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+                dataType: "json",
+                delay: 250,
+                data: function(params) {
+                    return {
+                        action: "aerp_order_search_implementation_templates",
+                        q: params.term,
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true,
+            },
+            minimumInputLength: 0,
+        });
+
+        // Handle template selection
+        $('#implementation_template_select').on('select2:select', function(e) {
+            var data = e.params.data;
+            if (data.content) {
+                $('#implementation_content').val(data.content);
+            }
+        });
+
+        // Clear template selection when content is manually edited
+        $('#implementation_content').on('input', function() {
+            if ($(this).val() !== $('#implementation_template_select').find(':selected').data('content')) {
+                $('#implementation_template_select').val(null).trigger('change');
+            }
+        });
     });
 </script>
 <?php

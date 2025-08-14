@@ -30,37 +30,66 @@ class AERP_Frontend_Order_Manager
         if ($id) {
             // Cập nhật đơn hàng
             // --- Lấy trạng thái cũ để ghi log nếu có thay đổi ---
-            $old_status = $wpdb->get_var($wpdb->prepare("SELECT status_id FROM $table WHERE id = %d", $id));
-            $new_status = absint($_POST['status_id']);
+            $old_status_log = $wpdb->get_var($wpdb->prepare("SELECT status FROM $table WHERE id = %d", $id));
+            $new_status_log = sanitize_text_field($_POST['status_id']);
+            $old_status = $wpdb->get_var($wpdb->prepare("SELECT status FROM $table WHERE id = %d", $id));
+            $old_employee_id = $wpdb->get_var($wpdb->prepare("SELECT employee_id FROM $table WHERE id = %d", $id));
+            $new_employee_id = absint($_POST['employee_id'] ?? 0);
+            
             $data = [
                 'customer_id'   => absint($_POST['customer_id']),
-                'employee_id'   => absint($_POST['employee_id']),
+                'employee_id'   => $new_employee_id,
                 'order_date'    => $order_date,
-                'status_id'     => $new_status,
+                'status_id'     => $new_status_log,
                 'note'          => sanitize_textarea_field($_POST['note']),
+                'requirements_content' => sanitize_textarea_field($_POST['requirements_content'] ?? ''),
+                'implementation_content' => sanitize_textarea_field($_POST['implementation_content'] ?? ''),
                 'total_amount'  => $total_amount,
                 'cost'          => floatval($_POST['cost'] ?? 0),
                 'customer_source_id' => !empty($_POST['customer_source_id']) ? absint($_POST['customer_source_id']) : null,
             ];
+
+            // Logic xử lý status khi edit
+            if ($old_status === 'rejected' && $new_employee_id > 0 && $new_employee_id !== $old_employee_id) {
+                // Nếu đơn từ chối và được phân cho nhân viên khác → chuyển về assigned
+                $data['status'] = 'assigned';
+            } elseif ($old_status === 'rejected' && $new_employee_id === 0) {
+                // Nếu đơn từ chối và không có nhân viên → giữ nguyên rejected
+                $data['status'] = 'rejected';
+            } elseif ($old_status === 'new' && $new_employee_id > 0 && $old_employee_id == 0) {
+                // Nếu đơn mới và được phân cho nhân viên lần đầu → chuyển về assigned
+                $data['status'] = 'assigned';
+            } elseif ($old_status === 'assigned' && $new_employee_id == 0 && $old_employee_id > 0) {
+                // Nếu đơn đã phân và bị bỏ phân công → chuyển về new
+                $data['status'] = 'new';
+            } else {
+                // Các trường hợp khác giữ nguyên status cũ
+                $data['status'] = $old_status;
+            }
 
             // Nếu có lý do hủy, thêm vào data
             if (!empty($_POST['cancel_reason'])) {
                 $data['cancel_reason'] = sanitize_textarea_field($_POST['cancel_reason']);
                 $data['status'] = 'cancelled';
             }
+            if (!empty($_POST['reject_reason'])) {
+                $data['reject_reason'] = sanitize_textarea_field($_POST['reject_reason']);
+                $data['status'] = 'rejected';
+            }
 
-            $format = ['%d', '%d', '%s', '%s', '%s', '%f', '%f', '%s'];
+            $format = ['%d', '%d', '%s', '%d', '%s', '%s', '%s', '%f', '%f', '%d', '%s'];
             $wpdb->update($table, $data, ['id' => $id], $format, ['%d']);
             $order_id = $id;
             $msg = 'Đã cập nhật đơn hàng!';
+            
             // --- Ghi log nếu trạng thái thay đổi ---
-            if ((int)$old_status !== (int)$new_status && $old_status && $new_status) {
+            if ((int)$old_status_log !== (int)$new_status_log && $old_status_log && $new_status_log) {
                 $wpdb->insert(
                     $wpdb->prefix . 'aerp_order_status_logs',
                     [
                         'order_id'   => $order_id,
-                        'old_status_id' => $old_status,
-                        'new_status_id' => $new_status,
+                        'old_status_id' => $old_status_log,
+                        'new_status_id' => $new_status_log,
                         'changed_by' => get_current_user_id(),
                         'changed_at' => (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d H:i:s'),
                     ],
@@ -88,19 +117,32 @@ class AERP_Frontend_Order_Manager
             }
         } else {
             // Thêm mới đơn hàng
+            $employee_id = absint($_POST['employee_id'] ?? 0);
+            
+            // Tự động set status dựa trên employee_id
+            $status = $employee_id > 0 ? 'assigned' : 'new';
+            $user_id = get_current_user_id();
+            $employee_current_id = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+                $user_id
+            ));
             $data = [
                 'order_code'    => self::generate_order_code(),
                 'customer_id'   => absint($_POST['customer_id']),
-                'employee_id'   => absint($_POST['employee_id']),
+                'employee_id'   => $employee_id,
                 'order_date'    => $order_date,
                 'total_amount'  => $total_amount,
                 'status_id'     => sanitize_text_field($_POST['status_id']),
+                'status'        => $status, // Tự động set: 'new' nếu chưa có nhân viên, 'assigned' nếu đã có
                 'note'          => sanitize_textarea_field($_POST['note']),
+                'requirements_content' => sanitize_textarea_field($_POST['requirements_content'] ?? ''),
+                'implementation_content' => sanitize_textarea_field($_POST['implementation_content'] ?? ''),
                 'cost'          => floatval($_POST['cost'] ?? 0),
                 'customer_source_id' => !empty($_POST['customer_source_id']) ? absint($_POST['customer_source_id']) : null,
+                'created_by'    => $employee_current_id,
                 'created_at'    => (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d H:i:s'),
             ];
-            $format = ['%s', '%d', '%d', '%s', '%f', '%s', '%s', '%f', '%s', '%s'];
+            $format = ['%s', '%d', '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%f', '%d', '%d', '%s'];
             $wpdb->insert($table, $data, $format);
             $order_id = $wpdb->insert_id;
             $msg = 'Đã thêm đơn hàng!';
@@ -142,6 +184,21 @@ class AERP_Frontend_Order_Manager
                     $unit_price = floatval($item['unit_price'] ?? 0);
                     $product_id = isset($item['product_id']) && !empty($item['product_id']) ? absint($item['product_id']) : null;
                     $vat_percent = isset($item['vat_percent']) && $item['vat_percent'] !== '' ? floatval($item['vat_percent']) : null;
+                    $item_type = isset($item['item_type']) ? sanitize_text_field($item['item_type']) : 'product';
+                    
+                    // Validation logic
+                    if ($item_type === 'product') {
+                        // Nếu là sản phẩm, cần có product_id hoặc product_name
+                        if (empty($product_id) && empty($product_name)) {
+                            continue; // Bỏ qua dòng không hợp lệ
+                        }
+                    } else {
+                        // Nếu là dịch vụ, cần có product_name
+                        if (empty($product_name)) {
+                            continue; // Bỏ qua dòng không hợp lệ
+                        }
+                    }
+                    
                     if (empty($product_name) || $quantity <= 0) continue; // Bỏ qua dòng trống
 
                     $item_data = [
@@ -153,7 +210,7 @@ class AERP_Frontend_Order_Manager
                         'total_price'   => $quantity * $unit_price + ($quantity * $unit_price * $vat_percent / 100),
                         'unit_name'     => isset($item['unit_name']) ? sanitize_text_field($item['unit_name']) : '',
                         'vat_percent'   => $vat_percent,
-                        'item_type'     => isset($item['item_type']) ? sanitize_text_field($item['item_type']) : 'product',
+                        'item_type'     => $item_type,
                     ];
                     $item_format = ['%d', '%d', '%s', '%f', '%f', '%f', '%s', '%f', '%s'];
 
@@ -240,7 +297,11 @@ class AERP_Frontend_Order_Manager
         if (!function_exists('wp_handle_upload')) {
             require_once(ABSPATH . 'wp-admin/includes/file.php');
         }
-
+        $user_id = get_current_user_id();
+        $employee_current_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+            $user_id
+        ));
         $upload_overrides = ['test_form' => false];
         foreach ($_FILES['attachments']['name'] as $key => $filename) {
             if ($_FILES['attachments']['error'][$key] !== UPLOAD_ERR_OK) continue;
@@ -262,7 +323,7 @@ class AERP_Frontend_Order_Manager
                     'file_name'     => sanitize_file_name($filename),
                     'file_url'      => $uploaded_file['url'],
                     'file_type'     => $uploaded_file['type'],
-                    'uploaded_by'   => get_current_user_id(),
+                    'uploaded_by'   => $employee_current_id,
                     'uploaded_at'   => (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d H:i:s'),
                 ], ['%d', '%s', '%s', '%s', '%d', '%s']);
             }
@@ -315,6 +376,73 @@ class AERP_Frontend_Order_Manager
             ['%s', '%s'],
             ['%d']
         );
+        aerp_clear_table_cache();
+        return $result !== false;
+    }
+
+    // Nhân viên từ chối đơn
+    public static function reject_order($order_id, $reason = '')
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'aerp_order_orders';
+
+        $data = [
+            'status' => 'rejected',
+            'reject_reason' => !empty($reason) ? sanitize_textarea_field($reason) : 'Đơn hàng bị từ chối'
+        ];
+
+        $result = $wpdb->update(
+            $table,
+            $data,
+            ['id' => $order_id],
+            ['%s', '%s'],
+            ['%d']
+        );
+
+        aerp_clear_table_cache();
+        return $result !== false;
+    }
+
+    // Đánh dấu đơn đã hoàn thành
+    public static function complete_order($order_id)
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'aerp_order_orders';
+
+        $data = [
+            'status' => 'completed'
+        ];
+
+        $result = $wpdb->update(
+            $table,
+            $data,
+            ['id' => $order_id],
+            ['%s'],
+            ['%d']
+        );
+
+        aerp_clear_table_cache();
+        return $result !== false;
+    }
+
+    // Đánh dấu đã thu tiền
+    public static function mark_order_paid($order_id)
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'aerp_order_orders';
+
+        $data = [
+            'status' => 'paid'
+        ];
+
+        $result = $wpdb->update(
+            $table,
+            $data,
+            ['id' => $order_id],
+            ['%s'],
+            ['%d']
+        );
+
         aerp_clear_table_cache();
         return $result !== false;
     }

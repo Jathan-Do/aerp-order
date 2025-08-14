@@ -153,7 +153,7 @@ ob_start();
 </div>
 
 <!-- Modal hủy đơn hàng -->
-<div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-labelledby="cancelOrderModalLabel" aria-hidden="true">
+<!-- <div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-labelledby="cancelOrderModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -222,8 +222,29 @@ ob_start();
             });
         });
     });
-</script>
+</script> -->
 
+<script>
+    // Đảm bảo chức năng copy số điện thoại hoạt động trên trang danh sách khách hàng
+    jQuery(document).on("click", ".copy-phone", function (e) {
+        e.preventDefault();
+        var phone = jQuery(this).data("phone");
+        if (!phone) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(String(phone)).then(() => {
+                var $icon = jQuery(this).find("i");
+                var original = $icon.attr("data-original-class") || $icon.attr("class");
+                if (!$icon.attr("data-original-class")) {
+                    $icon.attr("data-original-class", original);
+                }
+                $icon.removeClass().addClass("fas fa-check text-success");
+                setTimeout(() => {
+                    $icon.removeClass().addClass($icon.attr("data-original-class"));
+                }, 1200);
+            });
+        }
+    });
+ </script>
 <?php
 $content = ob_get_clean();
 $title = 'Quản lý đơn hàng';

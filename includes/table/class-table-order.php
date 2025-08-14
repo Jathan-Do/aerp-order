@@ -10,21 +10,28 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
             'columns' => [
                 // 'id' => 'ID',
                 'order_code' => 'Mã đơn',
-                'customer_id' => 'Khách hàng',
-                'employee_id' => 'Nhân viên',
-                'order_date' => 'Ngày lập hóa đơn',
-                'cost' => 'Chi phí',
-                'total_amount' => 'Tổng tiền',
-                'profit' => 'Lợi nhuận',
-                'customer_source' => 'Nguồn KH',
+                'customer_id' => 'Tên KH',
+                'address' => 'Địa chỉ',
+                'phones' => 'Số điện thoại',
+                'requirements_content' => 'ND yêu cầu',
+                'implementation_content' => 'ND triển khai',
                 'status_id' => 'Trạng thái',
-                'order_type' => 'Loại đơn',
                 'note' => 'Ghi chú',
-                'status' => 'Tình trạng',
+                'employee_id' => 'Người triển khai',
+                'created_by' => 'Người tạo đơn',
                 'created_at' => 'Ngày tạo',
+                'reject_reason' => 'Lý do từ chối',
+                'cancel_reason' => 'Lý do hủy',
+                'order_date' => 'Ngày lập hóa đơn',
+                // 'total_amount' => 'Doanh thu',
+                // 'cost' => 'Chi phí',
+                // 'profit' => 'Lợi nhuận',
+                'customer_source' => 'Nguồn KH',
+                'order_type' => 'Loại đơn',
+                'status' => 'Tình trạng',
                 'action' => 'Thao tác',
             ],
-            'sortable_columns' => ['id', 'order_code', 'order_date', 'status', 'total_amount', 'created_at', 'cost', 'customer_id'],
+            'sortable_columns' => ['id', 'order_code', 'order_date', 'status', 'total_amount', 'created_at', 'cost', 'customer_id', 'created_by'],
             'searchable_columns' => ['order_code'],
             'primary_key' => 'id',
             'per_page' => 10,
@@ -68,15 +75,28 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
 
                     if (!empty($branch_employee_ids)) {
                         $placeholders = implode(',', array_fill(0, count($branch_employee_ids), '%d'));
-                        $filters[] = "employee_id IN ($placeholders)";
-                        $params = array_merge($params, $branch_employee_ids);
+                        $filters[] = "(employee_id IN ($placeholders) OR created_by = %d)";
+                        $params = array_merge($params, $branch_employee_ids, [$current_user_id]);
+                    } else {
+                        // Nếu không có nhân viên nào trong chi nhánh, chỉ hiển thị đơn mình tạo
+                        $filters[] = "created_by = %d";
+                        $params[] = $current_user_id;
                     }
+                } else {
+                    // Không có chi nhánh, chỉ hiển thị đơn mình tạo
+                    $filters[] = "created_by = %d";
+                    $params[] = $current_user_id;
                 }
             } else {
-                // Không có quyền: chỉ hiển thị đơn hàng của user hiện tại
-                $filters[] = "employee_id = %d";
+                // Không có quyền: chỉ hiển thị đơn hàng của user hiện tại (tạo hoặc được phân)
+                $filters[] = "(employee_id = %d OR created_by = %d)";
                 $params[] = $current_user_employee->id;
+                $params[] = $current_user_id;
             }
+        } else {
+            // Không phải nhân viên, chỉ hiển thị đơn mình tạo
+            $filters[] = "created_by = %d";
+            $params[] = $current_user_id;
         }
 
         if (!empty($this->filters['status_id'])) {
@@ -123,7 +143,34 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
         }
         return [$filters, $params];
     }
-
+    protected function column_phones($item)
+    {
+        $phones = aerp_get_customer_phones($item->id);
+        if (!$phones) return '<span class="text-muted">--</span>';
+        $out = [];
+        foreach ($phones as $phone) {
+            $str = '<a href="tel:' . esc_attr($phone->phone_number) . '">' . esc_html($phone->phone_number) . '</a>';
+            $str .= ' <a href="#" class="copy-phone ms-1" data-phone="' . esc_attr($phone->phone_number) . '" title="Copy"><i class="fas fa-copy"></i></a>';
+            if ($phone->is_primary) $str .= ' <span class="badge bg-success">Chính</span>';
+            $out[] = $str;
+        }
+        return implode('<br>', $out);
+    }
+    protected function column_address($item)
+    {
+        if (empty($item->customer_id)) {
+            return '<span class="text-muted">--</span>';
+        }
+        global $wpdb;
+        $customer = $wpdb->get_row($wpdb->prepare(
+            "SELECT address FROM {$wpdb->prefix}aerp_crm_customers WHERE id = %d",
+            $item->customer_id
+        ));
+        if ($customer && !empty($customer->address)) {
+            return esc_html($customer->address);
+        }
+        return '<span class="text-muted">--</span>';
+    }
     protected function column_customer_id($item)
     {
         $customer = function_exists('aerp_get_customer') ? aerp_get_customer($item->customer_id) : null;
@@ -145,7 +192,11 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
         $status = aerp_get_order_status($item->status_id);
         if ($status) {
             $color = !empty($status->color) ? $status->color : 'secondary';
-            return '<span class="badge bg-' . esc_attr($color) . '">' . esc_html($status->name) . '</span>';
+            return sprintf(
+                '<span class="badge" style="background-color: %s; color: white;">%s</span>',
+                esc_attr($color),
+                esc_html($status->name)
+            );
         }
         return '<span class="badge bg-secondary">Không xác định</span>';
     }
@@ -178,13 +229,29 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
             $source = function_exists('aerp_get_customer_source') ? aerp_get_customer_source($source_id) : null;
             if ($source) {
                 $color = !empty($source->color) ? $source->color : 'secondary';
-                return sprintf('<span class="badge" style="background-color: %s; color: white;">%s</span>', 
-                    esc_attr($color), 
+                return sprintf(
+                    '<span class="badge" style="background-color: %s; color: white;">%s</span>',
+                    esc_attr($color),
                     esc_html($source->name)
                 );
             }
         }
         return '<span class="text-muted">--</span>';
+    }
+
+    protected function column_created_by($item)
+    {
+        if (empty($item->created_by)) {
+            return '<span class="text-muted">--</span>';
+        }
+        // created_by lưu ID nhân sự => dùng helper để lấy tên nhân sự
+        $employee_name = function_exists('aerp_get_customer_assigned_name')
+            ? aerp_get_customer_assigned_name((int)$item->created_by)
+            : '';
+        if (empty($employee_name)) {
+            return '<span class="text-muted">--</span>';
+        }
+        return esc_html($employee_name);
     }
     protected function column_order_type($item)
     {
@@ -228,46 +295,87 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
     {
         $id = intval($item->id);
         $user_id = get_current_user_id();
+        global $wpdb;
+        $employee_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+            $user_id
+        ));
         $is_admin = function_exists('aerp_user_has_role') ? aerp_user_has_role($user_id, 'admin') : false;
+        $is_accountant = function_exists('aerp_user_has_role') ? aerp_user_has_role($user_id, 'accountant') : false;
+        $current_status = isset($item->status) ? $item->status : 'new';
 
-
-        // Kiểm tra trạng thái đã xác nhận (status có thể là chuỗi hoặc số, tùy hệ thống)
-        $is_confirmed = (isset($item->status) && $item->status === 'confirmed');
-        $is_cancelled = (isset($item->status) && $item->status === 'cancelled') || !empty($item->cancel_reason);
-
-
-        if ($is_confirmed && !$is_admin) {
-            return '<a href="#" class="btn btn-sm btn-success disabled mb-2 mb-md-0"><i class="fas fa-edit"></i></a> 
-            <a href="#" class="btn btn-sm btn-danger disabled"><i class="fas fa-trash"></i></a>';
-        }
         $edit_url = add_query_arg(['action' => 'edit', 'id' => $id], $this->base_url);
         $delete_url = wp_nonce_url(add_query_arg(['action' => 'delete', 'id' => $id], $this->base_url), $this->nonce_action_prefix . $id);
 
-        $cancel_btn = '';
-        if (!$is_cancelled) {
-            $cancel_btn = sprintf(
-                '<button type="button" class="btn btn-sm btn-warning cancel-order-btn" data-order-id="%d" data-order-code="%s"><i class="fas fa-times"></i></button>',
+        $buttons = [];
+
+        // Nút chỉnh sửa - chỉ bị disabled khi đã thu tiền (trừ admin)
+        if ($current_status !== 'paid' || $is_admin) {
+            $buttons[] = sprintf('<a title="Chỉnh sửa" href="%s" class="btn btn-sm btn-success mb-2"><i class="fas fa-edit"></i></a>', esc_url($edit_url));
+        }
+
+        // Nút xóa - chỉ admin mới có quyền, và chỉ cho đơn chưa thu tiền
+        if ($is_admin || $current_status !== 'paid') {
+            $buttons[] = sprintf('<a title="Xóa" href="%s" class="btn btn-sm btn-danger mb-2" onclick="return confirm(\'Bạn có chắc muốn xóa?\')"><i class="fas fa-trash"></i></a>', esc_url($delete_url));
+        }
+
+        // Nút từ chối - chỉ cho đơn đã phân và nhân viên được phân (hoặc admin)
+        if ($current_status === 'assigned' && ($item->employee_id == $employee_id || $is_admin)) {
+            $buttons[] = sprintf(
+                '<a title="Từ chối" href="#" class="btn btn-sm btn-warning reject-order-btn mb-2" data-order-id="%d" data-order-code="%s"><i class="fas fa-times"></i></a>',
                 $id,
                 esc_attr($item->order_code)
             );
         }
-        return sprintf(
-            '<a href="%s" class="btn btn-sm btn-success mb-2 mb-md-0"><i class="fas fa-edit"></i></a> 
-            <a href="%s" class="btn btn-sm btn-danger" onclick="return confirm(\'Bạn có chắc muốn xóa?\')"><i class="fas fa-trash"></i></a>
-            %s',
-            esc_url($edit_url),
-            esc_url($delete_url),
-            $cancel_btn
-        );
+
+        // Nút hoàn thành - chỉ cho đơn đã phân và nhân viên được phân (hoặc admin)
+        if ($current_status === 'assigned' && ($item->employee_id == $employee_id || $is_admin)) {
+            $buttons[] = sprintf(
+                '<a title="Hoàn thành" href="#" class="btn btn-sm btn-info complete-order-btn mb-2"  data-order-id="%d" data-order-code="%s"><i class="fas fa-check"></i></a>',
+                $id,
+                esc_attr($item->order_code)
+            );
+        }
+
+        // Nút thu tiền - chỉ kế toán mới có quyền, cho đơn đã hoàn thành (hoặc admin)
+        if ($current_status === 'completed' && ($is_accountant || $is_admin)) {
+            $buttons[] = sprintf(
+                '<a title="Thu tiền" href="#" class="btn btn-sm btn-success mark-paid-btn mb-2" data-order-id="%d" data-order-code="%s"><i class="fas fa-money-bill"></i></a>',
+                $id,
+                esc_attr($item->order_code)
+            );
+        }
+
+        // Nút hủy đơn - chỉ cho đơn chưa thu tiền
+        if ($current_status !== 'paid' && $current_status !== 'cancelled') {
+            $buttons[] = sprintf(
+                '<a title="Hủy" href="#" class="btn btn-sm btn-danger cancel-order-btn mb-2" data-order-id="%d" data-order-code="%s"><i class="fas fa-ban"></i></a>',
+                $id,
+                esc_attr($item->order_code)
+            );
+        }
+
+        return implode(' ', $buttons);
     }
     protected function column_status($item)
     {
-        $status = isset($item->status) ? $item->status : 'draft';
+        $status = isset($item->status) ? $item->status : 'new';
         $map = [
-            'draft'     => '<span class="badge bg-secondary">Nháp</span>',
-            'confirmed' => '<span class="badge bg-success">Đã xác nhận</span>',
+            'new'       => '<span class="badge bg-secondary">Mới tiếp nhận</span>',
+            'assigned'  => '<span class="badge bg-primary">Đã phân đơn</span>',
+            'rejected'  => '<span class="badge bg-warning">Đơn từ chối</span>',
+            'completed' => '<span class="badge bg-info">Đã hoàn thành</span>',
+            'paid'      => '<span class="badge bg-success">Đã thu tiền</span>',
             'cancelled' => '<span class="badge bg-danger">Đã hủy</span>',
         ];
         return $map[$status] ?? esc_html($status);
+    }
+    protected function get_extra_search_conditions($search_term)
+    {
+        global $wpdb;
+        return [
+            ["id IN (SELECT customer_id FROM {$wpdb->prefix}aerp_crm_customer_phones WHERE phone_number LIKE %s)"],
+            ['%' . $wpdb->esc_like($search_term) . '%']
+        ];
     }
 }

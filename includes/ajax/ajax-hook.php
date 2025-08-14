@@ -365,6 +365,34 @@ add_action('wp_ajax_aerp_order_search_suppliers', function () {
     wp_send_json($results);
 });
 
+add_action('wp_ajax_aerp_order_search_implementation_templates', function () {
+    global $wpdb;
+    $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
+    
+    $sql = "SELECT id, name, content FROM {$wpdb->prefix}aerp_implementation_templates WHERE is_active = 1";
+    $params = [];
+    
+    if ($q) {
+        $sql .= " AND (name LIKE %s OR content LIKE %s)";
+        $params[] = '%' . $wpdb->esc_like($q) . '%';
+        $params[] = '%' . $wpdb->esc_like($q) . '%';
+    }
+    
+    $sql .= " ORDER BY name ASC LIMIT 20";
+    
+    $templates = $wpdb->get_results($params ? $wpdb->prepare($sql, ...$params) : $sql);
+    
+    $results = [];
+    foreach ($templates as $template) {
+        $results[] = [
+            'id' => $template->id,
+            'text' => $template->name,
+            'content' => $template->content,
+        ];
+    }
+    wp_send_json($results);
+});
+
 add_action('wp_ajax_aerp_order_search_products_in_warehouse_in_worklocation', function () {
     global $wpdb;
     $warehouse_id = isset($_GET['warehouse_id']) ? intval($_GET['warehouse_id']) : 0;
@@ -572,6 +600,67 @@ function aerp_cancel_order_ajax() {
     }
 }
 
+// Từ chối đơn hàng
+add_action('wp_ajax_aerp_reject_order', 'aerp_reject_order_ajax');
+function aerp_reject_order_ajax() {
+    check_ajax_referer('aerp_reject_order_nonce', '_wpnonce');
+    
+    $order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
+    $reason = isset($_POST['reason']) ? sanitize_textarea_field($_POST['reason']) : '';
+    
+    if (!$order_id) {
+        wp_send_json_error('Thiếu ID đơn hàng.');
+    }
+    
+    $result = AERP_Frontend_Order_Manager::reject_order($order_id, $reason);
+    
+    if ($result) {
+        wp_send_json_success('Đã từ chối đơn hàng thành công.');
+    } else {
+        wp_send_json_error('Không thể từ chối đơn hàng.');
+    }
+}
+
+// Hoàn thành đơn hàng
+add_action('wp_ajax_aerp_complete_order', 'aerp_complete_order_ajax');
+function aerp_complete_order_ajax() {
+    check_ajax_referer('aerp_complete_order_nonce', '_wpnonce');
+    
+    $order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
+    
+    if (!$order_id) {
+        wp_send_json_error('Thiếu ID đơn hàng.');
+    }
+    
+    $result = AERP_Frontend_Order_Manager::complete_order($order_id);
+    
+    if ($result) {
+        wp_send_json_success('Đã hoàn thành đơn hàng thành công.');
+    } else {
+        wp_send_json_error('Không thể hoàn thành đơn hàng.');
+    }
+}
+
+// Thu tiền đơn hàng
+add_action('wp_ajax_aerp_mark_paid', 'aerp_mark_paid_ajax');
+function aerp_mark_paid_ajax() {
+    check_ajax_referer('aerp_mark_paid_nonce', '_wpnonce');
+    
+    $order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
+    
+    if (!$order_id) {
+        wp_send_json_error('Thiếu ID đơn hàng.');
+    }
+    
+    $result = AERP_Frontend_Order_Manager::mark_order_paid($order_id);
+    
+    if ($result) {
+        wp_send_json_success('Đã thu tiền đơn hàng thành công.');
+    } else {
+        wp_send_json_error('Không thể thu tiền đơn hàng.');
+    }
+}
+
 add_action('wp_ajax_aerp_device_filter_devices', 'aerp_device_filter_devices_callback');
 add_action('wp_ajax_nopriv_aerp_device_filter_devices', 'aerp_device_filter_devices_callback');
 function aerp_device_filter_devices_callback()
@@ -584,6 +673,27 @@ function aerp_device_filter_devices_callback()
         'partner_id' => intval($_POST['partner_id'] ?? 0),
     ];
     $table = new AERP_Device_Table();
+    $table->set_filters($filters);
+    ob_start();
+    $table->render();
+    $html = ob_get_clean();
+    wp_send_json_success(['html' => $html]);
+}
+add_action('wp_ajax_aerp_implementation_template_filter', 'aerp_implementation_template_filter_callback');
+add_action('wp_ajax_nopriv_aerp_implementation_template_filter', 'aerp_implementation_template_filter_callback');
+function aerp_implementation_template_filter_callback()
+{
+    $raw_is_active = isset($_POST['is_active']) ? $_POST['is_active'] : '';
+    $is_active = ($raw_is_active === '' || $raw_is_active === null) ? '' : intval($raw_is_active);
+
+    $filters = [
+        'is_active' => $is_active,
+        'search_term' => sanitize_text_field($_POST['s'] ?? ''),
+        'paged' => intval($_POST['paged'] ?? 1),
+        'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
+        'order' => sanitize_text_field($_POST['order'] ?? ''),
+    ];
+    $table = new AERP_Implementation_Template_Table();
     $table->set_filters($filters);
     ob_start();
     $table->render();

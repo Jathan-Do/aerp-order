@@ -54,7 +54,7 @@ ob_start();
 </div>
 <div class="card">
     <div class="card-body">
-        <form method="post" enctype="multipart/form-data">
+        <form class="aerp-order-form" method="post" enctype="multipart/form-data">
             <?php wp_nonce_field('aerp_save_order_action', 'aerp_save_order_nonce'); ?>
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -218,6 +218,20 @@ ob_start();
                     <label for="note" class="form-label">Ghi chú</label>
                     <textarea class="form-control" id="note" name="note" rows="2"></textarea>
                 </div>
+                <div class="col-12 mb-3">
+                    <label for="requirements_content" class="form-label">Nội dung yêu cầu</label>
+                    <textarea class="form-control" id="requirements_content" name="requirements_content" rows="4" placeholder="Mô tả yêu cầu của khách hàng..."></textarea>
+                </div>
+                <div class="col-12 mb-3">
+                    <label for="implementation_content" class="form-label">Nội dung triển khai</label>
+                    <div class="mb-2">
+                        <select class="form-select implementation-template-select" id="implementation_template_select" style="width:100%">
+                            <option value="">-- Chọn template nội dung triển khai --</option>
+                        </select>
+                    </div>
+                    <textarea class="form-control" id="implementation_content" name="implementation_content" rows="6" placeholder="Nội dung triển khai chi tiết..."></textarea>
+                    <small class="form-text text-muted">Có thể chọn template từ danh sách trên và chỉnh sửa nội dung theo yêu cầu cụ thể</small>
+                </div>
             </div>
             <div class="d-flex gap-2">
                 <button type="submit" name="aerp_save_order" class="btn btn-primary">Thêm mới</button>
@@ -328,5 +342,47 @@ include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
             }
         });
         <?php endif; ?>
+    });
+</script>
+<script>
+    jQuery(document).ready(function($) {
+        // Initialize implementation template select
+        $('#implementation_template_select').select2({
+            placeholder: "Chọn template nội dung triển khai",
+            allowClear: true,
+            ajax: {
+                url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+                dataType: "json",
+                delay: 250,
+                data: function(params) {
+                    return {
+                        action: "aerp_order_search_implementation_templates",
+                        q: params.term,
+                    };
+                },
+                processResults: function(data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true,
+            },
+            minimumInputLength: 0,
+        });
+
+        // Handle template selection
+        $('#implementation_template_select').on('select2:select', function(e) {
+            var data = e.params.data;
+            if (data.content) {
+                $('#implementation_content').val(data.content);
+            }
+        });
+
+        // Clear template selection when content is manually edited
+        $('#implementation_content').on('input', function() {
+            if ($(this).val() !== $('#implementation_template_select').find(':selected').data('content')) {
+                $('#implementation_template_select').val(null).trigger('change');
+            }
+        });
     });
 </script>

@@ -39,30 +39,8 @@ ob_start();
             </div>
             <div class="mb-3">
                 <label for="color" class="form-label">Màu sắc</label>
-                <div class="mb-2">
-                    <?php
-                    $bootstrap_colors = [
-                        'primary' => 'Xanh dương',
-                        'secondary' => 'Xám',
-                        'success' => 'Xanh lá',
-                        'danger' => 'Đỏ',
-                        'warning' => 'Vàng',
-                        'info' => 'Xanh nhạt',
-                        'dark' => 'Đen',
-                    ];
-                    foreach ($bootstrap_colors as $key => $label) {
-                        echo '<span class="badge bg-' . esc_attr($key) . ' me-2">' . esc_html($label) . '</span>';
-                    }
-                    ?>
-                </div>
-                <select class="form-select" id="color" name="color">
-                    <?php
-                    foreach ($bootstrap_colors as $key => $label) {
-                        $selected = ($editing->color ?? '') === $key ? 'selected' : '';
-                        echo '<option value="' . esc_attr($key) . '" ' . $selected . '>' . esc_html($label) . '</option>';
-                    }
-                    ?>
-                </select>
+                <input type="color" class="form-control form-control-color" id="color" name="color" value="<?php echo esc_attr($editing->color ?: '#007bff'); ?>">
+                <div class="form-text">Màu sắc để phân biệt trạng thái</div>
             </div>
             <div class="mb-3">
                 <label for="description" class="form-label">Mô tả</label>

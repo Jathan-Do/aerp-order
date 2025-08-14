@@ -44,15 +44,20 @@ function aerp_order_install_schema()
         cost FLOAT DEFAULT 0,
         customer_source_id BIGINT DEFAULT NULL,
         status_id BIGINT,
-        status ENUM('draft','confirmed','cancelled') DEFAULT 'draft',
+        status ENUM('new','assigned','rejected','completed','paid','cancelled') DEFAULT 'new',
         cancel_reason TEXT DEFAULT NULL,
+        reject_reason TEXT DEFAULT NULL,
         note TEXT,
+        requirements_content TEXT DEFAULT NULL,
+        implementation_content TEXT DEFAULT NULL,
+        created_by BIGINT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_order_code (order_code),
         INDEX idx_customer_id (customer_id),
         INDEX idx_employee_id (employee_id),
         INDEX idx_status_id (status_id),
         INDEX idx_customer_source_id (customer_source_id),
+        INDEX idx_created_by (created_by),
         INDEX idx_created_at (created_at)
     ) $charset_collate;";
 
@@ -80,6 +85,20 @@ function aerp_order_install_schema()
         INDEX idx_device_name (device_name),
         INDEX idx_serial_number (serial_number),
         INDEX idx_partner_id (partner_id)
+    ) $charset_collate;";
+
+    // 1d. Template nội dung triển khai
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_implementation_templates (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        content TEXT NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_by BIGINT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_name (name),
+        INDEX idx_is_active (is_active),
+        INDEX idx_created_by (created_by)
     ) $charset_collate;";
 
     // 2. Sản phẩm trong đơn

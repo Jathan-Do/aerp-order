@@ -129,7 +129,7 @@ jQuery(document).ready(function ($) {
         let $nameInput = $row.find(".product-name-input");
         let $select = $row.find(".product-select-all-warehouses");
         if (type === "product") {
-            $nameInput.hide();
+            $nameInput.hide().prop("required", false);
             if (!$select.hasClass("select2-hidden-accessible")) {
                 $select.select2({
                     placeholder: "Chọn sản phẩm từ tất cả kho",
@@ -153,13 +153,13 @@ jQuery(document).ready(function ($) {
                     minimumInputLength: 0,
                 });
             }
-            $select.show();
+            $select.show().prop("required", true);
         } else {
-            $nameInput.show();
+            $nameInput.show().prop("required", true);
             if ($select.hasClass("select2-hidden-accessible")) {
                 $select.select2("destroy");
             }
-            $select.hide();
+            $select.hide().prop("required", false);
             $select.val(null).trigger("change");
         }
     }
@@ -399,6 +399,51 @@ jQuery(document).ready(function ($) {
         row.find(".unit-label").text(data.unit_name || "");
         row.find(".unit-name-input").val(data.unit_name || "");
         row.find(".product-id-input").val(data.id || "");
+    });
+
+    // Form validation before submission
+    $("form.aerp-order-form").on("submit", function (e) {
+        let isValid = true;
+        let errorMessage = "";
+
+        // Kiểm tra từng dòng order item
+        $(".order-item-row").each(function (index) {
+            let $row = $(this);
+            let itemType = $row.find(".item-type-select").val();
+            let productName = $row.find('input[name*="[product_name]"]').val().trim();
+            let productId = $row.find('select[name*="[product_id]"]').val();
+            let quantity = parseFloat($row.find('input[name*="[quantity]"]').val()) || 0;
+            let unitPrice = parseFloat($row.find('input[name*="[unit_price]"]').val()) || 0;
+
+            // Kiểm tra dữ liệu bắt buộc
+            if (itemType === "product") {
+                if (!productId && !productName) {
+                    isValid = false;
+                    errorMessage = "Dòng " + (index + 1) + ": Vui lòng chọn sản phẩm hoặc nhập tên sản phẩm";
+                }
+                if (unitPrice <= 0) {
+                    isValid = false;
+                    errorMessage = "Dòng " + (index + 1) + ": Đơn giá phải lớn hơn 0";
+                }
+                if (quantity <= 0) {
+                    isValid = false;
+                    errorMessage = "Dòng " + (index + 1) + ": Số lượng phải lớn hơn 0";
+                }
+            } else if (itemType === "service") {
+                if (!productName) {
+                    isValid = false;
+                    errorMessage = "Dòng " + (index + 1) + ": Vui lòng nhập tên dịch vụ";
+                }
+            }
+
+            
+        });
+
+        if (!isValid) {
+            e.preventDefault();
+            alert("Lỗi validation: " + errorMessage);
+            return false;
+        }
     });
 })(jQuery);
 
