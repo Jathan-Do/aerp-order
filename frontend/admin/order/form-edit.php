@@ -66,7 +66,7 @@ ob_start();
             <?php wp_nonce_field('aerp_save_order_action', 'aerp_save_order_nonce'); ?>
             <input type="hidden" name="order_id" value="<?php echo esc_attr($edit_id); ?>">
             <div class="row">
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label for="customer_id" class="form-label">Khách hàng</label>
                     <select class="form-select customer-select" id="customer_id" name="customer_id">
                         <?php
@@ -82,7 +82,7 @@ ob_start();
                         ?>
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label for="employee_id" class="form-label">Nhân viên phụ trách</label>
                     <select class="form-select employee-select" id="employee_id" name="employee_id">
                         <option value="">-- Chọn nhân viên --</option>
@@ -104,11 +104,11 @@ ob_start();
                         ?>
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label for="order_date" class="form-label">Ngày tạo đơn hàng</label>
                     <input type="date" class="form-control bg-body" id="order_date" name="order_date" value="<?php echo esc_attr($editing->order_date); ?>">
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label for="status_id" class="form-label">Trạng thái</label>
                     <select class="form-select" id="status_id" name="status_id">
                         <?php
@@ -117,11 +117,11 @@ ob_start();
                         ?>
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label for="cost" class="form-label">Chi phí đơn hàng</label>
                     <input type="number" class="form-control" id="cost" name="cost" min="0" step="0.01" value="<?php echo esc_attr($editing->cost ?? 0); ?>">
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label for="customer_source_id" class="form-label">Nguồn khách hàng</label>
                     <select class="form-select" id="customer_source_id" name="customer_source_id">
                         <option value="">-- Chọn nguồn --</option>
@@ -140,7 +140,66 @@ ob_start();
                         ?>
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-12 mb-3">
+                    <label class="form-label">Nội dung yêu cầu và triển khai</label>
+                    <div id="content-container">
+                        <?php
+                        // Lấy nội dung hiện có
+                        $content_lines = $wpdb->get_results($wpdb->prepare(
+                            "SELECT * FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d ORDER BY sort_order ASC",
+                            $edit_id
+                        ));
+                        
+                        if (!empty($content_lines)) {
+                            foreach ($content_lines as $idx => $line) {
+                                echo '<div class="row mb-2 content-row">';
+                                echo '<div class="col-md-12 mb-2">';
+                                echo '<select class="form-select implementation-template-select" name="content_lines[' . $idx . '][template_id]" style="width:100%">';
+                                echo '<option value="">-- Chọn template nội dung triển khai --</option>';
+                                echo '</select>';
+                                echo '</div>';
+                                echo '<div class="col-md-6">';
+                                echo '<label class="form-label small">Nội dung yêu cầu</label>';
+                                echo '<textarea class="form-control" name="content_lines[' . $idx . '][requirement]" rows="3" placeholder="Mô tả yêu cầu của khách hàng...">' . esc_textarea($line->requirement ?? '') . '</textarea>';
+                                echo '</div>';
+                                echo '<div class="col-md-6">';
+                                echo '<label class="form-label small">Nội dung triển khai</label>';
+                                echo '<textarea class="form-control" name="content_lines[' . $idx . '][implementation]" rows="3" placeholder="Nội dung triển khai chi tiết...">' . esc_textarea($line->implementation ?? '') . '</textarea>';
+                                echo '</div>';
+                                echo '<div class="col-md-12 mt-2">';
+                                echo '<button type="button" class="btn btn-outline-danger remove-content">Xóa dòng</button>';
+                                echo '</div>';
+                                echo '</div>';
+                            }
+                        } else {
+                            // Dòng mặc định nếu chưa có
+                            echo '<div class="row mb-2 content-row">';
+                            echo '<div class="col-md-12 mb-2">';
+                            echo '<select class="form-select implementation-template-select" name="content_lines[0][template_id]" style="width:100%">';
+                            echo '<option value="">-- Chọn template nội dung triển khai --</option>';
+                            echo '</select>';
+                            echo '</div>';
+                            echo '<div class="col-md-6">';
+                            echo '<label class="form-label small">Nội dung yêu cầu</label>';
+                            echo '<textarea class="form-control" name="content_lines[0][requirement]" rows="3" placeholder="Mô tả yêu cầu của khách hàng..."></textarea>';
+                            echo '</div>';
+                            echo '<div class="col-md-6">';
+                            echo '<label class="form-label small">Nội dung triển khai</label>';
+                            echo '<textarea class="form-control" name="content_lines[0][implementation]" rows="3" placeholder="Nội dung triển khai chi tiết..."></textarea>';
+                            echo '</div>';
+                            echo '<div class="col-md-12 mt-2">';
+                            echo '<button type="button" class="btn btn-outline-danger remove-content">Xóa dòng</button>';
+                            echo '</div>';
+                            echo '</div>';
+                        }
+                        ?>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <button type="button" class="btn btn-secondary" id="add-content">Thêm dòng nội dung</button>
+                        <small class="form-text text-muted">(Mỗi dòng có thể chọn template riêng và chỉnh sửa nội dung theo yêu cầu cụ thể)</small>
+                    </div>
+                </div>
+                <div class="col-md-12 mb-3">
                     <label for="order_type" class="form-label">Loại đơn</label>
                     <select class="form-select" id="order_type" name="order_type">
                         <option value="product" <?= $order_type === 'product' ? ' selected' : '' ?>>Bán hàng/ Dịch vụ</option>
@@ -185,7 +244,7 @@ ob_start();
                                 echo '</div>';
                                 echo '<div class="col-md-2 mb-2"><input type="number" class="form-control" name="order_items[' . $idx . '][unit_price]" value="' . esc_attr($item->unit_price) . '" placeholder="Đơn giá" min="0" step="0.01"></div>';
                                 echo '<div class="col-md-2 mb-2"><input type="text" class="form-control total-price-field" value="' . number_format($item->total_price, 0, ',', '.') . '" placeholder="Thành tiền" readonly></div>';
-                                echo '<div class="col-md-1 mb-2"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>';
+                                echo '<div class="col-md-1"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>';
                                 echo '</div>';
                             }
                         } else {
@@ -217,12 +276,12 @@ ob_start();
                             // Thành tiền
                             echo '<div class="col-md-2 mb-2"><input type="text" class="form-control total-price-field" placeholder="Thành tiền" readonly></div>';
                             // Xóa dòng
-                            echo '<div class="col-md-1 mb-2"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>';
+                            echo '<div class="col-md-1"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>';
                             echo '</div>';
                         }
                         ?>
                     </div>
-                    <button type="button" class="btn btn-secondary mt-2" id="add-order-item">Thêm sản phẩm</button>
+                    <button type="button" class="btn btn-secondary" id="add-order-item">Thêm sản phẩm</button>
                 </div>
                 <div class="col-12 mb-3" id="device-list-section" style="display:<?= $order_type === 'device' ? 'block' : 'none' ?>">
                     <div id="device-list-table">
@@ -292,7 +351,7 @@ ob_start();
                             </div>
                         <?php endif; ?>
                     </div>
-                    <button type="button" class="btn btn-secondary mt-2" id="add-device-row">Thêm thiết bị</button>
+                    <button type="button" class="btn btn-secondary" id="add-device-row">Thêm thiết bị</button>
                 </div>
                 <div class="col-12 mb-3 overflow-hidden">
                     <label for="attachments" class="form-label">File đính kèm mới</label>
@@ -315,21 +374,6 @@ ob_start();
                     <label for="note" class="form-label">Ghi chú</label>
                     <textarea class="form-control" id="note" name="note" rows="2"><?php echo esc_textarea($editing->note); ?></textarea>
                 </div>
-                <div class="col-12 mb-3">
-                    <label for="requirements_content" class="form-label">Nội dung yêu cầu</label>
-                    <textarea class="form-control" id="requirements_content" name="requirements_content" rows="4" placeholder="Mô tả yêu cầu của khách hàng..."><?php echo esc_textarea($editing->requirements_content ?? ''); ?></textarea>
-                </div>
-                <div class="col-12 mb-3">
-                    <label for="implementation_content" class="form-label">Nội dung triển khai</label>
-                    <div class="mb-2">
-                        <select class="form-select implementation-template-select" id="implementation_template_select" style="width:100%">
-                            <option value="">-- Chọn template nội dung triển khai --</option>
-                        </select>
-                    </div>
-                    <textarea class="form-control" id="implementation_content" name="implementation_content" rows="6" placeholder="Nội dung triển khai chi tiết..."><?php echo esc_textarea($editing->implementation_content ?? ''); ?></textarea>
-                    <small class="form-text text-muted">Có thể chọn template từ danh sách trên và chỉnh sửa nội dung theo yêu cầu cụ thể</small>
-                </div>
-
                 <?php if (!empty($editing->cancel_reason)): ?>
                     <div class="col-12 mb-3">
                         <div class="alert alert-danger">
@@ -353,20 +397,14 @@ ob_start();
                 $('#device-list-section').show();
                 $('#order-items-container').hide();
                 $('#add-order-item').hide();
-                // Không set required - cho phép tạo đơn nhanh
-                $('#device-list-section input, #device-list-section select').prop('required', false);
                 // Tắt required và validation cho input sản phẩm
-                $('#order-items-container input, #order-items-container select').prop('required', false);
                 $('#order-items-container input, #order-items-container select').prop('disabled', true);
             } else {
                 $('#device-list-section').hide();
                 $('#order-items-container').show();
                 $('#add-order-item').show();
-                // Không set required - cho phép tạo đơn nhanh
-                $('#device-list-section input, #device-list_section select').prop('required', false);
                 // Khôi phục trạng thái ban đầu cho input sản phẩm
                 $('#order-items-container input, #order-items-container select').prop('disabled', false);
-                $('#order-items-container input, #order-items-container select').prop('required', false);
             }
         }
         $('#order_type').on('change', toggleDeviceSection);
@@ -386,7 +424,7 @@ ob_start();
                     <option value="">-- Chọn đối tác --</option>
                 </select>
             </div>
-            <div class="col-md-1 mb-2 d-flex align-items-end">
+            <div class="col-md-1 d-flex align-items-end">
                 <button type="button" class="btn btn-outline-danger remove-device-row">Xóa</button>
             </div>
         </div>`;
@@ -430,6 +468,107 @@ ob_start();
             // Nếu là đơn sản phẩm, không set required
             $('#order-items-container input, #order-items-container select').prop('required', false);
         }
+        
+        // Xử lý thêm/xóa dòng nội dung
+        let contentIndex = $('#content-container .content-row').length;
+        $('#add-content').on('click', function() {
+            let row = `<div class="row mb-2 content-row">
+                <div class="col-md-12 mb-2">
+                    <select class="form-select implementation-template-select" name="content_lines[${contentIndex}][template_id]" style="width:100%">
+                        <option value="">-- Chọn template nội dung triển khai --</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small">Nội dung yêu cầu</label>
+                    <textarea class="form-control" name="content_lines[${contentIndex}][requirement]" rows="3" placeholder="Mô tả yêu cầu của khách hàng..."></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small">Nội dung triển khai</label>
+                    <textarea class="form-control" name="content_lines[${contentIndex}][implementation]" rows="3" placeholder="Nội dung triển khai chi tiết..."></textarea>
+                </div>
+                <div class="col-md-12 mt-2">
+                    <button type="button" class="btn btn-outline-danger remove-content">Xóa dòng</button>
+                </div>
+            </div>`;
+            $('#content-container').append(row);
+            
+            // Khởi tạo Select2 cho dòng mới
+            let $newRow = $('#content-container .content-row').last();
+            $newRow.find('.implementation-template-select').select2({
+                placeholder: "Chọn template nội dung triển khai",
+                allowClear: true,
+                ajax: {
+                    url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+                    dataType: "json",
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            action: "aerp_order_search_implementation_templates",
+                            q: params.term,
+                        };
+                    },
+                    processResults: function(data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true,
+                },
+                minimumInputLength: 0,
+            });
+            
+            contentIndex++;
+        });
+        
+        $(document).on('click', '.remove-content', function() {
+            if ($('#content-container .content-row').length > 1) {
+                $(this).closest('.content-row').remove();
+            }
+        });
+        
+        // Xử lý template selection cho từng dòng riêng biệt
+        $(document).on('select2:select', '.implementation-template-select', function(e) {
+            var data = e.params.data;
+            if (data.content) {
+                // Chỉ áp dụng template cho dòng hiện tại
+                let $currentRow = $(this).closest('.content-row');
+                $currentRow.find('textarea[name*="[implementation]"]').val(data.content);
+            }
+        });
+
+        // Clear template selection when content is manually edited
+        $(document).on('input', 'textarea[name*="[implementation]"]', function() {
+            let $currentRow = $(this).closest('.content-row');
+            $currentRow.find('.implementation-template-select').val(null).trigger('change');
+        });
+        
+        // Khởi tạo Select2 cho tất cả dòng hiện có
+        $(document).ready(function() {
+            $('#content-container .implementation-template-select').each(function() {
+                $(this).select2({
+                    placeholder: "Chọn template nội dung triển khai",
+                    allowClear: true,
+                    ajax: {
+                        url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+                        dataType: "json",
+                        delay: 250,
+                        data: function(params) {
+                            return {
+                                action: "aerp_order_search_implementation_templates",
+                                q: params.term,
+                            };
+                        },
+                        processResults: function(data) {
+                            return {
+                                results: data
+                            };
+                        },
+                        cache: true,
+                    },
+                    minimumInputLength: 0,
+                });
+            });
+        });
     });
 </script>
 <script>
@@ -462,15 +601,14 @@ ob_start();
         $('#implementation_template_select').on('select2:select', function(e) {
             var data = e.params.data;
             if (data.content) {
-                $('#implementation_content').val(data.content);
+                // Áp dụng template cho tất cả dòng triển khai
+                $('#content-container textarea[name*="[implementation]"]').val(data.content);
             }
         });
 
         // Clear template selection when content is manually edited
-        $('#implementation_content').on('input', function() {
-            if ($(this).val() !== $('#implementation_template_select').find(':selected').data('content')) {
-                $('#implementation_template_select').val(null).trigger('change');
-            }
+        $('#content-container').on('input', 'textarea[name*="[implementation]"]', function() {
+            $('#implementation_template_select').val(null).trigger('change');
         });
     });
 </script>

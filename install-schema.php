@@ -48,8 +48,6 @@ function aerp_order_install_schema()
         cancel_reason TEXT DEFAULT NULL,
         reject_reason TEXT DEFAULT NULL,
         note TEXT,
-        requirements_content TEXT DEFAULT NULL,
-        implementation_content TEXT DEFAULT NULL,
         created_by BIGINT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_order_code (order_code),
@@ -99,6 +97,20 @@ function aerp_order_install_schema()
         INDEX idx_name (name),
         INDEX idx_is_active (is_active),
         INDEX idx_created_by (created_by)
+    ) $charset_collate;";
+
+    // 1e. Nội dung yêu cầu và triển khai (nhiều dòng)
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_order_content_lines (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        order_id BIGINT NOT NULL,
+        requirement TEXT DEFAULT NULL,
+        implementation TEXT DEFAULT NULL,
+        template_id BIGINT DEFAULT NULL,
+        sort_order INT DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_order_id (order_id),
+        INDEX idx_template_id (template_id),
+        INDEX idx_sort_order (sort_order)
     ) $charset_collate;";
 
     // 2. Sản phẩm trong đơn

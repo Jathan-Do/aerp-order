@@ -42,8 +42,6 @@ class AERP_Frontend_Order_Manager
                 'order_date'    => $order_date,
                 'status_id'     => $new_status_log,
                 'note'          => sanitize_textarea_field($_POST['note']),
-                'requirements_content' => sanitize_textarea_field($_POST['requirements_content'] ?? ''),
-                'implementation_content' => sanitize_textarea_field($_POST['implementation_content'] ?? ''),
                 'total_amount'  => $total_amount,
                 'cost'          => floatval($_POST['cost'] ?? 0),
                 'customer_source_id' => !empty($_POST['customer_source_id']) ? absint($_POST['customer_source_id']) : null,
@@ -135,14 +133,12 @@ class AERP_Frontend_Order_Manager
                 'status_id'     => sanitize_text_field($_POST['status_id']),
                 'status'        => $status, // Tự động set: 'new' nếu chưa có nhân viên, 'assigned' nếu đã có
                 'note'          => sanitize_textarea_field($_POST['note']),
-                'requirements_content' => sanitize_textarea_field($_POST['requirements_content'] ?? ''),
-                'implementation_content' => sanitize_textarea_field($_POST['implementation_content'] ?? ''),
                 'cost'          => floatval($_POST['cost'] ?? 0),
                 'customer_source_id' => !empty($_POST['customer_source_id']) ? absint($_POST['customer_source_id']) : null,
                 'created_by'    => $employee_current_id,
                 'created_at'    => (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d H:i:s'),
             ];
-            $format = ['%s', '%d', '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%f', '%d', '%d', '%s'];
+            $format = ['%s', '%d', '%d', '%s', '%f', '%s', '%s', '%s', '%f', '%d', '%d', '%s'];
             $wpdb->insert($table, $data, $format);
             $order_id = $wpdb->insert_id;
             $msg = 'Đã thêm đơn hàng!';
@@ -167,6 +163,31 @@ class AERP_Frontend_Order_Manager
 
         if ($order_id) {
             self::handle_attachment_upload($order_id);
+            
+            // Xử lý nhiều dòng nội dung (yêu cầu và triển khai)
+            if (!empty($_POST['content_lines']) && is_array($_POST['content_lines'])) {
+                $content_table = $wpdb->prefix . 'aerp_order_content_lines';
+                // Xóa nội dung cũ
+                $wpdb->delete($content_table, ['order_id' => $order_id]);
+                
+                foreach ($_POST['content_lines'] as $idx => $line) {
+                    $requirement = sanitize_textarea_field($line['requirement'] ?? '');
+                    $implementation = sanitize_textarea_field($line['implementation'] ?? '');
+                    $template_id = !empty($line['template_id']) ? absint($line['template_id']) : null;
+                    
+                    // Chỉ lưu nếu có ít nhất 1 trong 2 trường có nội dung
+                    if (!empty($requirement) || !empty($implementation)) {
+                        $wpdb->insert($content_table, [
+                            'order_id' => $order_id,
+                            'requirement' => $requirement,
+                            'implementation' => $implementation,
+                            'template_id' => $template_id,
+                            'sort_order' => $idx
+                        ], ['%d', '%s', '%s', '%d', '%d']);
+                    }
+                }
+            }
+            
             // --- Logic mới: Cập nhật, Thêm, Xóa riêng biệt để giữ ID ---
             $item_table = $wpdb->prefix . 'aerp_order_items';
 

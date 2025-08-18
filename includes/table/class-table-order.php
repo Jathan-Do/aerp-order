@@ -13,8 +13,7 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
                 'customer_id' => 'Tên KH',
                 'address' => 'Địa chỉ',
                 'phones' => 'Số điện thoại',
-                'requirements_content' => 'ND yêu cầu',
-                'implementation_content' => 'ND triển khai',
+                'content_lines' => 'Nội dung yêu cầu & triển khai',
                 'status_id' => 'Trạng thái',
                 'note' => 'Ghi chú',
                 'employee_id' => 'Người triển khai',
@@ -252,6 +251,52 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
             return '<span class="text-muted">--</span>';
         }
         return esc_html($employee_name);
+    }
+    
+    protected function column_content_lines($item)
+    {
+        global $wpdb;
+        $order_id = $item->id;
+        
+        // Lấy nội dung từ bảng content_lines
+        $content_lines = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d ORDER BY sort_order ASC",
+            $order_id
+        ));
+        
+        if (empty($content_lines)) {
+            return '<span class="text-muted">--</span>';
+        }
+        
+        $output = [];
+        foreach ($content_lines as $idx => $line) {
+            $line_number = $idx + 1;
+            $requirement = !empty($line->requirement) ? esc_html($line->requirement) : '<span class="text-muted">--</span>';
+            $implementation = !empty($line->implementation) ? esc_html($line->implementation) : '<span class="text-muted">--</span>';
+            
+            $output[] = sprintf(
+                '<div class="mb-2 p-2 border rounded bg-light">
+                    <div class="fw-bold text-primary">Nội dung %d:</div>
+                    <div class="row">
+                        <div class="col-12">
+                            <small class="text-muted">Yêu cầu:</small><br>
+                            <span class="text-truncate" title="%s">%s</span>
+                        </div>
+                        <div class="col-12">
+                            <small class="text-muted">Triển khai:</small><br>
+                            <span class="text-truncate " title="%s">%s</span>
+                        </div>
+                    </div>
+                </div>',
+                $line_number,
+                esc_attr($line->requirement ?? ''),
+                $requirement,
+                esc_attr($line->implementation ?? ''),
+                $implementation
+            );
+        }
+        
+        return implode('', $output);
     }
     protected function column_order_type($item)
     {

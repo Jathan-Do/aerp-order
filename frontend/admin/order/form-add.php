@@ -57,7 +57,7 @@ ob_start();
         <form class="aerp-order-form" method="post" enctype="multipart/form-data">
             <?php wp_nonce_field('aerp_save_order_action', 'aerp_save_order_nonce'); ?>
             <div class="row">
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label for="customer_id" class="form-label">Khách hàng</label>
                     <select class="form-select customer-select" id="customer_id" name="customer_id" required>
                         <?php
@@ -88,17 +88,17 @@ ob_start();
                         ?>
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label for="employee_id" class="form-label">Nhân viên phụ trách</label>
                     <select class="form-select employee-select" id="employee_id" name="employee_id">
 
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label for="order_date" class="form-label">Ngày tạo đơn hàng</label>
                     <input type="date" class="form-control bg-body" id="order_date" name="order_date" required value="<?php echo esc_attr($date_now); ?>">
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label for="status_id" class="form-label">Trạng thái</label>
                     <select class="form-select" id="status_id" name="status_id">
                         <?php
@@ -107,11 +107,11 @@ ob_start();
                         ?>
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label for="cost" class="form-label">Chi phí đơn hàng</label>
                     <input type="number" class="form-control" id="cost" name="cost" min="0" step="0.01" value="0">
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label for="customer_source_id" class="form-label">Nguồn khách hàng</label>
                     <select class="form-select" id="customer_source_id" name="customer_source_id">
                         <option value="">-- Chọn nguồn --</option>
@@ -129,9 +129,36 @@ ob_start();
                         ?>
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
+                <div class="col-12 mb-3">
+                    <label class="form-label">Nội dung yêu cầu và triển khai</label>
+                    <div id="content-container">
+                        <div class="row mb-2 content-row">
+                            <div class="col-md-12 mb-2">
+                                <select class="form-select implementation-template-select" name="content_lines[0][template_id]" style="width:100%">
+                                    <option value="">-- Chọn template nội dung triển khai --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Nội dung yêu cầu</label>
+                                <textarea class="form-control" name="content_lines[0][requirement]" rows="3" placeholder="Mô tả yêu cầu của khách hàng..."></textarea>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Nội dung triển khai</label>
+                                <textarea class="form-control" name="content_lines[0][implementation]" rows="3" placeholder="Nội dung triển khai chi tiết..."></textarea>
+                            </div>
+                            <div class="col-md-12 mt-2">
+                                <button type="button" class="btn btn-outline-danger remove-content">Xóa dòng</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <button type="button" class="btn btn-secondary" id="add-content">Thêm dòng nội dung</button>
+                        <small class="form-text text-muted">(Mỗi dòng có thể chọn template riêng và chỉnh sửa nội dung theo yêu cầu cụ thể)</small>
+                    </div>
+                </div>
+                <div class="col-md-12 mb-3">
                     <label for="order_type" class="form-label">Loại đơn</label>
-                    <select class="form-select" id="order_type" name="order_type" required>
+                    <select class="form-select" id="order_type" name="order_type">
                         <option value="product">Bán hàng/ Dịch vụ</option>
                         <option value="device">Nhận thiết bị</option>
                     </select>
@@ -141,7 +168,7 @@ ob_start();
                         <div class="row mb-2 device-row">
                             <div class="col-md-3">
                                 <label class="form-label">Tên thiết bị</label>
-                                <input type="text" class="form-control" name="devices[0][device_name]" required placeholder="Tên thiết bị">
+                                <input type="text" class="form-control" name="devices[0][device_name]" placeholder="Tên thiết bị">
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Serial/IMEI</label>
@@ -166,7 +193,7 @@ ob_start();
                             </div>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-secondary mt-2" id="add-device-row">Thêm thiết bị</button>
+                    <button type="button" class="btn btn-secondary" id="add-device-row">Thêm thiết bị</button>
                 </div>
                 <div class="col-12 mb-3">
                     <div id="order-items-container">
@@ -180,13 +207,13 @@ ob_start();
                             </div>
                             <div class="col-md-3 mb-2">
                                 <label class="form-label">Sản phẩm trong đơn</label>
-                                <input type="text" class="form-control product-name-input" name="order_items[0][product_name]" placeholder="Tên sản phẩm/dịch vụ" required style="display:none">
+                                <input type="text" class="form-control product-name-input" name="order_items[0][product_name]" placeholder="Tên sản phẩm/dịch vụ" style="display:none">
                                 <select class="form-select product-select-all-warehouses" name="order_items[0][product_id]" style="width:100%"></select>
                             </div>
                             <div class="col-md-2 mb-2 d-flex align-items-end">
                                 <div class="w-100">
                                     <label class="form-label">Số lượng</label>
-                                    <input type="number" class="form-control" name="order_items[0][quantity]" placeholder="Số lượng" min="0.01" step="0.01" required>
+                                    <input type="number" class="form-control" name="order_items[0][quantity]" placeholder="Số lượng" min="0.01" step="0.01">
                                 </div>
                                 <span class="unit-label ms-2"></span>
                                 <input type="hidden" name="order_items[0][unit_name]" class="unit-name-input">
@@ -197,18 +224,18 @@ ob_start();
                             </div>
                             <div class="col-md-2 mb-2">
                                 <label class="form-label">Đơn giá</label>
-                                <input type="number" class="form-control" name="order_items[0][unit_price]" placeholder="Đơn giá" min="0" step="0.01" required>
+                                <input type="number" class="form-control" name="order_items[0][unit_price]" placeholder="Đơn giá" min="0" step="0.01">
                             </div>
                             <div class="col-md-2 mb-2">
                                 <label class="form-label">Thành tiền</label>
                                 <input type="text" class="form-control total-price-field" placeholder="Thành tiền" readonly>
                             </div>
-                            <div class="col-md-1 mb-2 d-flex align-items-end">
+                            <div class="col-md-1 d-flex align-items-end">
                                 <button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button>
                             </div>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-secondary mt-2" id="add-order-item">Thêm sản phẩm</button>
+                    <button type="button" class="btn btn-secondary" id="add-order-item">Thêm sản phẩm</button>
                 </div>
                 <div class="col-12 mb-3">
                     <label for="attachments" class="form-label">File đính kèm</label>
@@ -217,20 +244,6 @@ ob_start();
                 <div class="col-12 mb-3">
                     <label for="note" class="form-label">Ghi chú</label>
                     <textarea class="form-control" id="note" name="note" rows="2"></textarea>
-                </div>
-                <div class="col-12 mb-3">
-                    <label for="requirements_content" class="form-label">Nội dung yêu cầu</label>
-                    <textarea class="form-control" id="requirements_content" name="requirements_content" rows="4" placeholder="Mô tả yêu cầu của khách hàng..."></textarea>
-                </div>
-                <div class="col-12 mb-3">
-                    <label for="implementation_content" class="form-label">Nội dung triển khai</label>
-                    <div class="mb-2">
-                        <select class="form-select implementation-template-select" id="implementation_template_select" style="width:100%">
-                            <option value="">-- Chọn template nội dung triển khai --</option>
-                        </select>
-                    </div>
-                    <textarea class="form-control" id="implementation_content" name="implementation_content" rows="6" placeholder="Nội dung triển khai chi tiết..."></textarea>
-                    <small class="form-text text-muted">Có thể chọn template từ danh sách trên và chỉnh sửa nội dung theo yêu cầu cụ thể</small>
                 </div>
             </div>
             <div class="d-flex gap-2">
@@ -252,14 +265,10 @@ include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
                 $('#device-list-section').show();
                 $('#order-items-container').hide();
                 $('#add-order-item').hide();
-                $('#device-list-section input, #device-list-section select').prop('required', true);
-                $('#order-items-container input, #order-items-container select').prop('required', false);
             } else {
                 $('#device-list-section').hide();
                 $('#order-items-container').show();
                 $('#add-order-item').show();
-                $('#device-list-section input, #device-list-section select').prop('required', false);
-                $('#order-items-container input, #order-items-container select').prop('required', true);
             }
         }
         $('#order_type').on('change', toggleDeviceSection);
@@ -278,7 +287,7 @@ include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
                     <option value="">-- Chọn đối tác --</option>
                 </select>
             </div>
-            <div class="col-md-1 mb-2 d-flex align-items-end">
+            <div class="col-md-1 d-flex align-items-end">
                 <button type="button" class="btn btn-outline-danger remove-device-row">Xóa</button>
             </div>
         </div>`;
@@ -312,6 +321,79 @@ include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
         });
         // TODO: AJAX load đối tác sửa chữa cho .partner-select
         
+        // Xử lý thêm/xóa dòng nội dung
+        let contentIndex = 1;
+        $('#add-content').on('click', function() {
+            let row = `<div class="row mb-2 content-row">
+                <div class="col-md-12 mb-2">
+                    <select class="form-select implementation-template-select" name="content_lines[${contentIndex}][template_id]" style="width:100%">
+                        <option value="">-- Chọn template nội dung triển khai --</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small">Nội dung yêu cầu</label>
+                    <textarea class="form-control" name="content_lines[${contentIndex}][requirement]" rows="3" placeholder="Mô tả yêu cầu của khách hàng..."></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small">Nội dung triển khai</label>
+                    <textarea class="form-control" name="content_lines[${contentIndex}][implementation]" rows="3" placeholder="Nội dung triển khai chi tiết..."></textarea>
+                </div>
+                <div class="col-md-12 mt-2">
+                    <button type="button" class="btn btn-outline-danger remove-content">Xóa dòng</button>
+                </div>
+            </div>`;
+            $('#content-container').append(row);
+            
+            // Khởi tạo Select2 cho dòng mới
+            let $newRow = $('#content-container .content-row').last();
+            $newRow.find('.implementation-template-select').select2({
+                placeholder: "Chọn template nội dung triển khai",
+                allowClear: true,
+                ajax: {
+                    url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+                    dataType: "json",
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            action: "aerp_order_search_implementation_templates",
+                            q: params.term,
+                        };
+                    },
+                    processResults: function(data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true,
+                },
+                minimumInputLength: 0,
+            });
+            
+            contentIndex++;
+        });
+        
+        $(document).on('click', '.remove-content', function() {
+            if ($('#content-container .content-row').length > 1) {
+                $(this).closest('.content-row').remove();
+            }
+        });
+        
+        // Xử lý template selection cho từng dòng riêng biệt
+        $(document).on('select2:select', '.implementation-template-select', function(e) {
+            var data = e.params.data;
+            if (data.content) {
+                // Chỉ áp dụng template cho dòng hiện tại
+                let $currentRow = $(this).closest('.content-row');
+                $currentRow.find('textarea[name*="[implementation]"]').val(data.content);
+            }
+        });
+
+        // Clear template selection when content is manually edited
+        $(document).on('input', 'textarea[name*="[implementation]"]', function() {
+            let $currentRow = $(this).closest('.content-row');
+            $currentRow.find('.implementation-template-select').val(null).trigger('change');
+        });
+        
         // Initialize customer select with pre-selected value
         <?php if ($customer_id_from_url > 0): ?>
         $(document).ready(function() {
@@ -342,6 +424,32 @@ include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
             }
         });
         <?php endif; ?>
+        
+        // Khởi tạo Select2 cho dòng đầu tiên
+        $(document).ready(function() {
+            $('#content-container .implementation-template-select').first().select2({
+                placeholder: "Chọn template nội dung triển khai",
+                allowClear: true,
+                ajax: {
+                    url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+                    dataType: "json",
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            action: "aerp_order_search_implementation_templates",
+                            q: params.term,
+                        };
+                    },
+                    processResults: function(data) {
+                        return {
+                            results: data
+                        };
+                    },
+                    cache: true,
+                },
+                minimumInputLength: 0,
+            });
+        });
     });
 </script>
 <script>
@@ -374,15 +482,14 @@ include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
         $('#implementation_template_select').on('select2:select', function(e) {
             var data = e.params.data;
             if (data.content) {
-                $('#implementation_content').val(data.content);
+                // Áp dụng template cho tất cả dòng triển khai
+                $('#content-container textarea[name*="[implementation]"]').val(data.content);
             }
         });
 
         // Clear template selection when content is manually edited
-        $('#implementation_content').on('input', function() {
-            if ($(this).val() !== $('#implementation_template_select').find(':selected').data('content')) {
-                $('#implementation_template_select').val(null).trigger('change');
-            }
+        $('#content-container').on('input', 'textarea[name*="[implementation]"]', function() {
+            $('#implementation_template_select').val(null).trigger('change');
         });
     });
 </script>

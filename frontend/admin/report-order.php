@@ -159,7 +159,7 @@ ob_start();
                     <a href="?month=" class="btn btn-outline-primary">
                         <i class="fas fa-calendar-alt"></i> Xem 12 tháng gần nhất
                     </a>
-                </div>
+            </div>
             </div>
         </div>
     </div>
@@ -199,10 +199,10 @@ ob_start();
             $where_params[] = $start_date;
             $where_params[] = $end_date;
         } elseif ($time_period === '12_months') {
-            // Tạo danh sách 12 tháng gần nhất
-            $months_to_show = [];
-            for ($i = 11; $i >= 0; $i--) {
-                $months_to_show[] = date('Y-m', strtotime("-{$i} months"));
+                // Tạo danh sách 12 tháng gần nhất
+                $months_to_show = [];
+                for ($i = 11; $i >= 0; $i--) {
+                    $months_to_show[] = date('Y-m', strtotime("-{$i} months"));
             }
             $where_conditions[] = "DATE_FORMAT(o.order_date, '%Y-%m') IN ('" . implode("','", $months_to_show) . "')";
         }
@@ -326,7 +326,7 @@ ob_start();
             ";
             $orders_by_time = $wpdb->get_results($wpdb->prepare($time_query, $where_params), ARRAY_A);
             $time_labels = array_column($orders_by_time, 'time_unit');
-        } else {
+                } else {
             // Theo tháng (12 tháng) - Tạo mảng dữ liệu đầy đủ 12 tháng
 
             // Lấy dữ liệu thực tế
@@ -347,13 +347,13 @@ ob_start();
             $month_data = array_column($orders_by_time_raw, 'total', 'time_unit');
             $month_revenue = array_column($orders_by_time_raw, 'revenue', 'time_unit');
 
-            foreach ($months_to_show as $month) {
+                    foreach ($months_to_show as $month) {
                 $orders_by_time[] = [
                     'time_unit' => $month,
-                    'total' => isset($month_data[$month]) ? $month_data[$month] : 0,
-                    'revenue' => isset($month_revenue[$month]) ? $month_revenue[$month] : 0
-                ];
-            }
+                            'total' => isset($month_data[$month]) ? $month_data[$month] : 0,
+                            'revenue' => isset($month_revenue[$month]) ? $month_revenue[$month] : 0
+                        ];
+                    }
 
             $time_labels = array_column($orders_by_time, 'time_unit');
         }
@@ -405,22 +405,22 @@ ob_start();
         } else {
             // Cho tháng cụ thể hoặc khoảng ngày: sử dụng logic cũ
             $source_query = "
-                SELECT cs.name as source_name, cs.color as source_color, cs.id as customer_source_id, 
-                       COALESCE(order_count.count, 0) as count
-                FROM {$wpdb->prefix}aerp_crm_customer_sources cs
-                LEFT JOIN (
-                    SELECT o.customer_source_id, COUNT(*) as count
-                FROM {$wpdb->prefix}aerp_order_orders o
+                        SELECT cs.name as source_name, cs.color as source_color, cs.id as customer_source_id, 
+                               COALESCE(order_count.count, 0) as count
+                        FROM {$wpdb->prefix}aerp_crm_customer_sources cs
+                        LEFT JOIN (
+                            SELECT o.customer_source_id, COUNT(*) as count
+                            FROM {$wpdb->prefix}aerp_order_orders o
                 LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
                     $where_clause AND o.customer_source_id IS NOT NULL AND o.customer_source_id != 0
-                    GROUP BY o.customer_source_id
-                ) order_count ON cs.id = order_count.customer_source_id
-                ORDER BY count DESC
+                            GROUP BY o.customer_source_id
+                        ) order_count ON cs.id = order_count.customer_source_id
+                        ORDER BY count DESC
             ";
             $orders_by_source = $wpdb->get_results($wpdb->prepare($source_query, $where_params), ARRAY_A);
-        }
+                }
 
-        // Thống kê khách hàng quay lại và phân bố khách hàng
+                // Thống kê khách hàng quay lại và phân bố khách hàng
         // Tách riêng logic đếm khách hàng và logic tính toán doanh thu
         $customer_stats_query = "
             SELECT 
@@ -431,12 +431,12 @@ ob_start();
                 COUNT(CASE WHEN o.status = 'paid' AND (o.total_amount - COALESCE(o.cost, 0)) > 0 THEN 1 END) as profitable_orders,
                 COUNT(CASE WHEN o.status = 'cancelled' THEN 1 END) as cancelled_orders,
                 COUNT(CASE WHEN o.status = 'paid' THEN 1 END) as total_paid_orders
-            FROM {$wpdb->prefix}aerp_order_orders o
-            LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
+                            FROM {$wpdb->prefix}aerp_order_orders o
+                LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
             LEFT JOIN (
                 SELECT customer_id, COUNT(*) as order_count
-                FROM {$wpdb->prefix}aerp_order_orders o2
-                LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e2 ON o2.employee_id = e2.id
+                                FROM {$wpdb->prefix}aerp_order_orders o2
+                                LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e2 ON o2.employee_id = e2.id
                 WHERE 1=1
                 " . (!empty($work_location_filter) ? "AND e2.work_location_id = " . intval($work_location_filter) : "") . "
                 " . (!empty($employee_filter) ? "AND o2.employee_id = " . intval($employee_filter) : "") . "
@@ -470,8 +470,8 @@ ob_start();
                     SELECT DATE_FORMAT(o.order_date, '%Y-%m') AS month,
                            o.customer_id,
                            COUNT(*) AS order_per_customer
-                    FROM {$wpdb->prefix}aerp_order_orders o
-                    LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
+                            FROM {$wpdb->prefix}aerp_order_orders o
+                            LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
                     $where_clause
                     GROUP BY month, o.customer_id
                 ) t
@@ -519,8 +519,8 @@ ob_start();
         }
         ?>
 
-        <section class="dashboard-section mb-5">
-            <h2><i class="fas fa-shopping-cart"></i> Báo cáo đơn hàng</h2>
+            <section class="dashboard-section mb-5">
+                <h2><i class="fas fa-shopping-cart"></i> Báo cáo đơn hàng</h2>
 
             <!-- Hiển thị thông tin bộ lọc đang áp dụng -->
             <div class="alert alert-info mb-4">
@@ -536,71 +536,71 @@ ob_start();
                 <?php endif; ?>
             </div>
 
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="summary-card card">
-                        <div class="summary-icon orders">
-                            <i class="fas fa-shopping-cart"></i>
-                        </div>
-                        <div class="summary-content">
-                            <div class="summary-label">Tổng đơn hàng</div>
-                            <div class="summary-value"><?= number_format($total_orders) ?></div>
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="summary-card card">
+                            <div class="summary-icon orders">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <div class="summary-content">
+                                <div class="summary-label">Tổng đơn hàng</div>
+                                <div class="summary-value"><?= number_format($total_orders) ?></div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="summary-card card">
-                        <div class="summary-icon revenue">
-                            <i class="fas fa-money-bill-wave"></i>
-                        </div>
-                        <div class="summary-content">
+                    <div class="col-md-3">
+                        <div class="summary-card card">
+                            <div class="summary-icon revenue">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                            <div class="summary-content">
                             <div class="summary-label">Doanh thu (đã thu tiền)</div>
-                            <div class="summary-value"><?= number_format($total_revenue) ?> đ</div>
+                                <div class="summary-value"><?= number_format($total_revenue) ?> đ</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="summary-card card">
-                        <div class="summary-icon cost">
-                            <i class="fas fa-coins"></i>
-                        </div>
-                        <div class="summary-content">
-                            <div class="summary-label">Tổng chi phí</div>
-                            <div class="summary-value"><?= number_format($total_cost) ?> đ</div>
+                    <div class="col-md-3">
+                        <div class="summary-card card">
+                            <div class="summary-icon cost">
+                                <i class="fas fa-coins"></i>
+                            </div>
+                            <div class="summary-content">
+                                <div class="summary-label">Tổng chi phí</div>
+                                <div class="summary-value"><?= number_format($total_cost) ?> đ</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="summary-card card">
-                        <div class="summary-icon <?= $total_profit >= 0 ? 'profit' : 'loss' ?>">
-                            <i class="fas fa-chart-line"></i>
-                        </div>
-                        <div class="summary-content">
-                            <div class="summary-label">Lợi nhuận</div>
-                            <div class="summary-value <?= $total_profit >= 0 ? 'text-success' : 'text-danger' ?>">
-                                <?= number_format($total_profit) ?> đ
+                    <div class="col-md-3">
+                        <div class="summary-card card">
+                            <div class="summary-icon <?= $total_profit >= 0 ? 'profit' : 'loss' ?>">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="summary-content">
+                                <div class="summary-label">Lợi nhuận</div>
+                                <div class="summary-value <?= $total_profit >= 0 ? 'text-success' : 'text-danger' ?>">
+                                    <?= number_format($total_profit) ?> đ
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="chart-container card">
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="chart-container card">
                         <h5><i class="fas fa-chart-bar"></i> Đơn hàng & Doanh thu theo
                             <?= $time_period === 'month' || $time_period === 'date_range' ? 'ngày' : 'tháng' ?>
-                        </h5>
+                            </h5>
                         <?php if (empty($orders_by_time)): ?>
                             <div class="no-data">Không có dữ liệu đơn hàng trong khoảng thời gian này</div>
-                        <?php else: ?>
-                            <canvas id="orderChart"></canvas>
-                        <?php endif; ?>
+                            <?php else: ?>
+                                <canvas id="orderChart"></canvas>
+                            <?php endif; ?>
+                        </div>
                     </div>
-                </div>
 
-                <div class="col-12">
-                    <div class="chart-container card">
+                    <div class="col-12">
+                        <div class="chart-container card">
                         <h5><i class="fas fa-chart-bar"></i> Báo cáo doanh thu (chỉ tính đơn đã thu tiền)</h5>
                         <canvas id="revenueReportChart"></canvas>
                     </div>
@@ -608,45 +608,45 @@ ob_start();
                 <div class="col-12">
                     <div class="chart-container card">
                         <h5><i class="fas fa-chart-bar"></i> Đơn hàng theo trạng thái</h5>
-                        <?php if (empty($orders_by_status)): ?>
-                            <div class="no-data">Không có dữ liệu trạng thái</div>
-                        <?php else: ?>
-                            <canvas id="orderStatusChart"></canvas>
-                        <?php endif; ?>
+                            <?php if (empty($orders_by_status)): ?>
+                                <div class="no-data">Không có dữ liệu trạng thái</div>
+                            <?php else: ?>
+                                <canvas id="orderStatusChart"></canvas>
+                            <?php endif; ?>
                     </div>
                 </div>
 
-                <div class="col-12">
-                    <div class="chart-container card">
+                    <div class="col-12">
+                        <div class="chart-container card">
                         <h5><i class="fas fa-chart-bar"></i> Đơn hàng theo nguồn khách hàng</h5>
-                        <?php if (empty($orders_by_source)): ?>
-                            <div class="no-data">Không có dữ liệu nguồn</div>
-                        <?php else: ?>
-                            <canvas id="orderSourceChart"></canvas>
-                        <?php endif; ?>
+                            <?php if (empty($orders_by_source)): ?>
+                                <div class="no-data">Không có dữ liệu nguồn</div>
+                            <?php else: ?>
+                                <canvas id="orderSourceChart"></canvas>
+                            <?php endif; ?>
                     </div>
                 </div>
 
-                <div class="col-12">
-                    <div class="chart-container card">
+                    <div class="col-12">
+                        <div class="chart-container card">
                         <h5><i class="fas fa-chart-bar"></i> Phân bố khách hàng</h5>
                         <canvas id="customerDistributionChart"></canvas>
+                        </div>
                     </div>
                 </div>
-            </div>
 
 
-            <script>
-                var orderChartData = {
+                <script>
+                        var orderChartData = {
                     labels: <?= json_encode($time_labels) ?>,
                     orders: <?= json_encode(array_column($orders_by_time, 'total')) ?>,
                     revenue: <?= json_encode(array_column($orders_by_time, 'revenue')) ?>
                 };
 
-                var orderStatusData = {
-                    labels: <?= json_encode(array_column($orders_by_status, 'status')) ?>,
-                    data: <?= json_encode(array_column($orders_by_status, 'count')) ?>
-                };
+                    var orderStatusData = {
+                        labels: <?= json_encode(array_column($orders_by_status, 'status')) ?>,
+                        data: <?= json_encode(array_column($orders_by_status, 'count')) ?>
+                    };
 
                 var orderSourceSimpleData = {
                     labels: <?= json_encode(array_column($orders_by_source, 'source_name')) ?>,
@@ -771,11 +771,11 @@ ob_start();
                         labels: <?= json_encode($months_to_show) ?>,
                         sources: <?= json_encode(array_unique(array_column($orders_by_source, 'source_name'))) ?>,
                         colors: <?= json_encode(array_unique(array_column($orders_by_source, 'source_color'))) ?>,
-                        datasets: []
-                    };
+                            datasets: []
+                        };
 
                     // Tạo datasets cho từng nguồn
-                    <?php
+                        <?php
                     if (!empty($orders_by_source)):
                         foreach ($orders_by_source as $source):
                             if (isset($source['monthly_data'])):
@@ -787,20 +787,20 @@ ob_start();
                                     borderColor: '<?= str_replace('0.5', '1', $source['source_color']) ?>',
                                     borderWidth: 1
                                 });
-                    <?php
+                        <?php
                             endif;
-                        endforeach;
-                    endif;
-                    ?>
+                            endforeach;
+                        endif;
+                        ?>
 
                     // Dữ liệu cho biểu đồ trạng thái theo tháng (12 tháng)
-                    var orderStatusGroupData = {
-                        labels: <?= json_encode($months_to_show) ?>,
-                        datasets: []
-                    };
+                        var orderStatusGroupData = {
+                            labels: <?= json_encode($months_to_show) ?>,
+                            datasets: []
+                        };
 
-                    // Tạo datasets cho từng trạng thái
-                    <?php
+                        // Tạo datasets cho từng trạng thái
+                        <?php
                     if (!empty($orders_by_status)):
                         foreach ($orders_by_status as $status):
                             if (isset($status['monthly_data'])):
@@ -836,7 +836,7 @@ ob_start();
                                         $status_color = '#cccccc';
                                         $status_name_vi = $status['status'];
                                 }
-                    ?>
+                        ?>
                                 orderStatusGroupData.datasets.push({
                                     label: '<?= $status_name_vi ?>',
                                     data: <?= json_encode($status['monthly_data']) ?>,
@@ -844,107 +844,107 @@ ob_start();
                                     borderColor: '<?= $status_color ?>',
                                     borderWidth: 1
                                 });
-                    <?php
-                            endif;
-                        endforeach;
-                    endif;
-                    ?>
-                <?php endif; ?>
+                        <?php
+                        endif;
+                            endforeach;
+                        endif;
+                        ?>
+                    <?php endif; ?>
 
-                jQuery(function($) {
-                    // Đăng ký plugin DataLabels
-                    if (typeof ChartDataLabels !== 'undefined') {
-                        Chart.register(ChartDataLabels);
-                    }
+                    jQuery(function($) {
+                        // Đăng ký plugin DataLabels
+                        if (typeof ChartDataLabels !== 'undefined') {
+                            Chart.register(ChartDataLabels);
+                        }
 
-                    // Order Chart
-                    if (typeof Chart !== 'undefined' && $('#orderChart').length && orderChartData.labels.length > 0) {
-                        new Chart(document.getElementById('orderChart'), {
-                            type: 'bar',
-                            data: {
-                                labels: orderChartData.labels,
-                                datasets: [{
+                        // Order Chart
+                        if (typeof Chart !== 'undefined' && $('#orderChart').length && orderChartData.labels.length > 0) {
+                            new Chart(document.getElementById('orderChart'), {
+                                type: 'bar',
+                                data: {
+                                    labels: orderChartData.labels,
+                                    datasets: [{
                                         label: 'Số đơn theo <?= $time_period === 'month' || $time_period === 'date_range' ? 'ngày' : 'tháng' ?>',
                                         data: orderChartData.orders,
                                         backgroundColor: 'rgba(54, 162, 235, 0.5)',
                                         borderColor: 'rgba(54, 162, 235, 1)',
                                         borderWidth: 1,
                                         yAxisID: 'y'
-                                    },
-                                    {
-                                        label: 'Doanh thu (đã thu tiền)',
-                                        data: orderChartData.revenue,
-                                        backgroundColor: 'rgba(255, 206, 86, 0.2)',
-                                        borderColor: 'rgba(255, 206, 86, 1)',
-                                        borderWidth: 3,
-                                        type: 'line',
-                                        yAxisID: 'y1',
-                                        tension: 0.3,
-                                        pointRadius: 6,
-                                        pointBackgroundColor: 'rgba(255, 206, 86, 1)',
-                                        pointBorderColor: '#333',
-                                        pointBorderWidth: 3
-                                    }
-                                ]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                scales: {
-                                    y: {
-                                        beginAtZero: true
-                                    },
-                                    y1: {
-                                        beginAtZero: true,
-                                        position: 'right',
-                                        grid: {
-                                            drawOnChartArea: false
                                         },
-                                        ticks: {
-                                            callback: function(value) {
-                                                return new Intl.NumberFormat('vi-VN', {
-                                                    style: 'currency',
-                                                    currency: 'VND'
-                                                }).format(value);
+                                        {
+                                        label: 'Doanh thu (đã thu tiền)',
+                                            data: orderChartData.revenue,
+                                            backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                                            borderColor: 'rgba(255, 206, 86, 1)',
+                                            borderWidth: 3,
+                                            type: 'line',
+                                            yAxisID: 'y1',
+                                            tension: 0.3,
+                                            pointRadius: 6,
+                                            pointBackgroundColor: 'rgba(255, 206, 86, 1)',
+                                            pointBorderColor: '#333',
+                                            pointBorderWidth: 3
+                                        }
+                                    ]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true
+                                        },
+                                        y1: {
+                                            beginAtZero: true,
+                                            position: 'right',
+                                            grid: {
+                                                drawOnChartArea: false
+                                            },
+                                            ticks: {
+                                                callback: function(value) {
+                                                    return new Intl.NumberFormat('vi-VN', {
+                                                        style: 'currency',
+                                                        currency: 'VND'
+                                                    }).format(value);
+                                                }
                                             }
                                         }
-                                    }
-                                },
-                                plugins: {
-                                    datalabels: {
-                                        color: '#000',
-                                        font: {
-                                            weight: 'bold',
-                                            size: 12
-                                        },
+                                    },
+                                    plugins: {
+                                        datalabels: {
+                                            color: '#000',
+                                            font: {
+                                                weight: 'bold',
+                                                size: 12
+                                            },
                                         anchor: function(ctx) {
                                             return ctx.datasetIndex === 1 ? 'end' : 'top';
                                         },
                                         align: function(ctx) {
                                             return ctx.datasetIndex === 1 ? 'top' : 'top';
                                         },
-                                        offset: 5,
-                                        formatter: function(value, context) {
-                                            if (context.datasetIndex === 0) {
+                                            offset: 5,
+                                            formatter: function(value, context) {
+                                                if (context.datasetIndex === 0) {
                                                 // Cột số đơn
-                                                return value > 0 ? value : '';
-                                            }
+                                                    return value > 0 ? value : '';
+                                                }
                                             if (context.datasetIndex === 1) {
                                                 // Đường doanh thu: hiển thị trên điểm tròn
                                                 return value > 0 ? new Intl.NumberFormat('vi-VN', {
                                                     maximumFractionDigits: 0
                                                 }).format(value) + ' đ' : '';
+                                                }
+                                                return '';
                                             }
-                                            return '';
                                         }
                                     }
                                 }
-                            }
-                        });
-                    }
+                            });
+                        }
 
-                    // Order Status Chart
-                    if (typeof Chart !== 'undefined' && $('#orderStatusChart').length) {
+                        // Order Status Chart
+                        if (typeof Chart !== 'undefined' && $('#orderStatusChart').length) {
                         <?php if ($time_period === '12_months'): ?>
                             // Sử dụng biểu đồ cột nhóm cho 12 tháng
                             if (typeof orderStatusGroupData !== 'undefined' && orderStatusGroupData.datasets.length > 0) {
@@ -1248,10 +1248,10 @@ ob_start();
                                 }
                             }
                         });
-                    }
+                        }
 
-                    // Order Source Chart
-                    if (typeof Chart !== 'undefined' && $('#orderSourceChart').length) {
+                        // Order Source Chart
+                        if (typeof Chart !== 'undefined' && $('#orderSourceChart').length) {
                         <?php if ($time_period === '12_months'): ?>
                             // Sử dụng biểu đồ cột nhóm cho 12 tháng
                             if (typeof orderSourceGroupData !== 'undefined' && orderSourceGroupData.datasets.length > 0) {
@@ -1409,16 +1409,16 @@ ob_start();
                                 }
                             });
                         <?php endif; ?>
-                    }
-                });
-            </script>
-        </section>
-    <?php endif; ?>
+                        }
+                    });
+                </script>
+            </section>
+        <?php endif; ?>
 </div>
 
-<script>
+        <script>
     // Cập nhật các giá trị ẩn khi user thay đổi bộ lọc
-    document.getElementById('month').addEventListener('change', function() {
+            document.getElementById('month').addEventListener('change', function() {
         document.getElementById('report-month-hidden').value = this.value;
     });
 
@@ -1436,8 +1436,8 @@ ob_start();
 
     document.getElementById('employee').addEventListener('change', function() {
         document.getElementById('report-employee-hidden').value = this.value;
-    });
-</script>
+            });
+        </script>
 
 
 <style>

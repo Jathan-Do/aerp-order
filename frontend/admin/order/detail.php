@@ -56,11 +56,13 @@ ob_start();
         background: #34495e !important;
         color: white !important;
     }
+
     .aerp-tabs-container .nav-link:hover {
         background: #34495e !important;
         color: white !important;
         /* border-bottom: 0 !important; */
     }
+
     .aerp-tabs-container .nav-tabs {
         display: flex;
         gap: 8px;
@@ -149,9 +151,7 @@ ob_start();
         <div class="card-header border-bottom-0 pb-0">
             <div class="nav nav-tabs" role="tablist">
                 <a class="nav-link active" id="tab-products-link" data-bs-toggle="tab" href="#tab-products" role="tab" aria-controls="tab-products" aria-selected="true">Sản phẩm trong đơn</a>
-                <?php if ($is_device_order): ?>
-                    <a class="nav-link" id="tab-devices-link" data-bs-toggle="tab" href="#tab-devices" role="tab" aria-controls="tab-devices" aria-selected="false">Thiết bị nhận từ khách</a>
-                <?php endif; ?>
+                <a class="nav-link" id="tab-devices-link" data-bs-toggle="tab" href="#tab-devices" role="tab" aria-controls="tab-devices" aria-selected="false">Thiết bị nhận từ khách</a>
                 <a class="nav-link" id="tab-content-link" data-bs-toggle="tab" href="#tab-content" role="tab" aria-controls="tab-content" aria-selected="false">Nội dung yêu cầu/triển khai</a>
             </div>
         </div>
@@ -226,61 +226,79 @@ ob_start();
                         <a href="#" class="btn btn-success" id="print-invoice-detail-btn"><i class="fas fa-print me-1"></i> In hóa đơn chi tiết</a>
                     </div>
                 </div>
-                <?php if ($is_device_order): ?>
-                    <div class="tab-pane fade" id="tab-devices" role="tabpanel" aria-labelledby="tab-devices-link">
-                        <div class="table-responsive">
-                            <table class="table table-bordered mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Tên thiết bị</th>
-                                        <th>Serial/IMEI</th>
-                                        <th>Tình trạng</th>
-                                        <th>Ghi chú</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (!empty($device_list)): foreach ($device_list as $idx => $device): ?>
-                                            <tr>
-                                                <td><?php echo $idx + 1; ?></td>
-                                                <td><?php echo esc_html($device->device_name); ?></td>
-                                                <td><?php echo esc_html($device->serial_number); ?></td>
-                                                <td><?php echo esc_html($device->status); ?></td>
-                                                <td><?php echo esc_html($device->note); ?></td>
-                                            </tr>
-                                        <?php endforeach;
-                                    else: ?>
+                <div class="tab-pane fade" id="tab-devices" role="tabpanel" aria-labelledby="tab-devices-link">
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Tên thiết bị</th>
+                                    <th>Serial/IMEI</th>
+                                    <th>Tình trạng</th>
+                                    <th>Ghi chú</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (!empty($device_list)): foreach ($device_list as $idx => $device): ?>
                                         <tr>
-                                            <td colspan="5" class="text-center text-muted">Chưa có thiết bị nào.</td>
+                                            <td><?php echo $idx + 1; ?></td>
+                                            <td><?php echo esc_html($device->device_name); ?></td>
+                                            <td><?php echo esc_html($device->serial_number); ?></td>
+                                            <td><?php echo esc_html($device->status); ?></td>
+                                            <td><?php echo esc_html($device->note); ?></td>
                                         </tr>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="d-flex justify-content-start align-items-center mt-3 gap-2">
-                            <a href="<?php echo home_url('/aerp-order-orders'); ?>" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left"></i> Quay lại danh sách
-                            </a>
-                            <a href="<?php echo home_url('/aerp-order-orders?action=edit&id=' . $order_id); ?>" class="btn btn-primary">
-                                <i class="fas fa-edit me-1"></i> Chỉnh sửa
-                            </a>
-                            <a href="#" class="btn btn-success" id="print-invoice-device-btn"><i class="fas fa-print me-1"></i> In hóa đơn thiết bị</a>
-                        </div>
+                                    <?php endforeach;
+                                else: ?>
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">Chưa có thiết bị nào.</td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
-                <?php endif; ?>
+                    <div class="d-flex justify-content-start align-items-center mt-3 gap-2">
+                        <a href="<?php echo home_url('/aerp-order-orders'); ?>" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Quay lại danh sách
+                        </a>
+                        <a href="<?php echo home_url('/aerp-order-orders?action=edit&id=' . $order_id); ?>" class="btn btn-primary">
+                            <i class="fas fa-edit me-1"></i> Chỉnh sửa
+                        </a>
+                        <a href="#" class="btn btn-success" id="print-invoice-device-btn"><i class="fas fa-print me-1"></i> In hóa đơn thiết bị</a>
+                    </div>
+                </div>
                 <div class="tab-pane fade" id="tab-content" role="tabpanel" aria-labelledby="tab-content-link">
                     <div class="row mb-2">
                         <div class="col-md-12 mb-3">
-                            <label class="fw-bold form-label text-muted small mb-1">Nội dung yêu cầu</label>
-                            <div class="p-3 border rounded bg-light" style="white-space:pre-line;">
-                                <?php echo $order->requirements_content ? nl2br(esc_html($order->requirements_content)) : '<span class="text-muted">--</span>'; ?>
-                            </div>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label class="fw-bold form-label text-muted small mb-1">Nội dung triển khai</label>
-                            <div class="p-3 border rounded bg-light" style="white-space:pre-line;">
-                                <?php echo $order->implementation_content ? nl2br(esc_html($order->implementation_content)) : '<span class="text-muted">--</span>'; ?>
-                            </div>
+                            <label class="fw-bold form-label text-muted small mb-1">Nội dung yêu cầu và triển khai</label>
+                            <?php
+                            $content_lines = $wpdb->get_results($wpdb->prepare(
+                                "SELECT * FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d ORDER BY sort_order ASC",
+                                $order_id
+                            ));
+
+                            if (!empty($content_lines)) {
+                                foreach ($content_lines as $idx => $line) {
+                                    echo '<div class="row mb-3">';
+                                    echo '<div class="col-md-6">';
+                                    echo '<div class="p-3 border rounded bg-light" style="white-space:pre-line;">';
+                                    echo '<strong>Nội dung ' . ($idx + 1) . ' - Yêu cầu:</strong><br>';
+                                    echo nl2br(esc_html($line->requirement ?? ''));
+                                    echo '</div>';
+                                    echo '</div>';
+                                    echo '<div class="col-md-6">';
+                                    echo '<div class="p-3 border rounded bg-light" style="white-space:pre-line;">';
+                                    echo '<strong>Nội dung ' . ($idx + 1) . ' - Triển khai:</strong><br>';
+                                    echo nl2br(esc_html($line->implementation ?? ''));
+                                    echo '</div>';
+                                    echo '</div>';
+                                    echo '</div>';
+                                }
+                            } else {
+                                echo '<div class="p-3 border rounded bg-light" style="white-space:pre-line;">';
+                                echo '<span class="text-muted">--</span>';
+                                echo '</div>';
+                            }
+                            ?>
                         </div>
                     </div>
                     <div class="d-flex justify-content-start align-items-center mt-3 gap-2">
@@ -435,29 +453,34 @@ ob_start();
             <strong>Nhân viên phụ trách:</strong> <?php echo $employee ? esc_html($employee) : '--'; ?><br>
         </div>
 
-        <?php if ($order->requirements_content): ?>
+        <?php if (!empty($content_lines)): ?>
             <div style="margin-bottom:20px;">
-                <h4 style="margin-bottom:8px;color:#333;">Nội dung yêu cầu:</h4>
-                <div style="background:#f8f9fa;padding:12px;border-left:4px solid #007bff;border-radius:4px;">
-                    <?php echo nl2br(esc_html($order->requirements_content)); ?>
-                </div>
+                <h4 style="margin-bottom:8px;color:#333;">Nội dung yêu cầu và triển khai:</h4>
+                <?php foreach ($content_lines as $idx => $line): ?>
+                    <div style="margin-bottom:16px;border:1px solid #ddd;border-radius:4px;overflow:hidden;">
+                        <div style="background:#f8f9fa;padding:8px;border-bottom:1px solid #ddd;font-weight:bold;">
+                            Nội dung <?php echo ($idx + 1); ?>
+                        </div>
+                        <div style="display:flex;">
+                            <div style="flex:1;padding:12px;border-right:1px solid #ddd;">
+                                <strong>Yêu cầu:</strong><br>
+                                <?php echo nl2br(esc_html($line->requirement ?? '')); ?>
+                            </div>
+                            <div style="flex:1;padding:12px;">
+                                <strong>Triển khai:</strong><br>
+                                <?php echo nl2br(esc_html($line->implementation ?? '')); ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
             </div>
         <?php endif; ?>
 
-        <?php if ($order->implementation_content): ?>
-            <div style="margin-bottom:20px;">
-                <h4 style="margin-bottom:8px;color:#333;">Nội dung triển khai:</h4>
-                <div style="background:#f8f9fa;padding:12px;border-left:4px solid #28a745;border-radius:4px;">
-                    <?php echo nl2br(esc_html($order->implementation_content)); ?>
-                </div>
-            </div>
-        <?php endif; ?>
-
-        <div style="margin-top:32px;border-top:2px solid #333;padding-top:16px;">
+        <!-- <div style="margin-top:32px;border-top:2px solid #333;padding-top:16px;">
             <div style="text-align:right;font-size:18px;font-weight:bold;">
                 <strong>Tổng tiền: <?php echo number_format($order->total_amount, 0, ',', '.'); ?> VNĐ</strong>
             </div>
-        </div>
+        </div> -->
 
         <div style="margin-top:32px;display:flex;justify-content:space-between;">
             <div><strong>Khách hàng</strong><br><br><br>__________________</div>

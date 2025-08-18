@@ -66,6 +66,49 @@ jQuery(document).ready(function ($) {
             itemIndex++;
             initSelect2();
             toggleProductInputRow($("#order-items-container .order-item-row").last());
+            
+            // Khởi tạo Select2 cho dòng mới
+            let $newRow = $("#order-items-container .order-item-row").last();
+            let $productSelect = $newRow.find('.product-select-all-warehouses');
+            let $productNameInput = $newRow.find('.product-name-input');
+            
+            // Khởi tạo Select2 cho sản phẩm
+            $productSelect.select2({
+                placeholder: "Chọn sản phẩm từ tất cả kho",
+                allowClear: true,
+                ajax: {
+                    url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+                    dataType: "json",
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            action: "aerp_order_search_products_in_warehouse_in_worklocation",
+                            warehouse_id: 0,
+                            q: params.term || "",
+                        };
+                    },
+                    processResults: function (data) {
+                        return { results: data };
+                    },
+                    cache: true,
+                },
+                minimumInputLength: 0,
+            });
+            
+            // Xử lý sự kiện thay đổi loại cho dòng mới
+            $newRow.find('.item-type-select').on('change', function() {
+                let itemType = $(this).val();
+                if (itemType === 'service') {
+                    $productSelect.hide();
+                    $productNameInput.show();
+                    $productSelect.val(null).trigger('change');
+                    $productNameInput.val('');
+                } else {
+                    $productSelect.show();
+                    $productNameInput.hide();
+                    $productNameInput.val('');
+                }
+            });
         });
     $(document).on("click", ".remove-order-item", function () {
         $(this).closest(".order-item-row").remove();
@@ -165,15 +208,15 @@ jQuery(document).ready(function ($) {
         toggleProductInputRow($row);
     });
     // Khi thêm dòng mới, gọi toggleProductInputRow cho dòng đó
-    $("#add-order-item")
-        .off("click")
-        .on("click", function () {
-            $("#order-items-container").append(renderOrderItemRow(itemIndex));
-            let $newRow = $("#order-items-container .order-item-row").last();
-            initSelect2();
-            toggleProductInputRow($newRow);
-            itemIndex++;
-        });
+    // $("#add-order-item")
+    //     .off("click")
+    //     .on("click", function () {
+    //         $("#order-items-container").append(renderOrderItemRow(itemIndex));
+    //         let $newRow = $("#order-items-container .order-item-row").last();
+    //         initSelect2();
+    //         toggleProductInputRow($newRow);
+    //         itemIndex++;
+    //     });
     // Khi load lại form, gọi toggleProductInputRow cho tất cả dòng
     $(document).ready(function () {
         $("#order-items-container .order-item-row").each(function () {
