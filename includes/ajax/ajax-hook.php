@@ -9,7 +9,7 @@ function aerp_order_filter_orders_callback()
         'employee_id' => intval($_POST['employee_id'] ?? 0),
         'customer_id' => intval($_POST['customer_id'] ?? 0),
         'order_type' => sanitize_text_field($_POST['order_type'] ?? ''),
-        'customer_source' => sanitize_text_field($_POST['customer_source'] ?? ''),
+        'customer_source_id' => sanitize_text_field($_POST['customer_source_id'] ?? ''),
         'date_from' => sanitize_text_field($_POST['date_from'] ?? ''),
         'date_to' => sanitize_text_field($_POST['date_to'] ?? ''),
         'search_term' => sanitize_text_field($_POST['s'] ?? ''),

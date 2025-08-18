@@ -59,7 +59,7 @@ ob_start();
     .aerp-tabs-container .nav-link:hover {
         background: #34495e !important;
         color: white !important;
-        border-bottom: 0 !important;
+        /* border-bottom: 0 !important; */
     }
     .aerp-tabs-container .nav-tabs {
         display: flex;

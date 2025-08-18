@@ -68,7 +68,7 @@ ob_start();
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="customer_id" class="form-label">Khách hàng</label>
-                    <select class="form-select customer-select" id="customer_id" name="customer_id" required>
+                    <select class="form-select customer-select" id="customer_id" name="customer_id">
                         <?php
                         $selected_id = $editing->customer_id;
                         $selected_name = '';
@@ -106,7 +106,7 @@ ob_start();
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="order_date" class="form-label">Ngày tạo đơn hàng</label>
-                    <input type="date" class="form-control bg-body" id="order_date" name="order_date" value="<?php echo esc_attr($editing->order_date); ?>" required>
+                    <input type="date" class="form-control bg-body" id="order_date" name="order_date" value="<?php echo esc_attr($editing->order_date); ?>">
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="status_id" class="form-label">Trạng thái</label>
@@ -142,7 +142,7 @@ ob_start();
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="order_type" class="form-label">Loại đơn</label>
-                    <select class="form-select" id="order_type" name="order_type" required>
+                    <select class="form-select" id="order_type" name="order_type">
                         <option value="product" <?= $order_type === 'product' ? ' selected' : '' ?>>Bán hàng/ Dịch vụ</option>
                         <option value="device" <?= $order_type === 'device' ? ' selected' : '' ?>>Nhận thiết bị</option>
                     </select>
@@ -165,9 +165,9 @@ ob_start();
                                 echo '</div>';
                                 // Tên sản phẩm/dịch vụ
                                 echo '<div class="col-md-3 mb-2">';
-                                echo '<input type="text" class="form-control product-name-input" name="order_items[' . $idx . '][product_name]" value="' . esc_attr($item->product_name) . '" placeholder="Tên sản phẩm/dịch vụ"' . ($item_type == 'service' ? '' : ' style="display:none"') . ($item_type == 'service' ? ' required' : '') . '>';
+                                echo '<input type="text" class="form-control product-name-input" name="order_items[' . $idx . '][product_name]" value="' . esc_attr($item->product_name) . '" placeholder="Tên sản phẩm/dịch vụ"' . ($item_type == 'service' ? '' : ' style="display:none"') . '>';
                                 // Select2 sản phẩm (ẩn nếu là dịch vụ)
-                                echo '<select class="form-select product-select-all-warehouses" name="order_items[' . $idx . '][product_id]" style="width:100%;' . ($item_type == 'service' ? 'display:none;' : '') . '"' . ($item_type == 'product' ? ' required' : '') . '>';
+                                echo '<select class="form-select product-select-all-warehouses" name="order_items[' . $idx . '][product_id]" style="width:100%;' . ($item_type == 'service' ? 'display:none;' : '') . '">';
                                 if ($item_type == 'product' && !empty($item->product_id)) {
                                     // Hiển thị option đã chọn
                                     echo '<option value="' . esc_attr($item->product_id) . '" selected>' . esc_html($item->product_name) . '</option>';
@@ -176,14 +176,14 @@ ob_start();
                                 echo '</div>';
                                 // Số lượng, đơn giá, v.v. giữ nguyên
                                 echo '<div class="col-md-2 mb-2 d-flex align-items-center">';
-                                echo '<input type="number" class="form-control" name="order_items[' . $idx . '][quantity]" value="' . esc_attr($item->quantity) . '" placeholder="Số lượng" min="0.01" step="0.01" required>';
+                                echo '<input type="number" class="form-control" name="order_items[' . $idx . '][quantity]" value="' . esc_attr($item->quantity) . '" placeholder="Số lượng" min="0.01" step="0.01">';
                                 echo '<span class="unit-label ms-2">' . esc_html($item->unit_name ?? '') . '</span>';
                                 echo '<input type="hidden" name="order_items[' . $idx . '][unit_name]" value="' . esc_attr($item->unit_name ?? '') . '" class="unit-name-input">';
                                 echo '</div>';
                                 echo '<div class="col-md-1 mb-2">';
                                 echo '<input type="number" class="form-control" name="order_items[' . $idx . '][vat_percent]" value="' . esc_attr(isset($item->vat_percent) ? $item->vat_percent : '') . '" placeholder="VAT (%)" min="0" max="100" step="0.01">';
                                 echo '</div>';
-                                echo '<div class="col-md-2 mb-2"><input type="number" class="form-control" name="order_items[' . $idx . '][unit_price]" value="' . esc_attr($item->unit_price) . '" placeholder="Đơn giá" min="0" step="0.01" required></div>';
+                                echo '<div class="col-md-2 mb-2"><input type="number" class="form-control" name="order_items[' . $idx . '][unit_price]" value="' . esc_attr($item->unit_price) . '" placeholder="Đơn giá" min="0" step="0.01"></div>';
                                 echo '<div class="col-md-2 mb-2"><input type="text" class="form-control total-price-field" value="' . number_format($item->total_price, 0, ',', '.') . '" placeholder="Thành tiền" readonly></div>';
                                 echo '<div class="col-md-1 mb-2"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>';
                                 echo '</div>';
@@ -199,13 +199,13 @@ ob_start();
                             echo '</div>';
                             // Tên sản phẩm/dịch vụ + select2 sản phẩm
                             echo '<div class="col-md-3 mb-2">';
-                            echo '<input type="text" class="form-control product-name-input" name="order_items[0][product_name]" placeholder="Tên sản phẩm/dịch vụ" required style="display:none">';
+                            echo '<input type="text" class="form-control product-name-input" name="order_items[0][product_name]" placeholder="Tên sản phẩm/dịch vụ" style="display:none">';
                             echo '<select class="form-select product-select-all-warehouses" name="order_items[0][product_id]" style="width:100%"></select>';
                             echo '<input type="hidden" name="order_items[0][unit_name]" class="unit-name-input">';
                             echo '</div>';
                             // Số lượng
                             echo '<div class="col-md-2 mb-2 d-flex align-items-center">';
-                            echo '<input type="number" class="form-control" name="order_items[0][quantity]" placeholder="Số lượng" min="0.01" step="0.01" value="1" required>';
+                            echo '<input type="number" class="form-control" name="order_items[0][quantity]" placeholder="Số lượng" min="0.01" step="0.01" value="1">';
                             echo '<span class="unit-label ms-2"></span>';
                             echo '</div>';
                             // VAT
@@ -213,7 +213,7 @@ ob_start();
                             echo '<input type="number" class="form-control" name="order_items[0][vat_percent]" placeholder="VAT (%)" min="0" max="100" step="0.01">';
                             echo '</div>';
                             // Đơn giá
-                            echo '<div class="col-md-2 mb-2"><input type="number" class="form-control" name="order_items[0][unit_price]" placeholder="Đơn giá" min="0" step="0.01" required></div>';
+                            echo '<div class="col-md-2 mb-2"><input type="number" class="form-control" name="order_items[0][unit_price]" placeholder="Đơn giá" min="0" step="0.01"></div>';
                             // Thành tiền
                             echo '<div class="col-md-2 mb-2"><input type="text" class="form-control total-price-field" placeholder="Thành tiền" readonly></div>';
                             // Xóa dòng
@@ -231,7 +231,7 @@ ob_start();
                                 <div class="row mb-2">
                                     <div class="col-md-3">
                                         <label class="form-label">Tên thiết bị</label>
-                                        <input type="text" class="form-control" name="devices[<?= $idx ?>][device_name]" value="<?= esc_attr($device->device_name) ?>" required placeholder="Tên thiết bị">
+                                        <input type="text" class="form-control" name="devices[<?= $idx ?>][device_name]" value="<?= esc_attr($device->device_name) ?>" placeholder="Tên thiết bị">
                                     </div>
                                     <div class="col-md-2">
                                         <label class="form-label">Serial/IMEI</label>
@@ -353,20 +353,26 @@ ob_start();
                 $('#device-list-section').show();
                 $('#order-items-container').hide();
                 $('#add-order-item').hide();
-                // Bật required cho input thiết bị
-                $('#device-list-section input, #device-list-section select').prop('required', true);
+                // Không set required - cho phép tạo đơn nhanh
+                $('#device-list-section input, #device-list-section select').prop('required', false);
+                // Tắt required và validation cho input sản phẩm
                 $('#order-items-container input, #order-items-container select').prop('required', false);
+                $('#order-items-container input, #order-items-container select').prop('disabled', true);
             } else {
                 $('#device-list-section').hide();
                 $('#order-items-container').show();
                 $('#add-order-item').show();
-                // Tắt required cho input thiết bị
-                $('#device-list-section input, #device-list-section select').prop('required', false);
-                $('#order-items-container input, #order-items-container select').prop('required', true);
+                // Không set required - cho phép tạo đơn nhanh
+                $('#device-list-section input, #device-list_section select').prop('required', false);
+                // Khôi phục trạng thái ban đầu cho input sản phẩm
+                $('#order-items-container input, #order-items-container select').prop('disabled', false);
+                $('#order-items-container input, #order-items-container select').prop('required', false);
             }
         }
         $('#order_type').on('change', toggleDeviceSection);
         toggleDeviceSection();
+
+        
         // Thêm dòng thiết bị
         let deviceIndex = $('#device-list-table .row').length;
         $('#add-device-row').on('click', function() {
@@ -386,7 +392,9 @@ ob_start();
         </div>`;
             $('#device-list-table').append(row);
             deviceIndex++;
-            $('#device-list-table .supplier-select').select2({
+            
+            // Khởi tạo Select2 cho supplier mới
+            $('#device-list-table .supplier-select:last').select2({
                 placeholder: "Chọn nhà cung cấp/ Đối tác",
                 allowClear: true,
                 ajax: {
@@ -412,7 +420,16 @@ ob_start();
         $(document).on('click', '.remove-device-row', function() {
             $(this).closest('.device-row').remove();
         });
-        // TODO: AJAX load đối tác sửa chữa cho .partner-select
+        
+        // Khởi tạo form theo loại đơn hàng hiện tại
+        if ($('#order_type').val() === 'device') {
+            // Nếu là đơn thiết bị, tắt validation cho sản phẩm ngay từ đầu
+            $('#order-items-container input, #order-items-container select').prop('required', false);
+            $('#order-items-container input, #order-items-container select').prop('disabled', true);
+        } else {
+            // Nếu là đơn sản phẩm, không set required
+            $('#order-items-container input, #order-items-container select').prop('required', false);
+        }
     });
 </script>
 <script>

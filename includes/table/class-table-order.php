@@ -23,9 +23,9 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
                 'reject_reason' => 'Lý do từ chối',
                 'cancel_reason' => 'Lý do hủy',
                 'order_date' => 'Ngày lập hóa đơn',
-                // 'total_amount' => 'Doanh thu',
-                // 'cost' => 'Chi phí',
-                // 'profit' => 'Lợi nhuận',
+                'total_amount' => 'Doanh thu',
+                'cost' => 'Chi phí',
+                'profit' => 'Lợi nhuận',
                 'customer_source' => 'Nguồn KH',
                 'order_type' => 'Loại đơn',
                 'status' => 'Tình trạng',
@@ -112,7 +112,7 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
             $params[] = (int)$this->filters['customer_id'];
         }
         if (!empty($this->filters['customer_source_id'])) {
-            $filters[] = "customer_source_id = %d";
+            $filters[] = "customer_source_id = %s";
             $params[] = (int)$this->filters['customer_source_id'];
         }
         if (!empty($this->filters['date_from'])) {

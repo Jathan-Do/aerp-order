@@ -42,19 +42,19 @@ jQuery(document).ready(function ($) {
                 </select>
             </div>
             <div class="col-md-3 mb-2">
-                <input type="text" class="form-control product-name-input" name="order_items[${idx}][product_name]" placeholder="Tên sản phẩm/dịch vụ" required style="display:none">
+                <input type="text" class="form-control product-name-input" name="order_items[${idx}][product_name]" placeholder="Tên sản phẩm/dịch vụ" style="display:none">
                 <select class="form-select product-select-all-warehouses" name="order_items[${idx}][product_id]" style="width:100%"></select>
                 <input type="hidden" name="order_items[${idx}][product_id]" class="product-id-input">
             </div>
             <div class="col-md-2 mb-2 d-flex align-items-center">
-                <input type="number" class="form-control" name="order_items[${idx}][quantity]" placeholder="Số lượng" min="0.01" step="0.01" required>
+                <input type="number" class="form-control" name="order_items[${idx}][quantity]" placeholder="Số lượng" min="0.01" step="0.01" >
                 <span class="unit-label ms-2"></span>
                 <input type="hidden" name="order_items[${idx}][unit_name]" class="unit-name-input">
             </div>
             <div class="col-md-1 mb-2">
                 <input type="number" class="form-control" name="order_items[${idx}][vat_percent]" placeholder="VAT (%)" min="0" max="100" step="0.01">
             </div>
-            <div class="col-md-2 mb-2"><input type="number" class="form-control" name="order_items[${idx}][unit_price]" placeholder="Đơn giá" min="0" step="0.01" required></div>
+            <div class="col-md-2 mb-2"><input type="number" class="form-control" name="order_items[${idx}][unit_price]" placeholder="Đơn giá" min="0" step="0.01" ></div>
             <div class="col-md-2 mb-2"><input type="text" class="form-control total-price-field" placeholder="Thành tiền" readonly></div>
             <div class="col-md-1 mb-2"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>
         </div>`;
@@ -129,7 +129,6 @@ jQuery(document).ready(function ($) {
         let $nameInput = $row.find(".product-name-input");
         let $select = $row.find(".product-select-all-warehouses");
         if (type === "product") {
-            $nameInput.hide().prop("required", false);
             if (!$select.hasClass("select2-hidden-accessible")) {
                 $select.select2({
                     placeholder: "Chọn sản phẩm từ tất cả kho",
@@ -153,13 +152,10 @@ jQuery(document).ready(function ($) {
                     minimumInputLength: 0,
                 });
             }
-            $select.show().prop("required", true);
         } else {
-            $nameInput.show().prop("required", true);
             if ($select.hasClass("select2-hidden-accessible")) {
                 $select.select2("destroy");
             }
-            $select.hide().prop("required", false);
             $select.val(null).trigger("change");
         }
     }
@@ -401,50 +397,6 @@ jQuery(document).ready(function ($) {
         row.find(".product-id-input").val(data.id || "");
     });
 
-    // Form validation before submission
-    $("form.aerp-order-form").on("submit", function (e) {
-        let isValid = true;
-        let errorMessage = "";
-
-        // Kiểm tra từng dòng order item
-        $(".order-item-row").each(function (index) {
-            let $row = $(this);
-            let itemType = $row.find(".item-type-select").val();
-            let productName = $row.find('input[name*="[product_name]"]').val().trim();
-            let productId = $row.find('select[name*="[product_id]"]').val();
-            let quantity = parseFloat($row.find('input[name*="[quantity]"]').val()) || 0;
-            let unitPrice = parseFloat($row.find('input[name*="[unit_price]"]').val()) || 0;
-
-            // Kiểm tra dữ liệu bắt buộc
-            if (itemType === "product") {
-                if (!productId && !productName) {
-                    isValid = false;
-                    errorMessage = "Dòng " + (index + 1) + ": Vui lòng chọn sản phẩm hoặc nhập tên sản phẩm";
-                }
-                if (unitPrice <= 0) {
-                    isValid = false;
-                    errorMessage = "Dòng " + (index + 1) + ": Đơn giá phải lớn hơn 0";
-                }
-                if (quantity <= 0) {
-                    isValid = false;
-                    errorMessage = "Dòng " + (index + 1) + ": Số lượng phải lớn hơn 0";
-                }
-            } else if (itemType === "service") {
-                if (!productName) {
-                    isValid = false;
-                    errorMessage = "Dòng " + (index + 1) + ": Vui lòng nhập tên dịch vụ";
-                }
-            }
-
-            
-        });
-
-        if (!isValid) {
-            e.preventDefault();
-            alert("Lỗi validation: " + errorMessage);
-            return false;
-        }
-    });
 })(jQuery);
 
 window.initAerpProductSelect2 = function (selector, options = {}) {
