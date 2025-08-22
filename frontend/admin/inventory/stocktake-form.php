@@ -65,7 +65,16 @@ ob_start();
         </a>
     </div>
 </div>
-
+<?php
+if (function_exists('aerp_render_breadcrumb')) {
+    aerp_render_breadcrumb([
+        ['label' => 'Trang chủ', 'url' => home_url('/aerp-dashboard'), 'icon' => 'fas fa-home'],
+        ['label' => 'Danh mục', 'url' => home_url('/aerp-categories')],
+        ['label' => 'Lịch sử nhập/xuất kho', 'url' => home_url('/aerp-inventory-logs')],
+        ['label' => ($id ? 'Xác nhận phiếu kiểm kho' : 'Tạo phiếu kiểm kho')]
+    ]);
+}
+?>
 <div class="card">
     <div class="card-body">
         <?php if ($success): ?>

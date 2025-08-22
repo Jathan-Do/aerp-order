@@ -52,6 +52,14 @@ ob_start();
         </a>
     </div>
 </div>
+<?php
+if (function_exists('aerp_render_breadcrumb')) {
+    aerp_render_breadcrumb([
+        ['label' => 'Trang chủ', 'url' => home_url('/aerp-dashboard'), 'icon' => 'fas fa-home'],
+        ['label' => 'Quản lý đơn hàng']
+    ]);
+}
+?>
 <div class="card">
     <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
         <h5 class="mb-0">Danh sách đơn hàng</h5>
@@ -78,8 +86,20 @@ ob_start();
                     </select>
                 </div>
                 <div class="col-12 col-md-2 mb-2">
+                    <label for="filter-status" class="form-label mb-1">Tình trạng</label>
+                    <select id="filter-status" name="status" class="form-select">
+                        <option value="">Tất cả loại</option>
+                        <option value="new">Mới tiếp nhận</option>
+                        <option value="assigned">Đã phân đơn</option>
+                        <option value="rejected">Từ chối</option>
+                        <option value="completed">Đã hoàn thành</option>
+                        <option value="paid">Đã thu tiền</option>
+                        <option value="cancelled">Đã hủy</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2 mb-2">
                     <label for="filter-employee" class="form-label mb-1">Nhân viên</label>
-                    <select id="filter-employee" name="employee_id" class="form-select employee-select">
+                    <select id="filter-employee" name="employee_id" class="form-select <?php echo aerp_user_has_role($user_id, 'admin') ? 'employee-select-all' : 'employee-select'; ?>">
                         <?php
                         $employees = function_exists('aerp_get_order_assigned_employees') ? aerp_get_order_assigned_employees() : [];
                         aerp_safe_select_options($employees, '', 'user_id', 'full_name', true);
@@ -102,6 +122,8 @@ ob_start();
                         <option value="product">Bán hàng</option>
                         <option value="service">Dịch vụ</option>
                         <option value="mixed">Tổng hợp</option>
+                        <option value="device">Nhận thiết bị</option>
+                        <option value="return">Trả thiết bị</option>
                     </select>
                 </div>
             </div>
@@ -152,81 +174,9 @@ ob_start();
     </div>
 </div>
 
-<!-- Modal hủy đơn hàng -->
-<!-- <div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-labelledby="cancelOrderModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="cancelOrderModalLabel">Hủy đơn hàng</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Bạn có chắc muốn hủy đơn hàng <strong id="cancelOrderCode"></strong>?</p>
-                <div class="mb-3">
-                    <label for="cancelReason" class="form-label">Lý do hủy đơn <span class="text-danger">*</span></label>
-                    <textarea class="form-control" id="cancelReason" rows="3" placeholder="Nhập lý do hủy đơn..." required></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                <button type="button" class="btn btn-warning" id="confirmCancelOrder">Hủy đơn</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    jQuery(document).ready(function($) {
-        let currentOrderId = null;
-
-        // Xử lý click nút hủy đơn
-        $(document).on('click', '.cancel-order-btn', function() {
-            currentOrderId = $(this).data('order-id');
-            let orderCode = $(this).data('order-code');
-
-            $('#cancelOrderCode').text(orderCode);
-            $('#cancelReason').val('');
-            $('#cancelOrderModal').modal('show');
-        });
-
-        // Xử lý xác nhận hủy đơn
-        $('#confirmCancelOrder').on('click', function() {
-            let reason = $('#cancelReason').val().trim();
-
-            if (!reason) {
-                alert('Vui lòng nhập lý do hủy đơn.');
-                return;
-            }
-
-            $.ajax({
-                url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
-                type: 'POST',
-                data: {
-                    action: 'aerp_cancel_order',
-                    order_id: currentOrderId,
-                    reason: reason,
-                    _wpnonce: '<?php echo wp_create_nonce('aerp_cancel_order_nonce'); ?>'
-                },
-                success: function(response) {
-                    if (response.success) {
-                        alert(response.data);
-                        $('#cancelOrderModal').modal('hide');
-                        location.reload(); // Reload trang để cập nhật trạng thái
-                    } else {
-                        alert('Lỗi: ' + response.data);
-                    }
-                },
-                error: function() {
-                    alert('Có lỗi xảy ra khi hủy đơn hàng.');
-                }
-            });
-        });
-    });
-</script> -->
-
 <script>
     // Đảm bảo chức năng copy số điện thoại hoạt động trên trang danh sách khách hàng
-    jQuery(document).on("click", ".copy-phone", function (e) {
+    jQuery(document).on("click", ".copy-phone", function(e) {
         e.preventDefault();
         var phone = jQuery(this).data("phone");
         if (!phone) return;
@@ -244,7 +194,7 @@ ob_start();
             });
         }
     });
- </script>
+</script>
 <?php
 $content = ob_get_clean();
 $title = 'Quản lý đơn hàng';

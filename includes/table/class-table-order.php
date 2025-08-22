@@ -43,6 +43,7 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
             'hidden_columns_option_key' => 'aerp_order_table_hidden_columns',
             'ajax_action' => 'aerp_order_filter_orders',
             'table_wrapper' => '#aerp-order-table-wrapper',
+
         ]);
     }
     public function set_filters($filters = [])
@@ -57,50 +58,60 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
 
         // Lấy thông tin user hiện tại
         $current_user_id = get_current_user_id();
-        $current_user_employee = $wpdb->get_row($wpdb->prepare(
-            "SELECT id, work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
-            $current_user_id
-        ));
 
-        if ($current_user_employee) {
-            // Kiểm tra quyền order_view_full
-            if (aerp_user_has_permission($current_user_id, 'order_view_full')) {
-                // Có quyền xem full: hiển thị tất cả đơn hàng thuộc chi nhánh
-                if ($current_user_employee->work_location_id) {
-                    $branch_employee_ids = $wpdb->get_col($wpdb->prepare(
-                        "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE work_location_id = %d",
-                        $current_user_employee->work_location_id
-                    ));
+        // Nếu là admin thì được xem tất cả đơn hàng
+        if (function_exists('aerp_user_has_role') && aerp_user_has_role($current_user_id, 'admin')) {
+            // Không filter gì cả, admin xem full
+        } else {
+            $current_user_employee = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+                $current_user_id
+            ));
 
-                    if (!empty($branch_employee_ids)) {
-                        $placeholders = implode(',', array_fill(0, count($branch_employee_ids), '%d'));
-                        $filters[] = "(employee_id IN ($placeholders) OR created_by = %d)";
-                        $params = array_merge($params, $branch_employee_ids, [$current_user_id]);
+            if ($current_user_employee) {
+                // Kiểm tra quyền order_view_full
+                if (aerp_user_has_permission($current_user_id, 'order_view_full')) {
+                    // Có quyền xem full: hiển thị tất cả đơn hàng thuộc chi nhánh
+                    if ($current_user_employee->work_location_id) {
+                        $branch_employee_ids = $wpdb->get_col($wpdb->prepare(
+                            "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE work_location_id = %d",
+                            $current_user_employee->work_location_id
+                        ));
+
+                        if (!empty($branch_employee_ids)) {
+                            $placeholders = implode(',', array_fill(0, count($branch_employee_ids), '%d'));
+                            $filters[] = "(employee_id IN ($placeholders) OR created_by = %d)";
+                            $params = array_merge($params, $branch_employee_ids, [$current_user_id]);
+                        } else {
+                            // Nếu không có nhân viên nào trong chi nhánh, chỉ hiển thị đơn mình tạo
+                            $filters[] = "created_by = %d";
+                            $params[] = $current_user_id;
+                        }
                     } else {
-                        // Nếu không có nhân viên nào trong chi nhánh, chỉ hiển thị đơn mình tạo
+                        // Không có chi nhánh, chỉ hiển thị đơn mình tạo
                         $filters[] = "created_by = %d";
                         $params[] = $current_user_id;
                     }
                 } else {
-                    // Không có chi nhánh, chỉ hiển thị đơn mình tạo
-                    $filters[] = "created_by = %d";
+                    // Không có quyền: chỉ hiển thị đơn hàng của user hiện tại (tạo hoặc được phân)
+                    $filters[] = "(employee_id = %d OR created_by = %d)";
+                    $params[] = $current_user_employee->id;
                     $params[] = $current_user_id;
                 }
             } else {
-                // Không có quyền: chỉ hiển thị đơn hàng của user hiện tại (tạo hoặc được phân)
-                $filters[] = "(employee_id = %d OR created_by = %d)";
-                $params[] = $current_user_employee->id;
+                // Không phải nhân viên, chỉ hiển thị đơn mình tạo
+                $filters[] = "created_by = %d";
                 $params[] = $current_user_id;
             }
-        } else {
-            // Không phải nhân viên, chỉ hiển thị đơn mình tạo
-            $filters[] = "created_by = %d";
-            $params[] = $current_user_id;
         }
 
         if (!empty($this->filters['status_id'])) {
             $filters[] = "status_id = %d";
             $params[] = (int)$this->filters['status_id'];
+        }
+        if (!empty($this->filters['status'])) {
+            $filters[] = "status = %s";
+            $params[] = $this->filters['status'];
         }
         if (!empty($this->filters['employee_id'])) {
             $filters[] = "employee_id = %d";
@@ -126,30 +137,47 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
         if (!empty($this->filters['order_type'])) {
             global $wpdb;
             $order_type = $this->filters['order_type'];
-            $order_ids = [];
             if ($order_type === 'product') {
                 $order_ids = $wpdb->get_col("SELECT order_id FROM {$wpdb->prefix}aerp_order_items GROUP BY order_id HAVING SUM(CASE WHEN item_type = 'service' OR (item_type IS NULL AND product_id IS NULL) THEN 1 ELSE 0 END) = 0");
+                if (!empty($order_ids)) {
+                    $filters[] = "id IN (" . implode(',', array_map('intval', $order_ids)) . ")";
+                } else {
+                    $filters[] = "0=1"; // Không có đơn nào
+                }
             } elseif ($order_type === 'service') {
                 $order_ids = $wpdb->get_col("SELECT order_id FROM {$wpdb->prefix}aerp_order_items GROUP BY order_id HAVING SUM(CASE WHEN item_type = 'product' OR (item_type IS NULL AND product_id IS NOT NULL) THEN 1 ELSE 0 END) = 0");
+                if (!empty($order_ids)) {
+                    $filters[] = "id IN (" . implode(',', array_map('intval', $order_ids)) . ")";
+                } else {
+                    $filters[] = "0=1"; // Không có đơn nào
+                }
             } elseif ($order_type === 'mixed') {
                 $order_ids = $wpdb->get_col("SELECT order_id FROM {$wpdb->prefix}aerp_order_items GROUP BY order_id HAVING SUM(CASE WHEN item_type = 'product' OR (item_type IS NULL AND product_id IS NOT NULL) THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN item_type = 'service' OR (item_type IS NULL AND product_id IS NULL) THEN 1 ELSE 0 END) > 0");
-            }
-            if (!empty($order_ids)) {
-                $filters[] = "id IN (" . implode(',', array_map('intval', $order_ids)) . ")";
-            } else {
-                $filters[] = "0=1"; // Không có đơn nào
+                if (!empty($order_ids)) {
+                    $filters[] = "id IN (" . implode(',', array_map('intval', $order_ids)) . ")";
+                } else {
+                    $filters[] = "0=1"; // Không có đơn nào
+                }
+            } elseif ($order_type === 'device') {
+                // Đơn nhận thiết bị: lọc theo cột order_type = 'device' trong bảng aerp_order_orders
+                $filters[] = "order_type = %s";
+                $params[] = 'device';
+            } elseif ($order_type === 'return') {
+                // Đơn trả thiết bị: lọc theo cột order_type = 'return' trong bảng aerp_order_orders
+                $filters[] = "order_type = %s";
+                $params[] = 'return';
             }
         }
         return [$filters, $params];
     }
     protected function column_phones($item)
     {
-        $phones = aerp_get_customer_phones($item->id);
+        $phones = aerp_get_customer_phones($item->customer_id);
         if (!$phones) return '<span class="text-muted">--</span>';
         $out = [];
         foreach ($phones as $phone) {
             $str = '<a href="tel:' . esc_attr($phone->phone_number) . '">' . esc_html($phone->phone_number) . '</a>';
-            $str .= ' <a href="#" class="copy-phone ms-1" data-phone="' . esc_attr($phone->phone_number) . '" title="Copy"><i class="fas fa-copy"></i></a>';
+            $str .= ' <a href="#" class="copy-phone ms-1" data-phone="' . esc_attr($phone->phone_number) . '" title="Copy"><i class="fas fa-clipboard"></i></a>';
             if ($phone->is_primary) $str .= ' <span class="badge bg-success">Chính</span>';
             $out[] = $str;
         }
@@ -252,28 +280,28 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
         }
         return esc_html($employee_name);
     }
-    
+
     protected function column_content_lines($item)
     {
         global $wpdb;
         $order_id = $item->id;
-        
+
         // Lấy nội dung từ bảng content_lines
         $content_lines = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d ORDER BY sort_order ASC",
             $order_id
         ));
-        
+
         if (empty($content_lines)) {
             return '<span class="text-muted">--</span>';
         }
-        
+
         $output = [];
         foreach ($content_lines as $idx => $line) {
             $line_number = $idx + 1;
             $requirement = !empty($line->requirement) ? esc_html($line->requirement) : '<span class="text-muted">--</span>';
             $implementation = !empty($line->implementation) ? esc_html($line->implementation) : '<span class="text-muted">--</span>';
-            
+
             $output[] = sprintf(
                 '<div class="mb-2 p-2 border rounded bg-light">
                     <div class="fw-bold text-primary">Nội dung %d:</div>
@@ -295,7 +323,7 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
                 $implementation
             );
         }
-        
+
         return implode('', $output);
     }
     protected function column_order_type($item)
@@ -303,7 +331,16 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
         global $wpdb;
         $order_id = $item->id;
 
-        // 1. Nếu có thiết bị nhận thì là đơn nhận thiết bị
+        // 1. Nếu có thiết bị trả thì là đơn trả thiết bị
+        $device_return_count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_device_returns WHERE order_id = %d",
+            $order_id
+        ));
+        if ($device_return_count > 0) {
+            return '<span class="badge bg-danger">Trả thiết bị</span>';
+        }
+
+        // 2. Nếu có thiết bị nhận thì là đơn nhận thiết bị
         $device_count = $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_devices WHERE order_id = %d",
             $order_id
@@ -312,7 +349,7 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
             return '<span class="badge bg-primary">Nhận thiết bị</span>';
         }
 
-        // 2. Nếu không, xác định như cũ
+        // 3. Nếu không, xác định như cũ
         $count_product = $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d AND (item_type = 'product' OR (item_type IS NULL AND product_id IS NOT NULL))",
             $order_id
@@ -356,18 +393,18 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
 
         // Nút chỉnh sửa - chỉ bị disabled khi đã thu tiền (trừ admin)
         if ($current_status !== 'paid' || $is_admin) {
-            $buttons[] = sprintf('<a title="Chỉnh sửa" href="%s" class="btn btn-sm btn-success mb-2"><i class="fas fa-edit"></i></a>', esc_url($edit_url));
+            $buttons[] = sprintf('<a data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Chỉnh sửa" href="%s" class="btn btn-sm btn-success mb-2"><i class="fas fa-edit"></i></a>', esc_url($edit_url));
         }
 
         // Nút xóa - chỉ admin mới có quyền, và chỉ cho đơn chưa thu tiền
         if ($is_admin || $current_status !== 'paid') {
-            $buttons[] = sprintf('<a title="Xóa" href="%s" class="btn btn-sm btn-danger mb-2" onclick="return confirm(\'Bạn có chắc muốn xóa?\')"><i class="fas fa-trash"></i></a>', esc_url($delete_url));
+            $buttons[] = sprintf('<a data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Xóa" href="%s" class="btn btn-sm btn-danger mb-2" onclick="return confirm(\'Bạn có chắc muốn xóa?\')"><i class="fas fa-trash"></i></a>', esc_url($delete_url));
         }
 
         // Nút từ chối - chỉ cho đơn đã phân và nhân viên được phân (hoặc admin)
         if ($current_status === 'assigned' && ($item->employee_id == $employee_id || $is_admin)) {
             $buttons[] = sprintf(
-                '<a title="Từ chối" href="#" class="btn btn-sm btn-warning reject-order-btn mb-2" data-order-id="%d" data-order-code="%s"><i class="fas fa-times"></i></a>',
+                '<a data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Từ chối" href="#" class="btn btn-sm btn-warning reject-order-btn mb-2" data-order-id="%d" data-order-code="%s"><i class="fas fa-times"></i></a>',
                 $id,
                 esc_attr($item->order_code)
             );
@@ -376,7 +413,7 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
         // Nút hoàn thành - chỉ cho đơn đã phân và nhân viên được phân (hoặc admin)
         if ($current_status === 'assigned' && ($item->employee_id == $employee_id || $is_admin)) {
             $buttons[] = sprintf(
-                '<a title="Hoàn thành" href="#" class="btn btn-sm btn-info complete-order-btn mb-2"  data-order-id="%d" data-order-code="%s"><i class="fas fa-check"></i></a>',
+                '<a data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Hoàn thành" href="#" class="btn btn-sm btn-info complete-order-btn mb-2" data-order-id="%d" data-order-code="%s"><i class="fas fa-check"></i></a>',
                 $id,
                 esc_attr($item->order_code)
             );
@@ -385,7 +422,7 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
         // Nút thu tiền - chỉ kế toán mới có quyền, cho đơn đã hoàn thành (hoặc admin)
         if ($current_status === 'completed' && ($is_accountant || $is_admin)) {
             $buttons[] = sprintf(
-                '<a title="Thu tiền" href="#" class="btn btn-sm btn-success mark-paid-btn mb-2" data-order-id="%d" data-order-code="%s"><i class="fas fa-money-bill"></i></a>',
+                '<a data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Thu tiền" href="#" class="btn btn-sm btn-success mark-paid-btn mb-2" data-order-id="%d" data-order-code="%s"><i class="fas fa-money-bill"></i></a>',
                 $id,
                 esc_attr($item->order_code)
             );
@@ -394,7 +431,7 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
         // Nút hủy đơn - chỉ cho đơn chưa thu tiền
         if ($current_status !== 'paid' && $current_status !== 'cancelled') {
             $buttons[] = sprintf(
-                '<a title="Hủy" href="#" class="btn btn-sm btn-danger cancel-order-btn mb-2" data-order-id="%d" data-order-code="%s"><i class="fas fa-ban"></i></a>',
+                '<a data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Hủy" href="#" class="btn btn-sm btn-danger cancel-order-btn mb-2" data-order-id="%d" data-order-code="%s"><i class="fas fa-ban"></i></a>',
                 $id,
                 esc_attr($item->order_code)
             );
@@ -418,9 +455,16 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
     protected function get_extra_search_conditions($search_term)
     {
         global $wpdb;
+        $like = '%' . $wpdb->esc_like($search_term) . '%';
         return [
-            ["id IN (SELECT customer_id FROM {$wpdb->prefix}aerp_crm_customer_phones WHERE phone_number LIKE %s)"],
-            ['%' . $wpdb->esc_like($search_term) . '%']
+            [
+                "(
+                    customer_id IN (SELECT customer_id FROM {$wpdb->prefix}aerp_crm_customer_phones WHERE phone_number LIKE %s)
+                    OR
+                    customer_id IN (SELECT id FROM {$wpdb->prefix}aerp_crm_customers WHERE full_name LIKE %s)
+                )"
+            ],
+            [$like, $like]
         ];
     }
 }

@@ -67,6 +67,19 @@ $employee = function_exists('aerp_get_employee_by_user_id') ? aerp_get_employee_
 $work_location_id = $employee ? $employee->work_location_id : 0;
 $warehouses = class_exists('AERP_Warehouse_Manager') ? AERP_Warehouse_Manager::aerp_get_warehouses_by_user($user_id) : [];
 
+// Quyền truy cập: admin xem tất cả; trưởng phòng xem theo chi nhánh của mình
+$is_admin = function_exists('aerp_user_has_role') ? aerp_user_has_role($current_user->ID, 'admin') : false;
+$is_department_lead = function_exists('aerp_user_has_role') ? aerp_user_has_role($current_user->ID, 'department_lead') : false;
+// Nếu là trưởng phòng (không phải admin), luôn ép chi nhánh về chi nhánh của mình
+$requested_work_location = (int) $work_location_filter;
+$work_location_forced = false;
+if (!$is_admin && $is_department_lead && $work_location_id) {
+    if (!empty($requested_work_location) && (int)$requested_work_location !== (int)$work_location_id) {
+        $work_location_forced = true;
+    }
+    $work_location_filter = (int) $work_location_id;
+}
+
 // Lấy danh sách chi nhánh để lọc
 $work_locations = $wpdb->get_results("
     SELECT id, name 
@@ -187,11 +200,13 @@ ob_start();
         </div>
     </div> -->
 
-    <?php if ($order_active): ?>
+    <?php if ($order_active && empty($work_location_forced)): ?>
         <?php
         // Xây dựng điều kiện WHERE cho các truy vấn
         $where_conditions = [];
         $where_params = [];
+        // Khối JOIN dùng chung: nhân viên được phân công (e) và nhân viên tạo đơn (ce)
+        $join_employees = "LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id LEFT JOIN {$wpdb->prefix}aerp_hrm_employees ce ON o.created_by = ce.id";
 
         // Điều kiện theo thời gian
         if ($time_period === 'month' || $time_period === 'date_range') {
@@ -207,14 +222,15 @@ ob_start();
             $where_conditions[] = "DATE_FORMAT(o.order_date, '%Y-%m') IN ('" . implode("','", $months_to_show) . "')";
         }
 
-        // Điều kiện theo chi nhánh
+        // Điều kiện theo chi nhánh: ưu tiên filter, nếu không và user là trưởng phòng thì giới hạn theo chi nhánh của họ
         if (!empty($work_location_filter)) {
-            $where_conditions[] = "e.work_location_id = %d";
+            $where_conditions[] = "(e.work_location_id = %d OR ce.work_location_id = %d)";
+            $where_params[] = $work_location_filter;
             $where_params[] = $work_location_filter;
         } else {
-            // Nếu không chọn chi nhánh cụ thể, chỉ lấy chi nhánh của user hiện tại
-            if ($work_location_id) {
-                $where_conditions[] = "e.work_location_id = %d";
+            if (!$is_admin && $is_department_lead && $work_location_id) {
+                $where_conditions[] = "(e.work_location_id = %d OR ce.work_location_id = %d)";
+                $where_params[] = $work_location_id;
                 $where_params[] = $work_location_id;
             }
         }
@@ -237,7 +253,7 @@ ob_start();
         $total_orders_query = "
             SELECT COUNT(*) 
             FROM {$wpdb->prefix}aerp_order_orders o
-            LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
+            $join_employees
             $where_clause
         ";
         $total_orders = $wpdb->get_var($wpdb->prepare($total_orders_query, $where_params));
@@ -246,7 +262,7 @@ ob_start();
         $revenue_query = "
             SELECT SUM(o.total_amount) 
             FROM {$wpdb->prefix}aerp_order_orders o
-            LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
+            $join_employees
             $where_clause AND o.status = 'paid'
         ";
         $total_revenue = $wpdb->get_var($wpdb->prepare($revenue_query, $where_params));
@@ -255,7 +271,7 @@ ob_start();
         $cost_query = "
             SELECT SUM(o.cost) 
             FROM {$wpdb->prefix}aerp_order_orders o
-            LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
+            $join_employees
             $where_clause AND o.status = 'paid' AND o.cost IS NOT NULL
         ";
         $total_cost = $wpdb->get_var($wpdb->prepare($cost_query, $where_params));
@@ -268,7 +284,7 @@ ob_start();
                        DATE_FORMAT(o.order_date, '%Y-%m') as month,
                                COUNT(*) as count
                         FROM {$wpdb->prefix}aerp_order_orders o
-                LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
+                $join_employees
                 $where_clause
                 GROUP BY o.status, month
                 ORDER BY o.status, month ASC
@@ -304,7 +320,7 @@ ob_start();
             $status_query = "
                 SELECT o.status, COUNT(*) as count
                             FROM {$wpdb->prefix}aerp_order_orders o
-                LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
+                $join_employees
                 $where_clause
                 GROUP BY o.status
             ";
@@ -319,7 +335,7 @@ ob_start();
                        COUNT(*) as total, 
                        SUM(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE 0 END) as revenue
                 FROM {$wpdb->prefix}aerp_order_orders o
-                LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
+                $join_employees
                 $where_clause
                 GROUP BY time_unit 
                 ORDER BY time_unit ASC
@@ -335,7 +351,7 @@ ob_start();
                        COUNT(*) as total, 
                        SUM(CASE WHEN o.status = 'paid' THEN o.total_amount ELSE 0 END) as revenue
                 FROM {$wpdb->prefix}aerp_order_orders o
-                LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
+                $join_employees
                 $where_clause
                 GROUP BY time_unit 
                 ORDER BY time_unit ASC
@@ -368,7 +384,7 @@ ob_start();
                                COUNT(*) as count
                         FROM {$wpdb->prefix}aerp_crm_customer_sources cs
                         INNER JOIN {$wpdb->prefix}aerp_order_orders o ON cs.id = o.customer_source_id
-                LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
+                $join_employees
                 $where_clause AND o.customer_source_id IS NOT NULL AND o.customer_source_id != 0
                         GROUP BY cs.id, month
                         ORDER BY cs.name, month ASC
@@ -411,7 +427,7 @@ ob_start();
                         LEFT JOIN (
                             SELECT o.customer_source_id, COUNT(*) as count
                             FROM {$wpdb->prefix}aerp_order_orders o
-                LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
+                $join_employees
                     $where_clause AND o.customer_source_id IS NOT NULL AND o.customer_source_id != 0
                             GROUP BY o.customer_source_id
                         ) order_count ON cs.id = order_count.customer_source_id
@@ -432,15 +448,16 @@ ob_start();
                 COUNT(CASE WHEN o.status = 'cancelled' THEN 1 END) as cancelled_orders,
                 COUNT(CASE WHEN o.status = 'paid' THEN 1 END) as total_paid_orders
                             FROM {$wpdb->prefix}aerp_order_orders o
-                LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
+                $join_employees
             LEFT JOIN (
                 SELECT customer_id, COUNT(*) as order_count
                                 FROM {$wpdb->prefix}aerp_order_orders o2
                                 LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e2 ON o2.employee_id = e2.id
+                                LEFT JOIN {$wpdb->prefix}aerp_hrm_employees ce2 ON o2.created_by = ce2.id
                 WHERE 1=1
-                " . (!empty($work_location_filter) ? "AND e2.work_location_id = " . intval($work_location_filter) : "") . "
+                " . (!empty($work_location_filter) ? "AND (e2.work_location_id = " . intval($work_location_filter) . " OR ce2.work_location_id = " . intval($work_location_filter) . ")" : "") . "
                 " . (!empty($employee_filter) ? "AND o2.employee_id = " . intval($employee_filter) : "") . "
-                " . ($work_location_id && empty($work_location_filter) ? "AND e2.work_location_id = " . intval($work_location_id) : "") . "
+                " . (!$is_admin && $is_department_lead && $work_location_id && empty($work_location_filter) ? "AND (e2.work_location_id = " . intval($work_location_id) . " OR ce2.work_location_id = " . intval($work_location_id) . ")" : "") . "
                 GROUP BY customer_id
             ) customer_counts ON o.customer_id = customer_counts.customer_id
             $where_clause
@@ -471,7 +488,7 @@ ob_start();
                            o.customer_id,
                            COUNT(*) AS order_per_customer
                             FROM {$wpdb->prefix}aerp_order_orders o
-                            LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
+                            $join_employees
                     $where_clause
                     GROUP BY month, o.customer_id
                 ) t
@@ -497,7 +514,7 @@ ob_start();
                        COUNT(CASE WHEN o.status = 'paid' AND (o.total_amount - COALESCE(o.cost, 0)) > 0 THEN 1 END) AS profitable_orders,
                        COUNT(CASE WHEN o.status = 'cancelled' THEN 1 END) AS cancelled_orders
                 FROM {$wpdb->prefix}aerp_order_orders o
-                LEFT JOIN {$wpdb->prefix}aerp_hrm_employees e ON o.employee_id = e.id
+                $join_employees
                 $where_clause
                 GROUP BY month
                 ORDER BY month ASC
@@ -520,8 +537,6 @@ ob_start();
         ?>
 
             <section class="dashboard-section mb-5">
-                <h2><i class="fas fa-shopping-cart"></i> Báo cáo đơn hàng</h2>
-
             <!-- Hiển thị thông tin bộ lọc đang áp dụng -->
             <div class="alert alert-info mb-4">
                 <i class="fas fa-info-circle"></i>
@@ -607,9 +622,9 @@ ob_start();
                 </div>
                 <div class="col-12">
                     <div class="chart-container card">
-                        <h5><i class="fas fa-chart-bar"></i> Đơn hàng theo trạng thái</h5>
+                        <h5><i class="fas fa-chart-bar"></i> Đơn hàng theo tình trạng</h5>
                             <?php if (empty($orders_by_status)): ?>
-                                <div class="no-data">Không có dữ liệu trạng thái</div>
+                            <div class="no-data">Không có dữ liệu tình trạng</div>
                             <?php else: ?>
                                 <canvas id="orderStatusChart"></canvas>
                             <?php endif; ?>
@@ -923,7 +938,7 @@ ob_start();
                                         align: function(ctx) {
                                             return ctx.datasetIndex === 1 ? 'top' : 'top';
                                         },
-                                            offset: 5,
+                                            offset: 0,
                                             formatter: function(value, context) {
                                                 if (context.datasetIndex === 0) {
                                                 // Cột số đơn
@@ -1000,8 +1015,7 @@ ob_start();
                                 // Fallback: sử dụng biểu đồ cột đơn giản
                                 new Chart(document.getElementById('orderStatusChart'), {
                                     type: 'bar',
-                                    data: {
-                                        labels: orderStatusData.labels.map(function(status) {
+                                    data: (function() {
                                             var statusMap = {
                                                 'new': 'Mới tiếp nhận',
                                                 'assigned': 'Đã phân đơn',
@@ -1010,22 +1024,31 @@ ob_start();
                                                 'paid': 'Đã thu tiền',
                                                 'cancelled': 'Đã hủy'
                                             };
+                                        var statusColorMap = {
+                                            'new': '#6c757d',
+                                            'assigned': '#0d6efd',
+                                            'rejected': '#ffca2c',
+                                            'completed': '#31d2f2',
+                                            'paid': '#198754',
+                                            'cancelled': '#dc3545'
+                                        };
+                                        var labelsVi = orderStatusData.labels.map(function(status) {
                                             return statusMap[status] || status;
-                                        }),
+                                        });
+                                        var colors = orderStatusData.labels.map(function(status) {
+                                            return statusColorMap[status] || '#cccccc';
+                                        });
+                                        return {
+                                            labels: labelsVi,
                                         datasets: [{
                                             label: 'Số đơn hàng',
                                             data: orderStatusData.data,
-                                            backgroundColor: [
-                                                '#6c757d', '#0d6efd', '#ffca2c', '#31d2f2',
-                                                '#198754', '#dc3545'
-                                            ],
-                                            borderColor: [
-                                                '#6c757d', '#0d6efd', '#ffca2c', '#31d2f2',
-                                                '#198754', '#dc3545'
-                                            ],
+                                                backgroundColor: colors,
+                                                borderColor: colors,
                                             borderWidth: 1
                                         }]
-                                    },
+                                        };
+                                    })(),
                                     options: {
                                         responsive: true,
                                         maintainAspectRatio: false,
@@ -1069,70 +1092,78 @@ ob_start();
                             // Sử dụng biểu đồ cột đơn giản cho tháng cụ thể hoặc khoảng ngày
                             new Chart(document.getElementById('orderStatusChart'), {
                                 type: 'bar',
-                                data: {
-                                    labels: orderStatusData.labels.map(function(status) {
-                                        var statusMap = {
-                                            'new': 'Mới tiếp nhận',
-                                            'assigned': 'Đã phân đơn',
-                                            'rejected': 'Đơn từ chối',
-                                            'completed': 'Đã hoàn thành',
-                                            'paid': 'Đã thu tiền',
-                                            'cancelled': 'Đã hủy'
-                                        };
+                                data: (function() {
+                                    var statusMap = {
+                                        'new': 'Mới tiếp nhận',
+                                        'assigned': 'Đã phân đơn',
+                                        'rejected': 'Đơn từ chối',
+                                        'completed': 'Đã hoàn thành',
+                                        'paid': 'Đã thu tiền',
+                                        'cancelled': 'Đã hủy'
+                                    };
+                                    var statusColorMap = {
+                                        'new': '#6c757d',
+                                        'assigned': '#0d6efd',
+                                        'rejected': '#ffca2c',
+                                        'completed': '#31d2f2',
+                                        'paid': '#198754',
+                                        'cancelled': '#dc3545'
+                                    };
+                                    var labelsVi = orderStatusData.labels.map(function(status) {
                                         return statusMap[status] || status;
-                                    }),
-                                    datasets: [{
-                                        label: 'Số đơn hàng',
-                                        data: orderStatusData.data,
-                                        backgroundColor: [
-                                            '#6c757d', '#0d6efd', '#ffca2c', '#31d2f2',
-                                            '#198754', '#dc3545'
-                                        ],
-                                        borderColor: [
-                                            '#6c757d', '#0d6efd', '#ffca2c', '#31d2f2',
-                                            '#198754', '#dc3545'
-                                        ],
-                                        borderWidth: 1
-                                    }]
-                                },
-                                options: {
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    scales: {
-                                        y: {
-                                            beginAtZero: true,
-                                            ticks: {
-                                                stepSize: 1
-                                            }
-                                        }
-                                    },
-                                    plugins: {
-                                        legend: {
-                                            display: false
-                                        },
-                                        tooltip: {
-                                            callbacks: {
-                                                label: function(context) {
-                                                    return context.label + ': ' + context.raw + ' đơn';
+                                    });
+                                    var colors = orderStatusData.labels.map(function(status) {
+                                        return statusColorMap[status] || '#cccccc';
+                                    });
+                                    return {
+                                        labels: labelsVi,
+                                        datasets: [{
+                                            label: 'Số đơn hàng',
+                                            data: orderStatusData.data,
+                                            backgroundColor: colors,
+                                            borderColor: colors,
+                                            borderWidth: 1
+                                        }]
+                                    };
+                                })(),
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true,
+                                                ticks: {
+                                                    stepSize: 1
                                                 }
                                             }
                                         },
-                                        datalabels: {
-                                            color: '#000',
-                                            font: {
-                                                weight: 'bold',
-                                                size: 12
+                                        plugins: {
+                                            legend: {
+                                                display: false
                                             },
-                                            anchor: 'top',
-                                            align: 'top',
-                                            offset: 5,
-                                            formatter: function(value) {
-                                                return value > 0 ? value : '';
+                                            tooltip: {
+                                                callbacks: {
+                                                    label: function(context) {
+                                                        return context.label + ': ' + context.raw + ' đơn';
+                                                    }
+                                                }
+                                            },
+                                            datalabels: {
+                                                color: '#000',
+                                                font: {
+                                                    weight: 'bold',
+                                                    size: 12
+                                                },
+                                                anchor: 'top',
+                                                align: 'top',
+                                                offset: 5,
+                                                formatter: function(value) {
+                                                    return value > 0 ? value : '';
+                                                }
                                             }
                                         }
                                     }
-                                }
-                            });
+                                });
                         <?php endif; ?>
                     }
 
@@ -1235,7 +1266,7 @@ ob_start();
                                         },
                                         anchor: 'top',
                                         align: 'top',
-                                        offset: 5,
+                                        offset: 0,
                                         formatter: function(value, ctx) {
                                             if (ctx.dataset && ctx.dataset.label.indexOf('Doanh thu TB/đơn') === 0) {
                                                 return value > 0 ? new Intl.NumberFormat('vi-VN', {
@@ -1413,6 +1444,10 @@ ob_start();
                     });
                 </script>
             </section>
+    <?php else: ?>
+        <div class="alert alert-warning">
+            <p>Bạn không có quyền xem báo cáo đơn hàng của chi nhánh khác</p>
+        </div>
         <?php endif; ?>
 </div>
 

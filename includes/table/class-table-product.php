@@ -8,7 +8,7 @@ class AERP_Product_Table extends AERP_Frontend_Table
         parent::__construct([
             'table_name' => $GLOBALS['wpdb']->prefix . 'aerp_products',
             'columns' => [
-                'id' => 'ID',
+                // 'id' => 'ID',
                 'name' => 'Tên sản phẩm',
                 'sku' => 'Mã SKU',
                 'category_id' => 'Danh mục',

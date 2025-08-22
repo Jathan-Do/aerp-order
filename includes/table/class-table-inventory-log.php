@@ -40,8 +40,8 @@ class AERP_Inventory_Log_Table extends AERP_Frontend_Table
         $id = intval($item->id);
 
         if ($item->status === 'confirmed') {
-            return '<a href="#" class="btn btn-sm btn-success disabled mb-2 mb-md-0"><i class="fas fa-edit"></i></a> 
-         <a href="#" class="btn btn-sm btn-danger disabled"><i class="fas fa-trash"></i></a>';
+            return '<a data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Sửa" href="#" class="btn btn-sm btn-success disabled mb-2 mb-md-0"><i class="fas fa-edit"></i></a> 
+         <a data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Xóa" href="#" class="btn btn-sm btn-danger disabled"><i class="fas fa-trash"></i></a>';
         }
 
         $edit_url = $item->type === 'stocktake'
@@ -51,8 +51,8 @@ class AERP_Inventory_Log_Table extends AERP_Frontend_Table
         $delete_url = wp_nonce_url(add_query_arg(['action' => 'delete', 'id' => $id], $this->base_url), $this->nonce_action_prefix . $id);
 
         return sprintf(
-            '<a href="%s" class="btn btn-sm btn-success mb-2 mb-md-0"><i class="fas fa-edit"></i></a> 
-         <a href="%s" class="btn btn-sm btn-danger" onclick="return confirm(\'Bạn có chắc muốn xóa?\')"><i class="fas fa-trash"></i></a>',
+            '<a data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Sửa" href="%s" class="btn btn-sm btn-success mb-2 mb-md-0"><i class="fas fa-edit"></i></a> 
+         <a data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Xóa" href="%s" class="btn btn-sm btn-danger" onclick="return confirm(\'Bạn có chắc muốn xóa?\')"><i class="fas fa-trash"></i></a>',
             esc_url($edit_url),
             esc_url($delete_url)
         );

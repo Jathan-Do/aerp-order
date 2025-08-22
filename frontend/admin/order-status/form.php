@@ -28,6 +28,16 @@ ob_start();
     <h2><?php echo $edit_id ? 'Cập nhật' : 'Thêm'; ?> trạng thái đơn hàng</h2>
     <a href="<?php echo home_url('/aerp-order-statuses'); ?>" class="btn btn-secondary mb-2 mb-md-0">Quay lại</a>
 </div>
+<?php
+if (function_exists('aerp_render_breadcrumb')) {
+    aerp_render_breadcrumb([
+        ['label' => 'Trang chủ', 'url' => home_url('/aerp-dashboard'), 'icon' => 'fas fa-home'],
+        ['label' => 'Quản lý đơn hàng', 'url' => home_url('/aerp-order-orders')],
+        ['label' => 'Quản lý trạng thái đơn hàng', 'url' => home_url('/aerp-order-statuses')],
+        ['label' => ($edit_id ? 'Cập nhật trạng thái' : 'Thêm trạng thái mới')]
+    ]);
+}
+?>
 <div class="card">
     <div class="card-body">
         <form method="post">

@@ -146,6 +146,14 @@ function aerp_get_stock_qty($product_id, $warehouse_id)
 }
 
 /**
+ * Lấy danh sách tình trạng đơn hàng
+ */
+function aerp_get_status_order()
+{
+    global $wpdb;
+    return $wpdb->get_results("SELECT status FROM {$wpdb->prefix}aerp_order_order");
+}
+/**
  * Lấy danh sách trạng thái đơn hàng
  */
 function aerp_get_order_statuses()
@@ -274,3 +282,54 @@ if (!function_exists('aerp_get_products_in_warehouse_select2')) {
         return $wpdb->get_results($wpdb->prepare($sql, ...$params));
     }
 }
+if (!function_exists('aerp_get_order_code_by_id')) {
+    /**
+     * Lấy mã đơn hàng dựa vào id của đơn hàng
+     *
+     * @param int $order_id
+     * @return string|null
+     */
+    function aerp_get_order_code_by_id($order_id)
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'aerp_order_orders';
+        $order = $wpdb->get_row($wpdb->prepare("SELECT order_code FROM $table WHERE id = %d", $order_id));
+        return $order ? $order->order_code : '--';
+    }
+}
+
+if (!function_exists('aerp_get_device_name_by_id')) {
+    /**
+     * Lấy tên thiết bị dựa vào mã thiết bị (id)
+     *
+     * @param int $device_id
+     * @return string|null
+     */
+    function aerp_get_device_name_by_id($device_id)
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'aerp_order_devices';
+        $device = $wpdb->get_row($wpdb->prepare("SELECT device_name FROM $table WHERE id = %d", $device_id));
+        return $device ? $device->device_name : '--';
+    }
+}
+if (!function_exists('aerp_get_devices_select2')) {
+    /**
+     * Lấy tên thiết bị dựa vào mã thiết bị (id)
+     *
+     * @param int $device_id
+     * @return string|null
+     */
+    function aerp_get_devices_select2($q = '')
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'aerp_order_devices';
+        $sql = "SELECT id, device_name FROM $table";
+        if ($q) {
+            $sql .= $wpdb->prepare(" WHERE device_name LIKE %s", '%' . $wpdb->esc_like($q) . '%');
+        }
+        $sql .= " ORDER BY device_name ASC LIMIT 30";
+        return $wpdb->get_results($sql);
+    }
+}
+

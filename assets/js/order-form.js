@@ -36,27 +36,33 @@ jQuery(document).ready(function ($) {
     function renderOrderItemRow(idx) {
         return `<div class="row mb-2 order-item-row">
             <div class="col-md-2 mb-2">
+                <label class="form-label">Loại</label>
                 <select class="form-select item-type-select" name="order_items[${idx}][item_type]">
                     <option value="product">Sản phẩm</option>
                     <option value="service">Dịch vụ</option>
                 </select>
             </div>
-            <div class="col-md-3 mb-2">
+            <div class="col-md-2 mb-2">
+                <label class="form-label">Sản phẩm trong đơn</label>
                 <input type="text" class="form-control product-name-input" name="order_items[${idx}][product_name]" placeholder="Tên sản phẩm/dịch vụ" style="display:none">
                 <select class="form-select product-select-all-warehouses" name="order_items[${idx}][product_id]" style="width:100%"></select>
                 <input type="hidden" name="order_items[${idx}][product_id]" class="product-id-input">
             </div>
-            <div class="col-md-2 mb-2 d-flex align-items-center">
-                <input type="number" class="form-control" name="order_items[${idx}][quantity]" placeholder="Số lượng" min="0.01" step="0.01" >
+            <div class="col-md-2 mb-2 d-flex align-items-end">
+                <div class="w-100">
+                    <label class="form-label">Số lượng</label>
+                    <input type="number" class="form-control" name="order_items[${idx}][quantity]" placeholder="Số lượng" min="0" step="0.01" >
+                </div>
                 <span class="unit-label ms-2"></span>
                 <input type="hidden" name="order_items[${idx}][unit_name]" class="unit-name-input">
             </div>
             <div class="col-md-1 mb-2">
+                <label class="form-label">VAT</label>
                 <input type="number" class="form-control" name="order_items[${idx}][vat_percent]" placeholder="VAT (%)" min="0" max="100" step="0.01">
             </div>
-            <div class="col-md-2 mb-2"><input type="number" class="form-control" name="order_items[${idx}][unit_price]" placeholder="Đơn giá" min="0" step="0.01" ></div>
-            <div class="col-md-2 mb-2"><input type="text" class="form-control total-price-field" placeholder="Thành tiền" readonly></div>
-            <div class="col-md-1 mb-2"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>
+            <div class="col-md-2 mb-2"><label class="form-label">Đơn giá</label><input type="number" class="form-control" name="order_items[${idx}][unit_price]" placeholder="Đơn giá" min="0" step="0.01" ></div>
+            <div class="col-md-2 mb-2"><label class="form-label">Thành tiền</label><input type="text" class="form-control total-price-field" placeholder="Thành tiền" readonly></div>
+            <div class="col-md-1 mb-2 d-flex align-items-end"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>
         </div>`;
     }
     $("#add-order-item")
@@ -66,12 +72,12 @@ jQuery(document).ready(function ($) {
             itemIndex++;
             initSelect2();
             toggleProductInputRow($("#order-items-container .order-item-row").last());
-            
+
             // Khởi tạo Select2 cho dòng mới
             let $newRow = $("#order-items-container .order-item-row").last();
-            let $productSelect = $newRow.find('.product-select-all-warehouses');
-            let $productNameInput = $newRow.find('.product-name-input');
-            
+            let $productSelect = $newRow.find(".product-select-all-warehouses");
+            let $productNameInput = $newRow.find(".product-name-input");
+
             // Khởi tạo Select2 cho sản phẩm
             $productSelect.select2({
                 placeholder: "Chọn sản phẩm từ tất cả kho",
@@ -94,19 +100,46 @@ jQuery(document).ready(function ($) {
                 },
                 minimumInputLength: 0,
             });
-            
+
             // Xử lý sự kiện thay đổi loại cho dòng mới
-            $newRow.find('.item-type-select').on('change', function() {
+            $newRow.find(".item-type-select").on("change", function () {
                 let itemType = $(this).val();
-                if (itemType === 'service') {
+                if (itemType === "service") {
                     $productSelect.hide();
                     $productNameInput.show();
-                    $productSelect.val(null).trigger('change');
-                    $productNameInput.val('');
+                    if ($productSelect.hasClass("select2-hidden-accessible")) {
+                        $productSelect.select2("destroy");
+                    }
+                    $productSelect.val(null).trigger("change");
+                    $productNameInput.val("");
                 } else {
                     $productSelect.show();
                     $productNameInput.hide();
-                    $productNameInput.val('');
+                    $productNameInput.val("");
+
+                    if (!$productSelect.hasClass("select2-hidden-accessible")) {
+                        $productSelect.select2({
+                            placeholder: "Chọn sản phẩm từ tất cả kho",
+                            allowClear: true,
+                            ajax: {
+                                url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+                                dataType: "json",
+                                delay: 250,
+                                data: function (params) {
+                                    return {
+                                        action: "aerp_order_search_products_in_warehouse_in_worklocation",
+                                        warehouse_id: 0,
+                                        q: params.term || "",
+                                    };
+                                },
+                                processResults: function (data) {
+                                    return { results: data };
+                                },
+                                cache: true,
+                            },
+                            minimumInputLength: 0,
+                        });
+                    }
                 }
             });
         });
@@ -118,9 +151,14 @@ jQuery(document).ready(function ($) {
         'input[name*="[quantity]"], input[name*="[unit_price]"], input[name*="[vat_percent]"], input[name*="[product_name]"]',
         function () {
             let row = $(this).closest(".order-item-row");
-            let qty = parseFloat(row.find('input[name*="[quantity]"]').val().replace(",", ".")) || 0;
-            let price = parseFloat(row.find('input[name*="[unit_price]"]').val().replace(",", ".")) || 0;
-            let vat = parseFloat(row.find('input[name*="[vat_percent]"]').val().replace(",", ".")) || 0;
+            let qtyVal = row.find('input[name*="[quantity]"]').val();
+            let priceVal = row.find('input[name*="[unit_price]"]').val();
+            let vatVal = row.find('input[name*="[vat_percent]"]').val();
+
+            let qty = parseFloat(qtyVal ? qtyVal.replace(",", ".") : "0") || 0;
+            let price = parseFloat(priceVal ? priceVal.replace(",", ".") : "0") || 0;
+            let vat = parseFloat(vatVal ? vatVal.replace(",", ".") : "0") || 0;
+
             let total = qty * price;
             if (vat > 0) {
                 total = total + (total * vat) / 100;
@@ -171,7 +209,12 @@ jQuery(document).ready(function ($) {
         let type = $row.find(".item-type-select").val();
         let $nameInput = $row.find(".product-name-input");
         let $select = $row.find(".product-select-all-warehouses");
+
         if (type === "product") {
+            // Hiển thị select2, ẩn input text
+            $nameInput.hide();
+            $select.show();
+
             if (!$select.hasClass("select2-hidden-accessible")) {
                 $select.select2({
                     placeholder: "Chọn sản phẩm từ tất cả kho",
@@ -194,18 +237,75 @@ jQuery(document).ready(function ($) {
                     },
                     minimumInputLength: 0,
                 });
+            } else {
+                // Nếu đã init rồi thì đảm bảo container hiển thị
+                $select.next(".select2").show();
             }
         } else {
+            // Hiển thị input text, ẩn select2
+            $nameInput.show();
+            $select.hide();
+
             if ($select.hasClass("select2-hidden-accessible")) {
                 $select.select2("destroy");
+            } else {
+                // Nếu đã có container select2 (trường hợp init trước), ẩn container
+                $select.next(".select2").hide();
             }
             $select.val(null).trigger("change");
+            $nameInput.val("");
         }
     }
     // Sự kiện thay đổi loại từng dòng
     $(document).on("change", ".item-type-select", function () {
         let $row = $(this).closest(".order-item-row");
-        toggleProductInputRow($row);
+        let itemType = $(this).val();
+        let $nameInput = $row.find(".product-name-input");
+        let $select = $row.find(".product-select-all-warehouses");
+
+        if (itemType === "service") {
+            // Hiển thị input text, ẩn select2
+            $nameInput.show();
+            $select.hide();
+
+            if ($select.hasClass("select2-hidden-accessible")) {
+                $select.select2("destroy");
+            }
+            $select.val(null).trigger("change");
+            $nameInput.val("");
+            // Ẩn container select2 nếu còn
+            $select.next(".select2").hide();
+        } else {
+            // Hiển thị select2, ẩn input text
+            $nameInput.hide();
+            $select.show();
+
+            if (!$select.hasClass("select2-hidden-accessible")) {
+                $select.select2({
+                    placeholder: "Chọn sản phẩm từ tất cả kho",
+                    allowClear: true,
+                    ajax: {
+                        url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+                        dataType: "json",
+                        delay: 250,
+                        data: function (params) {
+                            return {
+                                action: "aerp_order_search_products_in_warehouse_in_worklocation",
+                                warehouse_id: 0,
+                                q: params.term || "",
+                            };
+                        },
+                        processResults: function (data) {
+                            return { results: data };
+                        },
+                        cache: true,
+                    },
+                    minimumInputLength: 0,
+                });
+            } else {
+                $select.next(".select2").show();
+            }
+        }
     });
     // Khi thêm dòng mới, gọi toggleProductInputRow cho dòng đó
     // $("#add-order-item")
@@ -217,13 +317,78 @@ jQuery(document).ready(function ($) {
     //         toggleProductInputRow($newRow);
     //         itemIndex++;
     //     });
-    // Khi load lại form, gọi toggleProductInputRow cho tất cả dòng
     $(document).ready(function () {
-        $("#order-items-container .order-item-row").each(function () {
-            toggleProductInputRow($(this));
+        // Tabs loại đơn hàng: cập nhật hidden input và toggle section khi tab được click
+        $(document).on("click", "#order-type-tabs .nav-link", function () {
+            $("#order-type-tabs .nav-link").removeClass("active");
+            $(this).addClass("active");
+            var type = $(this).data("type");
+            $("#order_type").val(type);
+            // Toggle UI theo loại đơn
+            if (type === "device") {
+                $("#device-list-section").show();
+                $("#order-items-container").hide();
+                $("#add-order-item").hide();
+                $("#device-return-section").hide();
+            } else if (type === "return") {
+                $("#device-list-section").hide();
+                $("#device-return-section").show();
+                $("#order-items-container").hide();
+                $("#add-order-item").hide();
+            } else {
+                $("#device-list-section").hide();
+                $("#device-return-section").hide();
+                $("#order-items-container").show();
+                $("#add-order-item").show();
+            }
         });
-    });
-    $(document).ready(function () {
+
+        // Khởi tạo trạng thái ban đầu cho tất cả dòng
+        $("#order-items-container .order-item-row").each(function () {
+            let $row = $(this);
+            let itemType = $row.find(".item-type-select").val();
+            let $nameInput = $row.find(".product-name-input");
+            let $select = $row.find(".product-select-all-warehouses");
+
+            if (itemType === "service") {
+                $nameInput.show();
+                $select.hide();
+                // Ẩn container select2 nếu đã khởi tạo trước đó
+                if ($select.hasClass("select2-hidden-accessible")) {
+                    $select.select2("destroy");
+                }
+                $select.next(".select2").hide();
+            } else {
+                $nameInput.hide();
+                $select.show();
+
+                // Khởi tạo Select2 cho dòng sản phẩm
+                if (!$select.hasClass("select2-hidden-accessible")) {
+                    $select.select2({
+                        placeholder: "Chọn sản phẩm từ tất cả kho",
+                        allowClear: true,
+                        ajax: {
+                            url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+                            dataType: "json",
+                            delay: 250,
+                            data: function (params) {
+                                return {
+                                    action: "aerp_order_search_products_in_warehouse_in_worklocation",
+                                    warehouse_id: 0,
+                                    q: params.term || "",
+                                };
+                            },
+                            processResults: function (data) {
+                                return { results: data };
+                            },
+                            cache: true,
+                        },
+                        minimumInputLength: 0,
+                    });
+                }
+            }
+        });
+
         initSelect2();
         // Select2 cho khách hàng
         $(".customer-select").select2({
@@ -393,28 +558,63 @@ jQuery(document).ready(function ($) {
             minimumInputLength: 0,
         });
 
-        // Select2 cho tất cả sản phẩm từ tất cả kho user quản lý
-        $(".product-select-all-warehouses").select2({
-            placeholder: "Chọn sản phẩm từ tất cả kho",
-            allowClear: true,
-            ajax: {
-                url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
-                dataType: "json",
-                delay: 250,
-                data: function (params) {
-                    return {
-                        action: "aerp_order_search_products_in_warehouse_in_worklocation",
-                        warehouse_id: 0, // Tìm trong tất cả kho user quản lý
-                        q: params.term || "",
-                    };
+        // ====== Trả thiết bị ======
+        function initReceivedDeviceSelect2($select, orderId) {
+            $select.select2({
+                placeholder: "Chọn thiết bị đã nhận",
+                allowClear: true,
+                ajax: {
+                    url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : typeof ajaxurl !== "undefined" ? ajaxurl : "",
+                    dataType: "json",
+                    delay: 250,
+                    data: function (params) {
+                        var oid = orderId || $("input[name='order_id']").val() || 0;
+                        return { action: "aerp_order_search_received_devices", order_id: oid, q: params.term || "" };
+                    },
+                    processResults: function (data) {
+                        var items = Array.isArray(data) ? data : data && data.data ? data.data : [];
+                        return { results: items };
+                    },
+                    cache: true,
                 },
-                processResults: function (data) {
-                    return { results: data };
-                },
-                cache: true,
-            },
-            minimumInputLength: 0,
+                minimumInputLength: 0,
+            });
+        }
+
+        // init cho các select đang có
+        $(".received-device-select").each(function () {
+            var $sel = $(this);
+            // Luôn init để gắn AJAX URL đúng
+            initReceivedDeviceSelect2($sel);
         });
+
+        var deviceReturnIndex = $("#device-return-table .device-return-row").length;
+        $(document).on("click", "#add-device-return-row", function () {
+            var today = new Date().toISOString().slice(0, 10);
+            var row = `<div class="row mb-2 device-return-row">
+                <div class="col-md-4">
+                    <label class="form-label">Thiết bị nhận</label>
+                    <select class="form-select received-device-select" style="width:100%" name="device_returns[${deviceReturnIndex}][device_id]"></select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Ngày trả</label>
+                    <input type="date" class="form-control" name="device_returns[${deviceReturnIndex}][return_date]" value="${today}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Ghi chú</label>
+                    <input type="text" class="form-control" name="device_returns[${deviceReturnIndex}][note]" placeholder="Ghi chú">
+                </div>
+                <div class="col-md-1 mt-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-danger remove-device-return-row">Xóa</button>
+                </div>
+            </div>`;
+            $("#device-return-table").append(row);
+            var $newSel = $("#device-return-table .device-return-row").last().find(".received-device-select");
+            initReceivedDeviceSelect2($newSel);
+            deviceReturnIndex++;
+        });
+
+        // Bỏ init tổng quát; việc init chỉ thực hiện cho dòng có loại 'product'
 
         // Reload product dropdown khi warehouse thay đổi (chỉ cho form tạo đơn hàng)
         $("select[name='warehouse_id']").on("change", function () {
@@ -423,10 +623,6 @@ jQuery(document).ready(function ($) {
                     $(this).val(null).trigger("change");
                 }
             });
-        });
-        // Gọi toggleProductInputRow cho tất cả dòng để ẩn select2 nếu là dịch vụ
-        $("#order-items-container .order-item-row").each(function () {
-            toggleProductInputRow($(this));
         });
     });
     // Đảm bảo luôn gắn sự kiện select2:select sau khi khởi tạo select2
@@ -439,7 +635,6 @@ jQuery(document).ready(function ($) {
         row.find(".unit-name-input").val(data.unit_name || "");
         row.find(".product-id-input").val(data.id || "");
     });
-
 })(jQuery);
 
 window.initAerpProductSelect2 = function (selector, options = {}) {

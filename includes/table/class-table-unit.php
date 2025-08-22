@@ -8,7 +8,7 @@ class AERP_Unit_Table extends AERP_Frontend_Table
         parent::__construct([
             'table_name' => $GLOBALS['wpdb']->prefix . 'aerp_units',
             'columns' => [
-                'id' => 'ID',
+                // 'id' => 'ID',
                 'name' => 'Tên đơn vị',
                 'symbol' => 'Ký hiệu',
             ],

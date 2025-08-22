@@ -43,9 +43,6 @@ $message = get_transient('aerp_product_stock_message');
     <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
         <h5 class="mb-0">Tồn kho tại kho</h5>
         <div class="d-flex gap-2 flex-column flex-md-row">
-            <a href="<?php echo home_url('/aerp-stock-timeline'); ?>" class="btn btn-primary">
-                <i class="fas fa-chart-line"></i> Báo cáo tồn kho
-            </a>
             <a href="<?php echo esc_url(home_url('/aerp-inventory-logs')); ?>" class="btn btn-success">
                 <i class="fas fa-plus"></i> Nhập/ Xuất kho
             </a>

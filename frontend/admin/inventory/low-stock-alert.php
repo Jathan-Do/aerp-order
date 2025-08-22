@@ -81,6 +81,14 @@ ob_start();
         </a>
     </div>
 </div>
+<?php
+if (function_exists('aerp_render_breadcrumb')) {
+    aerp_render_breadcrumb([
+        ['label' => 'Trang chủ', 'url' => home_url('/aerp-dashboard'), 'icon' => 'fas fa-home'],
+        ['label' => 'Báo cáo']
+    ]);
+}
+?>
 <?php include plugin_dir_path(__FILE__) . 'reports-menu.php'; ?>
 
 <!-- Alert Settings -->

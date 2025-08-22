@@ -14,7 +14,7 @@ class AERP_Supplier_Table extends AERP_Frontend_Table
                 'note' => 'Ghi chú',
                 'created_at' => 'Ngày tạo',
             ],
-            'sortable_columns' => ['name', 'phone', 'email', 'created_at'],
+            'sortable_columns' => ['id', 'name', 'phone', 'email', 'created_at'],
             'searchable_columns' => ['name', 'phone', 'email', 'address'],
             'primary_key' => 'id',
             'per_page' => 10,

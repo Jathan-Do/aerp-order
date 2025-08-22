@@ -32,11 +32,20 @@ $message = get_transient('aerp_supplier_message');
         </a>
     </div>
 </div>
+<?php
+if (function_exists('aerp_render_breadcrumb')) {
+    aerp_render_breadcrumb([
+        ['label' => 'Trang chủ', 'url' => home_url('/aerp-dashboard'), 'icon' => 'fas fa-home'],
+        ['label' => 'Danh mục', 'url' => home_url('/aerp-categories')],
+        ['label' => 'Quản lý nhà cung cấp']
+    ]);
+}
+?>
 <div class="card">
     <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
         <h5 class="mb-0">Danh sách nhà cung cấp</h5>
         <div class="d-flex gap-2 flex-column flex-md-row">
-            <a href="<?php echo esc_url(home_url('/aerp-suppliers/?action=add')); ?>" class="btn btn-success">
+            <a href="<?php echo esc_url(home_url('/aerp-suppliers/?action=add')); ?>" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Thêm nhà cung cấp
             </a>
         </div>

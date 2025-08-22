@@ -12,7 +12,7 @@ class AERP_Product_Stock_Table extends AERP_Frontend_Table
                 'quantity' => 'Tồn kho',
                 'updated_at' => 'Cập nhật',
             ],
-            'sortable_columns' => ['product_id', 'warehouse_id'],
+            'sortable_columns' => ['id', 'product_id', 'warehouse_id'],
             'searchable_columns' => ['product_id', 'warehouse_id'],
             'primary_key' => 'id',
             'per_page' => 20,

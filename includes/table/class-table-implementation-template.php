@@ -12,7 +12,7 @@ class AERP_Implementation_Template_Table extends AERP_Frontend_Table
                 'created_by' => 'Người tạo',
                 'created_at' => 'Ngày tạo',
             ],
-            'sortable_columns' => ['name', 'is_active', 'created_at'],
+            'sortable_columns' => ['id', 'name', 'is_active', 'created_at'],
             'searchable_columns' => ['name', 'content'],
             'primary_key' => 'id',
             'per_page' => 10,

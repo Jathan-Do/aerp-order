@@ -6,6 +6,7 @@ function aerp_order_filter_orders_callback()
 {
     $filters = [
         'status_id' => absint($_POST['status_id'] ?? 0),
+        'status' => sanitize_text_field($_POST['status'] ?? ''),
         'employee_id' => intval($_POST['employee_id'] ?? 0),
         'customer_id' => intval($_POST['customer_id'] ?? 0),
         'order_type' => sanitize_text_field($_POST['order_type'] ?? ''),
@@ -85,7 +86,7 @@ add_action('wp_ajax_aerp_order_search_products', function () {
             'price' => $product->price,
             'unit_name' => $product->unit_name ?? '',
         ];
-        if (!$q && ++$count >= 20) break; // chỉ trả về 20 sản phẩm đầu nếu không search
+        // if (!$q && ++$count >= 20) break; // chỉ trả về 20 sản phẩm đầu nếu không search
     }
     wp_send_json($results);
 });
@@ -101,7 +102,7 @@ add_action('wp_ajax_aerp_order_search_all_products', function () {
             'price' => $product->price,
             'unit_name' => $product->unit_name ?? '',
         ];
-        if (!$q && ++$count >= 30) break;
+        // if (!$q && ++$count >= 30) break;
     }
     wp_send_json($results);
 });
@@ -171,7 +172,7 @@ add_action('wp_ajax_aerp_order_search_customers', function () {
             'id' => $customer->id,
             'text' => $customer->full_name . (!empty($customer->customer_code) ? ' (' . $customer->customer_code . ')' : ''),
         ];
-        if (!$q && ++$count >= 20) break;
+        // if (!$q && ++$count >= 20) break;
     }
     wp_send_json($results);
 });
@@ -326,7 +327,7 @@ add_action('wp_ajax_aerp_order_search_warehouses', function () {
             'id' => $warehouse->id,
             'text' => $warehouse->name,
         ];
-        if (!$q && ++$count >= 20) break;
+        // if (!$q && ++$count >= 20) break;
     }
     wp_send_json($results);
 });
@@ -346,7 +347,7 @@ add_action('wp_ajax_aerp_order_search_warehouses_by_user', function () {
             'id' => $warehouse->id,
             'text' => $warehouse->name,
         ];
-        if (!$q && ++$count >= 20) break;
+        // if (!$q && ++$count >= 20) break;
     }
     wp_send_json($results);
 });
@@ -360,7 +361,7 @@ add_action('wp_ajax_aerp_order_search_suppliers', function () {
             'id' => $supplier->id,
             'text' => $supplier->name,
         ];
-        if (!$q && ++$count >= 20) break;
+        // if (!$q && ++$count >= 20) break;
     }
     wp_send_json($results);
 });
@@ -488,6 +489,39 @@ add_action('wp_ajax_aerp_order_search_products_in_warehouse_in_worklocation', fu
             'unit_name' => $product->unit_name ?? '',
         ];
         if (!$q && ++$count >= 30) break;
+    }
+    wp_send_json($results);
+});
+
+// Select2: tìm kiếm thiết bị đã nhận theo đơn hàng (để trả thiết bị)
+add_action('wp_ajax_aerp_order_search_received_devices', function () {
+    global $wpdb;
+    $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
+    $results = [];
+
+    // Chỉ lấy các device có device_status là 'received'
+    $sql = "SELECT id, device_name, serial_number, status FROM {$wpdb->prefix}aerp_order_devices WHERE device_status = %s";
+    $params = ['received'];
+    if ($q !== '') {
+        $sql .= " AND (device_name LIKE %s OR serial_number LIKE %s)";
+        $params[] = '%' . $wpdb->esc_like($q) . '%';
+        $params[] = '%' . $wpdb->esc_like($q) . '%';
+    }
+    $sql .= " ORDER BY id DESC LIMIT 30";
+    $devices = $wpdb->get_results($wpdb->prepare($sql, ...$params));
+
+    foreach ($devices as $d) {
+        $label = $d->device_name;
+        if (!empty($d->serial_number)) {
+            $label .= ' (' . $d->serial_number . ')';
+        }
+        if (!empty($d->status)) {
+            $label .= ' - ' . $d->status;
+        }
+        $results[] = [
+            'id' => $d->id,
+            'text' => $label,
+        ];
     }
     wp_send_json($results);
 });
@@ -673,6 +707,25 @@ function aerp_device_filter_devices_callback()
         'partner_id' => intval($_POST['partner_id'] ?? 0),
     ];
     $table = new AERP_Device_Table();
+    $table->set_filters($filters);
+    ob_start();
+    $table->render();
+    $html = ob_get_clean();
+    wp_send_json_success(['html' => $html]);
+}
+add_action('wp_ajax_aerp_device_return_filter_device_returns', 'aerp_device_return_filter_device_returns_callback');
+add_action('wp_ajax_nopriv_aerp_device_return_filter_device_returns', 'aerp_device_return_filter_device_returns_callback');
+function aerp_device_return_filter_device_returns_callback()
+{
+    $filters = [
+        'search_term' => sanitize_text_field($_POST['s'] ?? ''),
+        'paged' => intval($_POST['paged'] ?? 1),
+        'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
+        'order' => sanitize_text_field($_POST['order'] ?? ''),
+        'date_from' => sanitize_text_field($_POST['date_from'] ?? ''),
+        'date_to' => sanitize_text_field($_POST['date_to'] ?? ''),
+    ];
+    $table = new AERP_Device_Return_Table();
     $table->set_filters($filters);
     ob_start();
     $table->render();

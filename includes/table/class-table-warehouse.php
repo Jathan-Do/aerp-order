@@ -11,7 +11,7 @@ class AERP_Warehouse_Table extends AERP_Frontend_Table
                 'name' => 'Tên kho',
                 'work_location_id' => 'Vị trí',
             ],
-            'sortable_columns' => ['name','work_location_id'],
+            'sortable_columns' => ['id', 'name', 'work_location_id'],
             'searchable_columns' => ['name', 'work_location_id'],
             'primary_key' => 'id',
             'per_page' => 20,

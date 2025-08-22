@@ -88,11 +88,6 @@ ob_start();
         align-items: center !important;
         gap: 2px;
     }
-
-    /* .select2-dropdown.select2-dropdown--below {
-        margin-top: 33px;
-    } */
-
     .select2-container--default .select2-selection--multiple .select2-selection__choice,
     .select2-selection.select2-selection--multiple.select2-selection--clearable ul {
         margin: 0;
@@ -107,6 +102,15 @@ ob_start();
         </a>
     </div>
 </div>
+<?php
+if (function_exists('aerp_render_breadcrumb')) {
+    aerp_render_breadcrumb([
+        ['label' => 'Trang chủ', 'url' => home_url('/aerp-dashboard'), 'icon' => 'fas fa-home'],
+        ['label' => 'Quản lý kho', 'url' => home_url('/aerp-warehouses')],
+        ['label' => ($is_edit ? 'Sửa kho' : 'Thêm kho')]
+    ]);
+}
+?>
 <div class="card">
     <div class="card-body">
         <form method="post">

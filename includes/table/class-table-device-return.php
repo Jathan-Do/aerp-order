@@ -1,61 +1,35 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
-class AERP_Device_Table extends AERP_Frontend_Table
+class AERP_Device_Return_Table extends AERP_Frontend_Table
 {
     public function __construct()
     {
         parent::__construct([
-            'table_name' => $GLOBALS['wpdb']->prefix . 'aerp_order_devices',
+            'table_name' => $GLOBALS['wpdb']->prefix . 'aerp_order_device_returns',
             'columns' => [
                 // 'id' => 'ID',
                 'order_id' => 'Đơn hàng',
-                'device_name' => 'Tên thiết bị',
-                'serial_number' => 'Serial/IMEI',
-                'status' => 'Tình trạng',
+                'device_id' => 'Thiết bị',
+                'return_date' => 'Ngày trả lại',
                 'note' => 'Ghi chú',
-                'partner_id' => 'Nhà cung cấp',
-                'device_status' => 'Trạng thái',
                 'action' => 'Thao tác'
             ],
-            'sortable_columns' => ['id', 'order_id', 'device_name', 'serial_number', 'status', 'partner_id'],
-            'searchable_columns' => ['device_name', 'serial_number', 'status', 'note', 'partner_id'],
+            'sortable_columns' => ['id', 'order_id', 'device_id', 'return_date'],
+            'searchable_columns' => ['order_id', 'device_id', 'return_date', 'note'],
             'primary_key' => 'id',
             'per_page' => 10,
             'actions' => [],
             'bulk_actions' => [],
-            'base_url' => home_url('/aerp-devices'),
-            'delete_item_callback' => ['AERP_Device_Manager', 'delete_device_by_id'],
-            'nonce_action_prefix' => 'delete_device_',
-            'message_transient_key' => 'aerp_device_message',
-            'hidden_columns_option_key' => 'aerp_device_table_hidden_columns',
-            'ajax_action' => 'aerp_device_filter_devices',
-            'table_wrapper' => '#aerp-device-table-wrapper',
+            'base_url' => home_url('/aerp-device-returns'),
+            'delete_item_callback' => ['AERP_Device_Return_Manager', 'delete_device_return_by_id'],
+            'nonce_action_prefix' => 'delete_device_return_',
+            'message_transient_key' => 'aerp_device_return_message',
+            'hidden_columns_option_key' => 'aerp_device_return_table_hidden_columns',
+            'ajax_action' => 'aerp_device_return_filter_device_returns',
+            'table_wrapper' => '#aerp-device-return-table-wrapper',
         ]);
     }
-    protected function column_partner_id($item)
-    {
-        if (empty($item->partner_id)) {
-            return '<span class="text-muted">--</span>';
-        }
-        
-        global $wpdb;
-        $partner = $wpdb->get_row($wpdb->prepare(
-            "SELECT name, phone FROM {$wpdb->prefix}aerp_suppliers WHERE id = %d",
-            $item->partner_id
-        ));
-        
-        if ($partner) {
-            $partner_info = esc_html($partner->name);
-            if (!empty($partner->phone)) {
-                $partner_info .= '<br><small class="text-muted">' . esc_html($partner->phone) . '</small>';
-            }
-            return $partner_info;
-        }
-        
-        return '<span class="text-muted">--</span>';
-    }
-
     protected function column_order_id($item)
     {
         if (empty($item->order_id)) {
@@ -99,25 +73,57 @@ class AERP_Device_Table extends AERP_Frontend_Table
         }
         return implode(' ', $buttons);
     }
-    protected function column_device_status($item)
+    protected function column_device_id($item)
     {
-        $status = isset($item->device_status) ? $item->device_status : 'received';
-        $map = [
-            'received' => '<span class="badge bg-primary">Nhận thiết bị</span>',
-            'disposed' => '<span class="badge bg-success">Trả thiết bị</span>',
-        ];
-        return $map[$status] ?? esc_html($status);
+        if (empty($item->device_id)) {
+            return '<span class="text-muted">--</span>';
+        }
+        
+        global $wpdb;
+        $device = $wpdb->get_row($wpdb->prepare(
+            "SELECT device_name, serial_number FROM {$wpdb->prefix}aerp_order_devices WHERE id = %d",
+            $item->device_id
+        ));
+        
+        if ($device) {
+            $device_info = esc_html($device->device_name);
+            if (!empty($device->serial_number)) {
+                $device_info .= '<br><small class="text-muted">Serial/IMEI: ' . esc_html($device->serial_number) . '</small>';
+            }
+            return $device_info;
+        }
+        
+        return '<span class="text-muted">--</span>';
     }
     protected function get_extra_filters()
     {
         $filters = [];
         $params = [];
 
-        if (!empty($this->filters['partner_id'])) {
-            $filters[] = 'partner_id = %s';
-            $params[] = $this->filters['partner_id'];
+        if (!empty($this->filters['date_from'])) {
+            $filters[] = "return_date >= %s";
+            $params[] = $this->filters['date_from'];
+        }
+        if (!empty($this->filters['date_to'])) {
+            $filters[] = "return_date <= %s";
+            $params[] = $this->filters['date_to'];
         }
 
         return [$filters, $params];
+    }
+    protected function get_extra_search_conditions($search_term)
+    {
+        global $wpdb;
+        $like = '%' . $wpdb->esc_like($search_term) . '%';
+        return [
+            [
+                "(
+                    order_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_orders WHERE order_code LIKE %s)
+                    OR
+                    device_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_devices WHERE device_name LIKE %s)
+                )"
+            ],
+            [$like, $like]
+        ];
     }
 }

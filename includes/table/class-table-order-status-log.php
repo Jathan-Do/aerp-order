@@ -12,7 +12,7 @@ class AERP_Frontend_Order_Status_Log_Table extends AERP_Frontend_Table
         parent::__construct([
             'table_name' => $GLOBALS['wpdb']->prefix . 'aerp_order_status_logs',
             'columns' => [
-                'id' => 'ID',
+                // 'id' => 'ID',
                 'old_status_id' => 'Trạng thái cũ',
                 'new_status_id' => 'Trạng thái mới',
                 'changed_at' => 'Thời gian',

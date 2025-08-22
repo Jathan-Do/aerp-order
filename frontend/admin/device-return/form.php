@@ -19,9 +19,9 @@ $access_conditions = [
 if (!in_array(true, $access_conditions, true)) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
-AERP_Device_Manager::handle_form_submit();
+AERP_Device_Return_Manager::handle_form_submit();
 $edit_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
-$editing = $edit_id ? AERP_Device_Manager::get_by_id($edit_id) : null;
+$editing = $edit_id ? AERP_Device_Return_Manager::get_by_id($edit_id) : null;
 ob_start();
 ?>
 <style>
@@ -58,7 +58,7 @@ if (function_exists('aerp_render_breadcrumb')) {
     aerp_render_breadcrumb([
         ['label' => 'Trang chủ', 'url' => home_url('/aerp-dashboard'), 'icon' => 'fas fa-home'],
         ['label' => 'Danh mục', 'url' => home_url('/aerp-categories')],
-        ['label' => 'Quản lý thiết bị', 'url' => home_url('/aerp-devices')],
+        ['label' => 'Quản lý thiết bị trả lại', 'url' => home_url('/aerp-device-returns')],
         ['label' => ($edit_id ? 'Cập nhật thiết bị' : 'Thêm thiết bị mới')]
     ]);
 }
@@ -66,35 +66,34 @@ if (function_exists('aerp_render_breadcrumb')) {
 <div class="card">
     <div class="card-body">
         <form method="post">
-            <?php wp_nonce_field('aerp_save_device_action', 'aerp_save_device_nonce'); ?>
+            <?php wp_nonce_field('aerp_save_device_return_action', 'aerp_save_device_return_nonce'); ?>
             <?php if ($edit_id): ?><input type="hidden" name="edit_id" value="<?php echo esc_attr($edit_id); ?>"><?php endif; ?>
+            <?php if ($edit_id): ?>
+                <div class="mb-3">
+                    <label for="order_code" class="form-label">Đơn hàng</label>
+                    <input type="text" class="form-control" id="order_code" value="<?php echo esc_attr(aerp_get_order_code_by_id($editing->order_id) ?? ''); ?>" readonly disabled>
+                    <input type="hidden" name="order_id" value="<?php echo esc_attr($editing->order_id); ?>">
+                </div>
+            <?php endif; ?>
             <div class="mb-3">
-                <label for="device_name" class="form-label">Tên thiết bị</label>
-                <input type="text" class="form-control" id="device_name" name="device_name" value="<?php echo esc_attr($editing->device_name ?? ''); ?>" placeholder="Nhập tên thiết bị" required>
+                <label for="device_id" class="form-label">Thiết bị</label>
+                <select type="text" class="form-select received-device-select" id="device_id" name="device_id" data-placeholder="Nhập thiết bị" required>
+                    <?php
+                    $devices = aerp_get_devices_select2();
+                    aerp_safe_select_options($devices, $editing->device_id, 'id', 'device_name', true);
+                    ?>
+                </select>
             </div>
             <div class="mb-3">
-                <label for="serial_number" class="form-label">Serial/IMEI</label>
-                <input type="text" class="form-control" id="serial_number" name="serial_number" value="<?php echo esc_attr($editing->serial_number ?? ''); ?>" placeholder="Nhập serial/IMEI" required>
-            </div>
-            <div class="mb-3">
-                <label for="status" class="form-label">Tình trạng</label>
-                <input type="text" class="form-control" id="status" name="status" value="<?php echo esc_attr($editing->status ?? ''); ?>" placeholder="Nhập tình trạng" required>
+                <label for="return_date" class="form-label">Ngày trả lại</label>
+                <input type="date" class="form-control" id="return_date" name="return_date" value="<?php echo esc_attr($editing->return_date ?? ''); ?>" placeholder="Nhập ngày trả lại" required>
             </div>
             <div class="mb-3">
                 <label for="note" class="form-label">Ghi chú</label>
                 <textarea class="form-control" id="note" name="note" rows="2" placeholder="Nhập ghi chú"><?php echo esc_textarea($editing->note ?? ''); ?></textarea>
             </div>
-            <div class="mb-3">
-                <label for="partner_id" class="form-label">Đối tác</label>
-                <select class="form-select supplier-select" id="partner_id" name="partner_id" style="width:100%">
-                    <option value="">-- Chọn đối tác --</option>
-                    <?php foreach (AERP_Supplier_Manager::get_all() as $s): ?>
-                        <option value="<?php echo esc_attr($s->id); ?>" <?php selected($editing->partner_id, $s->id); ?>><?php echo esc_html($s->name); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <button type="submit" name="aerp_save_device" class="btn btn-primary"><?php echo $edit_id ? 'Cập nhật' : 'Thêm mới'; ?></button>
-            <a href="<?php echo home_url('/aerp-devices'); ?>" class="btn btn-secondary ms-2">Quay lại</a>
+            <button type="submit" name="aerp_save_device_return" class="btn btn-primary"><?php echo $edit_id ? 'Cập nhật' : 'Thêm mới'; ?></button>
+            <a href="<?php echo home_url('/aerp-device-returns'); ?>" class="btn btn-secondary ms-2">Quay lại</a>
         </form>
     </div>
 </div>

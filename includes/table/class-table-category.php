@@ -8,7 +8,7 @@ class AERP_Category_Table extends AERP_Frontend_Table
         parent::__construct([
             'table_name' => $GLOBALS['wpdb']->prefix . 'aerp_product_categories',
             'columns' => [
-                'id' => 'ID',
+                // 'id' => 'ID',
                 'name' => 'Tên danh mục',
                 'parent_id' => 'Danh mục cha',
             ],

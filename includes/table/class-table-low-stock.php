@@ -17,7 +17,7 @@ class AERP_Low_Stock_Table extends AERP_Frontend_Table
                 'status' => 'Trạng thái',
                 'action' => 'Hành động',
             ],
-            'sortable_columns' => ['product_id', 'warehouse_id', 'quantity', 'updated_at'],
+            'sortable_columns' => ['id', 'product_id', 'warehouse_id', 'quantity', 'updated_at'],
             'searchable_columns' => ['product_id'],
             'primary_key' => 'id',
             'per_page' => 10,
@@ -72,8 +72,8 @@ class AERP_Low_Stock_Table extends AERP_Frontend_Table
         $import_url = home_url('/aerp-inventory-logs/?action=add&type=import');
         $product_url = home_url('/aerp-products?action=edit&id=' . $item->product_id);
         return '<div class="btn-group btn-group-sm" role="group">'
-            . '<a href="' . esc_url($import_url) . '" class="btn btn-success" title="Tạo phiếu nhập kho"><i class="fas fa-plus"></i></a>'
-            . '<a href="' . esc_url($product_url) . '" class="btn btn-info" title="Xem chi tiết sản phẩm"><i class="fas fa-eye"></i></a>'
+            . '<a href="' . esc_url($import_url) . '" class="btn btn-success" data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Tạo phiếu nhập kho"><i class="fas fa-plus"></i></a>'
+            . '<a href="' . esc_url($product_url) . '" class="btn btn-info" data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Xem chi tiết sản phẩm"><i class="fas fa-eye"></i></a>'
             . '</div>';
     }
     protected function get_extra_filters()

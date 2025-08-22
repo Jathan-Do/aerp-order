@@ -31,7 +31,16 @@ $message = get_transient('aerp_implementation_template_message');
             <i class="fas fa-sign-out-alt"></i> Thoát
         </a>
     </div>
-    </div>
+</div>
+<?php
+if (function_exists('aerp_render_breadcrumb')) {
+    aerp_render_breadcrumb([
+        ['label' => 'Trang chủ', 'url' => home_url('/aerp-dashboard'), 'icon' => 'fas fa-home'],
+        ['label' => 'Danh mục', 'url' => home_url('/aerp-categories')],
+        ['label' => 'Template nội dung']
+    ]);
+}
+?>
 <div class="card">
     <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
         <h5 class="mb-0">Danh sách template</h5>
@@ -72,5 +81,3 @@ $message = get_transient('aerp_implementation_template_message');
 $content = ob_get_clean();
 $title = 'Template nội dung triển khai';
 include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
-
-

@@ -53,6 +53,16 @@ ob_start();
         </a>
     </div>
 </div>
+<?php
+if (function_exists('aerp_render_breadcrumb')) {
+    aerp_render_breadcrumb([
+        ['label' => 'Trang chủ', 'url' => home_url('/aerp-dashboard'), 'icon' => 'fas fa-home'],
+        ['label' => 'Quản lý kho', 'url' => home_url('/aerp-warehouses')],
+        ['label' => 'Danh sách phiếu chuyển kho', 'url' => home_url('/aerp-inventory-transfers')],
+        ['label' => 'Thêm phiếu chuyển kho']
+    ]);
+}
+?>
 <div class="card">
     <div class="card-body">
         <?php if ($message) : ?>

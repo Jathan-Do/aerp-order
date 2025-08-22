@@ -20,7 +20,7 @@ class AERP_Inventory_Transfer_Table extends AERP_Frontend_Table
                 'to_warehouse_id',
                 'note',
             ],
-            'sortable_columns' => ['from_warehouse_id', 'to_warehouse_id', 'created_at'],
+            'sortable_columns' => ['id', 'from_warehouse_id', 'to_warehouse_id', 'created_at'],
             'primary_key' => 'id',
             'per_page' => 10,
             'actions' => [],

@@ -45,6 +45,7 @@ function aerp_order_install_schema()
         customer_source_id BIGINT DEFAULT NULL,
         status_id BIGINT,
         status ENUM('new','assigned','rejected','completed','paid','cancelled') DEFAULT 'new',
+        order_type ENUM('product','device','return') DEFAULT 'product',
         cancel_reason TEXT DEFAULT NULL,
         reject_reason TEXT DEFAULT NULL,
         note TEXT,
@@ -55,6 +56,7 @@ function aerp_order_install_schema()
         INDEX idx_employee_id (employee_id),
         INDEX idx_status_id (status_id),
         INDEX idx_customer_source_id (customer_source_id),
+        INDEX idx_order_type (order_type),
         INDEX idx_created_by (created_by),
         INDEX idx_created_at (created_at)
     ) $charset_collate;";
@@ -76,13 +78,28 @@ function aerp_order_install_schema()
         device_name VARCHAR(255) NOT NULL,
         serial_number VARCHAR(100) DEFAULT NULL,
         status VARCHAR(100) DEFAULT NULL,
+        device_status ENUM('received','disposed') DEFAULT 'received',
         note TEXT DEFAULT NULL,
         partner_id BIGINT DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_order_id (order_id),
         INDEX idx_device_name (device_name),
         INDEX idx_serial_number (serial_number),
+        INDEX idx_device_status (device_status),
         INDEX idx_partner_id (partner_id)
+    ) $charset_collate;";
+
+    // 1c-b. Thiết bị trả lại cho khách (gắn với đơn hàng và thiết bị nhận)
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_order_device_returns (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        order_id BIGINT NOT NULL,
+        device_id BIGINT NOT NULL,
+        return_date DATE DEFAULT NULL,
+        note TEXT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_order_id (order_id),
+        INDEX idx_device_id (device_id),
+        INDEX idx_return_date (return_date)
     ) $charset_collate;";
 
     // 1d. Template nội dung triển khai
@@ -106,6 +123,10 @@ function aerp_order_install_schema()
         requirement TEXT DEFAULT NULL,
         implementation TEXT DEFAULT NULL,
         template_id BIGINT DEFAULT NULL,
+        unit_price FLOAT,
+        quantity FLOAT,
+        total_price FLOAT,
+        warranty VARCHAR(255) DEFAULT NULL,
         sort_order INT DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_order_id (order_id),

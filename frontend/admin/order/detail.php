@@ -30,6 +30,23 @@ $order_logs = function_exists('aerp_get_order_status_logs') ? aerp_get_order_sta
 global $wpdb;
 $device_list = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}aerp_order_devices WHERE order_id = %d", $order_id));
 $is_device_order = !empty($device_list);
+
+// Xác định tab active theo order_type
+$active_tab = 'products';
+if (!empty($order->order_type)) {
+    if ($order->order_type === 'device') {
+        $active_tab = 'devices';
+    } elseif ($order->order_type === 'return') {
+        $active_tab = 'device-returns';
+    } else {
+        $active_tab = 'products';
+    }
+}
+
+$content_lines = $wpdb->get_results($wpdb->prepare(
+    "SELECT * FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d ORDER BY sort_order ASC",
+    $order_id
+));
 $table = new AERP_Frontend_Order_Status_Log_Table($order_id);
 $table->set_filters(['order_id' => $order_id]);
 $table->process_bulk_action();
@@ -41,9 +58,8 @@ ob_start();
         padding: 10px 18px;
         color: black;
         background: none;
-        border: none;
-        border-bottom: 2px solid transparent;
-        font-weight: 500;
+        border-color: #dee2e6;
+        font-weight: 400;
         text-decoration: none;
         cursor: pointer;
         transition: color 0.2s, border-color 0.2s;
@@ -51,22 +67,22 @@ ob_start();
     }
 
     .aerp-tabs-container .nav-link.active {
-        border-bottom: 0 !important;
+        /* border-bottom: 0 !important; */
+        border-bottom: 2px solid #0073aa !important;
         /* border-bottom: 2px solid #0073aa; */
-        background: #34495e !important;
-        color: white !important;
+        /* background: #dee2e6 !important; */
+        /* color: white !important; */
     }
 
-    .aerp-tabs-container .nav-link:hover {
+    .aerp-tabs-container .nav-link:not(.active):hover {
         background: #34495e !important;
         color: white !important;
-        /* border-bottom: 0 !important; */
     }
 
     .aerp-tabs-container .nav-tabs {
         display: flex;
-        gap: 8px;
-        border-bottom: 2px solid #e5e5e5;
+        gap: 4px;
+        border-bottom: 0 !important;
         overflow-y: scroll;
         -ms-overflow-style: none;
         scrollbar-width: none;
@@ -81,6 +97,15 @@ ob_start();
         </a>
     </div>
 </div>
+<?php
+if (function_exists('aerp_render_breadcrumb')) {
+    aerp_render_breadcrumb([
+        ['label' => 'Trang chủ', 'url' => home_url('/aerp-dashboard'), 'icon' => 'fas fa-home'],
+        ['label' => 'Quản lý đơn hàng', 'url' => home_url('/aerp-order-orders')],
+        ['label' => 'Chi tiết đơn hàng']
+    ]);
+}
+?>
 <div class="card mb-4">
     <div class="card-body">
         <div class="row mb-2">
@@ -148,16 +173,17 @@ ob_start();
     </div>
     <!-- Tabs for sections -->
     <div class="card aerp-tabs-container">
-        <div class="card-header border-bottom-0 pb-0">
+        <div class="card-header pb-0">
             <div class="nav nav-tabs" role="tablist">
-                <a class="nav-link active" id="tab-products-link" data-bs-toggle="tab" href="#tab-products" role="tab" aria-controls="tab-products" aria-selected="true">Sản phẩm trong đơn</a>
-                <a class="nav-link" id="tab-devices-link" data-bs-toggle="tab" href="#tab-devices" role="tab" aria-controls="tab-devices" aria-selected="false">Thiết bị nhận từ khách</a>
-                <a class="nav-link" id="tab-content-link" data-bs-toggle="tab" href="#tab-content" role="tab" aria-controls="tab-content" aria-selected="false">Nội dung yêu cầu/triển khai</a>
+                <a class="nav-link <?php echo $active_tab === 'products' ? 'active' : ''; ?>" id="tab-products-link" data-bs-toggle="tab" href="#tab-products" role="tab" aria-controls="tab-products" aria-selected="<?php echo $active_tab === 'products' ? 'true' : 'false'; ?>">Sản phẩm trong đơn</a>
+                <a class="nav-link <?php echo $active_tab === 'devices' ? 'active' : ''; ?>" id="tab-devices-link" data-bs-toggle="tab" href="#tab-devices" role="tab" aria-controls="tab-devices" aria-selected="<?php echo $active_tab === 'devices' ? 'true' : 'false'; ?>">Thiết bị nhận từ khách</a>
+                <a class="nav-link <?php echo $active_tab === 'device-returns' ? 'active' : ''; ?>" id="tab-device-returns-link" data-bs-toggle="tab" href="#tab-device-returns" role="tab" aria-controls="tab-device-returns" aria-selected="<?php echo $active_tab === 'device-returns' ? 'true' : 'false'; ?>">Thiết bị đã trả</a>
+                <a class="nav-link <?php echo $active_tab === 'content' ? 'active' : ''; ?>" id="tab-content-link" data-bs-toggle="tab" href="#tab-content" role="tab" aria-controls="tab-content" aria-selected="<?php echo $active_tab === 'content' ? 'true' : 'false'; ?>">Nội dung yêu cầu/triển khai</a>
             </div>
         </div>
         <div class="card-body">
             <div class="tab-content">
-                <div class="tab-pane fade show active" id="tab-products" role="tabpanel" aria-labelledby="tab-products-link">
+                <div class="tab-pane fade <?php echo $active_tab === 'products' ? 'show active' : ''; ?>" id="tab-products" role="tabpanel" aria-labelledby="tab-products-link">
                     <div class="table-responsive">
                         <table class="table table-bordered mb-0">
                             <thead>
@@ -226,7 +252,7 @@ ob_start();
                         <a href="#" class="btn btn-success" id="print-invoice-detail-btn"><i class="fas fa-print me-1"></i> In hóa đơn chi tiết</a>
                     </div>
                 </div>
-                <div class="tab-pane fade" id="tab-devices" role="tabpanel" aria-labelledby="tab-devices-link">
+                <div class="tab-pane fade <?php echo $active_tab === 'devices' ? 'show active' : ''; ?>" id="tab-devices" role="tabpanel" aria-labelledby="tab-devices-link">
                     <div class="table-responsive">
                         <table class="table table-bordered mb-0">
                             <thead>
@@ -266,8 +292,103 @@ ob_start();
                         <a href="#" class="btn btn-success" id="print-invoice-device-btn"><i class="fas fa-print me-1"></i> In hóa đơn thiết bị</a>
                     </div>
                 </div>
-                <div class="tab-pane fade" id="tab-content" role="tabpanel" aria-labelledby="tab-content-link">
-                    <div class="row mb-2">
+                <div class="tab-pane fade <?php echo $active_tab === 'device-returns' ? 'show active' : ''; ?>" id="tab-device-returns" role="tabpanel" aria-labelledby="tab-device-returns-link">
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Tên thiết bị</th>
+                                    <th>Serial/IMEI</th>
+                                    <th>Ngày trả</th>
+                                    <th>Ghi chú</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                                $device_returns = $wpdb->get_results($wpdb->prepare(
+                                    "SELECT r.*, d.device_name, d.serial_number FROM {$wpdb->prefix}aerp_order_device_returns r 
+                                     LEFT JOIN {$wpdb->prefix}aerp_order_devices d ON d.id = r.device_id WHERE r.order_id = %d ORDER BY r.id ASC",
+                                    $order_id
+                                ));
+                                if (!empty($device_returns)) : foreach ($device_returns as $idx => $ret) : ?>
+                                        <tr>
+                                            <td><?php echo $idx + 1; ?></td>
+                                            <td><?php echo esc_html($ret->device_name ?? ''); ?></td>
+                                            <td><?php echo esc_html($ret->serial_number ?? ''); ?></td>
+                                            <td><?php echo esc_html($ret->return_date ?? ''); ?></td>
+                                            <td><?php echo esc_html($ret->note ?? ''); ?></td>
+                                        </tr>
+                                    <?php endforeach;
+                                else: ?>
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">Chưa có thiết bị trả.</td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-start align-items-center mt-3 gap-2">
+                        <a href="<?php echo home_url('/aerp-order-orders'); ?>" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Quay lại danh sách
+                        </a>
+                        <a href="<?php echo home_url('/aerp-order-orders?action=edit&id=' . $order_id); ?>" class="btn btn-primary">
+                            <i class="fas fa-edit me-1"></i> Chỉnh sửa
+                        </a>
+                        <a href="#" class="btn btn-success" id="print-invoice-device-return-btn"><i class="fas fa-print me-1"></i> In hóa đơn thiết bị trả</a>
+                    </div>
+                </div>
+                <div class="tab-pane fade <?php echo $active_tab === 'content' ? 'show active' : ''; ?>" id="tab-content" role="tabpanel" aria-labelledby="tab-content-link">
+                    <div class="table-responsive">
+                        <?php
+                        $total_content_amount = 0;
+                        ?>
+                        <table class="table table-bordered mb-0">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Nội dung yêu cầu </th>
+                                    <th>Nội dung triển khai</th>
+                                    <th>Đơn giá</th>
+                                    <th>Số lượng</th>
+                                    <th>Thành tiền</th>
+                                    <th>Bảo hành</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (!empty($content_lines)): foreach ($content_lines as $idx => $line):
+                                        $line_total = floatval($line->total_price ?? 0);
+                                        $total_content_amount += $line_total; ?>
+
+                                        <tr>
+                                            <td><?php echo $idx + 1; ?></td>
+                                            <td><?php echo esc_html($line->requirement) ?? '--'; ?></td>
+                                            <td><?php echo esc_html($line->implementation) ?? '--'; ?></td>
+                                            <td><?php echo number_format($line->unit_price ?? 0, 0, ',', '.'); ?></td>
+                                            <td><?php echo esc_html($line->quantity) ?? '--'; ?></td>
+                                            <td><?php echo number_format($line->total_price ?? 0, 0, ',', '.'); ?></td>
+                                            <td><?php echo esc_html($line->warranty) ?? '--'; ?></td>
+                                        </tr>
+                                    <?php endforeach;
+                                else: ?>
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted">Chưa có nội dung nào.</td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="5" class="text-end">Tổng tiền</th>
+                                    <th colspan="2"><?php echo number_format($total_content_amount ?? 0, 0, ',', '.'); ?></th>
+                                </tr>
+                                <tr>
+                                    <th colspan="1">Ghi chú đơn hàng</th>
+                                    <td colspan="6"><?php echo esc_html($order->note) ?? '--'; ?></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <!-- <div class="row mb-2">
                         <div class="col-md-12 mb-3">
                             <label class="fw-bold form-label text-muted small mb-1">Nội dung yêu cầu và triển khai</label>
                             <?php
@@ -282,13 +403,41 @@ ob_start();
                                     echo '<div class="col-md-6">';
                                     echo '<div class="p-3 border rounded bg-light" style="white-space:pre-line;">';
                                     echo '<strong>Nội dung ' . ($idx + 1) . ' - Yêu cầu:</strong><br>';
-                                    echo nl2br(esc_html($line->requirement ?? ''));
+                                    echo nl2br(esc_html($line->requirement ?? '--'));
                                     echo '</div>';
                                     echo '</div>';
                                     echo '<div class="col-md-6">';
                                     echo '<div class="p-3 border rounded bg-light" style="white-space:pre-line;">';
                                     echo '<strong>Nội dung ' . ($idx + 1) . ' - Triển khai:</strong><br>';
-                                    echo nl2br(esc_html($line->implementation ?? ''));
+                                    echo nl2br(esc_html($line->implementation ?? '--'));
+                                    echo '</div>';
+                                    echo '</div>';
+                                    echo '</div>';
+
+                                    // Hiển thị thông tin chi tiết (đơn giá, số lượng, thành tiền, bảo hành)
+                                    echo '<div class="row mb-3">';
+                                    echo '<div class="col-md-3">';
+                                    echo '<div class="p-2 border rounded bg-white">';
+                                    echo '<strong class="text-muted small">Đơn giá:</strong><br>';
+                                    echo '<span class="fw-bold">' . number_format($line->unit_price ?? 0, 0, ',', '.') . ' đ</span>';
+                                    echo '</div>';
+                                    echo '</div>';
+                                    echo '<div class="col-md-3">';
+                                    echo '<div class="p-2 border rounded bg-white">';
+                                    echo '<strong class="text-muted small">Số lượng:</strong><br>';
+                                    echo '<span class="fw-bold">' . esc_html($line->quantity ?? 1) . '</span>';
+                                    echo '</div>';
+                                    echo '</div>';
+                                    echo '<div class="col-md-3">';
+                                    echo '<div class="p-2 border rounded bg-white">';
+                                    echo '<strong class="text-muted small">Thành tiền:</strong><br>';
+                                    echo '<span class="fw-bold">' . number_format($line->total_price ?? 0, 0, ',', '.') . ' đ</span>';
+                                    echo '</div>';
+                                    echo '</div>';
+                                    echo '<div class="col-md-3">';
+                                    echo '<div class="p-2 border rounded bg-white">';
+                                    echo '<strong class="text-muted small">Bảo hành:</strong><br>';
+                                    echo '<span class="fw-bold">' . esc_html($line->warranty ?? '--') . '</span>';
                                     echo '</div>';
                                     echo '</div>';
                                     echo '</div>';
@@ -300,7 +449,7 @@ ob_start();
                             }
                             ?>
                         </div>
-                    </div>
+                    </div> -->
                     <div class="d-flex justify-content-start align-items-center mt-3 gap-2">
                         <a href="<?php echo home_url('/aerp-order-orders'); ?>" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Quay lại danh sách
@@ -370,37 +519,105 @@ ob_start();
 <?php endif; ?>
 <!-- Template hóa đơn in ẩn -->
 <div id="aerp-invoice-print-area" style="display:none; font-family: Arial, sans-serif;">
-    <div style="max-width:700px;margin:0 auto;padding:24px;">
-        <h2 style="text-align:center;">HÓA ĐƠN BÁN HÀNG</h2>
-        <div style="margin-bottom:16px;">
-            <strong>Mã đơn hàng:</strong> <?php echo esc_html($order->order_code); ?><br>
-            <strong>Ngày lập:</strong> <?php echo esc_html($order->order_date); ?><br>
-            <strong>Khách hàng:</strong> <?php echo $customer ? esc_html($customer->full_name) : '--'; ?><br>
-            <strong>Nhân viên phụ trách:</strong> <?php echo $employee ? esc_html($employee) : '--'; ?><br>
+    <style>
+        @media print {
+            body {
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+                color: #000;
+            }
+        }
+
+        .sheet {
+            width: 100%;
+        }
+
+        .inv-header {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .inv-meta {
+            margin-bottom: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 16px;
+        }
+
+        .inv-meta div {
+            font-size: 12px;
+        }
+
+        table.inv {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .inv th,
+        .inv td {
+            border: 1px solid #000;
+            padding: 6px;
+        }
+
+        .inv thead th {
+            background: #f1f1f1;
+            text-align: center;
+        }
+
+        .text-end {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .sign {
+            margin-top: 16px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .note {
+            margin-top: 6px;
+            font-size: 11px;
+            font-style: italic;
+        }
+    </style>
+    <div class="sheet">
+        <h3 class="inv-header">HÓA ĐƠN BÁN HÀNG</h3>
+        <div class="inv-meta">
+            <div><strong>Mã đơn hàng:</strong> <?php echo esc_html($order->order_code); ?></div>
+            <div><strong>Ngày lập:</strong> <?php echo esc_html($order->order_date); ?></div>
+            <div><strong>Khách hàng:</strong> <?php echo $customer ? esc_html($customer->full_name) : '--'; ?></div>
+            <div><strong>Nhân viên phụ trách:</strong> <?php echo $employee ? esc_html($employee) : '--'; ?></div>
         </div>
-        <table border="1" cellpadding="6" cellspacing="0" width="100%" style="border-collapse:collapse;">
+        <?php
+        $total_amount = 0;
+        $total_amount_with_vat = 0;
+        ?>
+        <table class="inv">
             <thead>
                 <tr>
-                    <th>#</th>
-                    <th>Tên sản phẩm</th>
-                    <th>Số lượng</th>
-                    <th>Đơn vị</th>
-                    <th>Đơn giá</th>
-                    <th>VAT (%)</th>
-                    <th>Thành tiền (có VAT)</th>
-                    <th>Thành tiền</th>
+                    <th style="width:32px;">#</th>
+                    <th>Tên sản phẩm/dịch vụ</th>
+                    <th style="width:70px;">Số lượng</th>
+                    <th style="width:70px;">Đơn vị</th>
+                    <th style="width:100px;">Đơn giá</th>
+                    <th style="width:70px;">VAT %</th>
+                    <th style="width:130px;">Thành tiền (có VAT)</th>
+                    <th style="width:120px;">Thành tiền</th>
                 </tr>
             </thead>
             <tbody>
-                <?php if (!empty($order_items)) :
-                    $total_amount = 0;
-                    foreach ($order_items as $idx => $item) :
+                <?php if (!empty($order_items)) : ?>
+                    <?php foreach ($order_items as $idx => $item) :
                         $line_total = $item->quantity * $item->unit_price;
                         $vat_percent = isset($item->vat_percent) ? floatval($item->vat_percent) : 0;
                         $vat_amount = $vat_percent > 0 ? $line_total * $vat_percent / 100 : 0;
                         $line_total_with_vat = $line_total + $vat_amount;
                         $total_amount += $line_total;
-                        // $total_amount_with_vat = ($total_amount_with_vat ?? 0) + $line_total_with_vat;
+                        $total_amount_with_vat += $line_total_with_vat;
 
                         $unit_name = '';
                         if (!empty($item->unit_name)) {
@@ -410,126 +627,389 @@ ob_start();
                                 $unit_name = AERP_Product_Manager::get_unit_name($item->product_id);
                             }
                         }
-                ?>
+                    ?>
                         <tr>
-                            <td><?php echo $idx + 1; ?></td>
+                            <td class="text-center"><?php echo $idx + 1; ?></td>
                             <td><?php echo esc_html($item->product_name); ?></td>
-                            <td><?php echo esc_html($item->quantity); ?></td>
-                            <td><?php echo esc_html($unit_name); ?></td>
-                            <td><?php echo number_format($item->unit_price, 0, ',', '.'); ?></td>
-                            <td><?php echo $vat_percent > 0 ? esc_html($vat_percent) : '--'; ?></td>
-                            <td><?php echo number_format($line_total_with_vat, 0, ',', '.'); ?></td>
-                            <td><?php echo number_format($line_total, 0, ',', '.'); ?></td>
+                            <td class="text-center"><?php echo esc_html($item->quantity); ?></td>
+                            <td class="text-center"><?php echo esc_html($unit_name); ?></td>
+                            <td class="text-end"><?php echo number_format($item->unit_price, 0, ',', '.'); ?></td>
+                            <td class="text-center"><?php echo $vat_percent > 0 ? esc_html($vat_percent) : '--'; ?></td>
+                            <td class="text-end"><?php echo number_format($line_total_with_vat, 0, ',', '.'); ?></td>
+                            <td class="text-end"><?php echo number_format($line_total, 0, ',', '.'); ?></td>
                         </tr>
-                    <?php endforeach;
-                else: ?>
+                    <?php endforeach; ?>
+                <?php else: ?>
                     <tr>
-                        <td colspan="8" style="text-align:center;">Chưa có sản phẩm nào.</td>
+                        <td colspan="8" class="text-center">Chưa có sản phẩm/dịch vụ.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
             <tfoot>
                 <tr>
-                    <th colspan="6" style="text-align:right;">Tổng cộng (có VAT)</th>
-                    <th><?php echo number_format($total_amount_with_vat ?? 0, 0, ',', '.'); ?></th>
-                    <th><?php echo number_format($total_amount, 0, ',', '.'); ?></th>
+                    <th colspan="6" class="text-end">Tổng cộng (có VAT)</th>
+                    <th class="text-end"><?php echo number_format($total_amount_with_vat, 0, ',', '.'); ?></th>
+                    <th class="text-end"><?php echo number_format($total_amount, 0, ',', '.'); ?></th>
                 </tr>
             </tfoot>
         </table>
-        <div style="margin-top:32px;display:flex;justify-content:space-between;">
-            <div><strong>Khách hàng</strong><br><br><br>__________________</div>
-            <div><strong>Người lập hóa đơn</strong><br><br><br>__________________</div>
+        <?php if ($extra_items_count > 0): ?>
+            <div class="note">Hiển thị tối đa 7 dòng. Còn <?php echo (int) $extra_items_count; ?> dòng khác không hiển thị.</div>
+        <?php endif; ?>
+        <div class="sign">
+            <div style="text-align:center;">
+                <strong>Khách hàng</strong><br><br><br>
+                __________________
+            </div>
+            <div style="text-align:center;">
+                <strong>Người lập hóa đơn</strong><br><br><br>
+                __________________
+            </div>
         </div>
     </div>
 </div>
 <!-- Template hóa đơn nội dung yêu cầu/triển khai -->
 <div id="aerp-invoice-content-print-area" style="display:none; font-family: Arial, sans-serif;">
-    <div style="max-width:700px;margin:0 auto;padding:24px;">
-        <h2 style="text-align:center;">HÓA ĐƠN BÁO GIÁ</h2>
-        <div style="margin-bottom:16px;">
-            <strong>Mã đơn hàng:</strong> <?php echo esc_html($order->order_code); ?><br>
-            <strong>Ngày lập:</strong> <?php echo esc_html($order->order_date); ?><br>
-            <strong>Khách hàng:</strong> <?php echo $customer ? esc_html($customer->full_name) : '--'; ?><br>
-            <strong>Nhân viên phụ trách:</strong> <?php echo $employee ? esc_html($employee) : '--'; ?><br>
+    <style>
+        @media print {
+            body {
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+                color: #000;
+            }
+        }
+
+        .sheet {
+            width: 100%;
+        }
+
+        .inv-header {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .inv-meta {
+            margin-bottom: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 16px;
+        }
+
+        table.inv {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .inv th,
+        .inv td {
+            border: 1px solid #000;
+            padding: 6px;
+            vertical-align: top;
+        }
+
+        .inv thead th {
+            background: #f1f1f1;
+            text-align: center;
+        }
+
+        .text-end {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .sign {
+            margin-top: 16px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .note {
+            margin-top: 6px;
+            font-size: 11px;
+            font-style: italic;
+        }
+    </style>
+    <div class="sheet">
+        <h3 class="inv-header">BẢNG BÁO GIÁ NỘI DUNG TRIỂN KHAI</h3>
+        <div class="inv-meta">
+            <div><strong>Mã đơn hàng:</strong> <?php echo esc_html($order->order_code); ?></div>
+            <div><strong>Ngày lập:</strong> <?php echo esc_html($order->order_date); ?></div>
+            <div><strong>Khách hàng:</strong> <?php echo $customer ? esc_html($customer->full_name) : '--'; ?></div>
+            <div><strong>Nhân viên phụ trách:</strong> <?php echo $employee ? esc_html($employee) : '--'; ?></div>
         </div>
+        <?php
+        $total_content_amount = 0;
+        ?>
+        <table class="inv">
+            <thead>
+                <tr>
+                    <th style="width:32px;">#</th>
+                    <th>Nội dung yêu cầu</th>
+                    <th>Nội dung triển khai</th>
+                    <th style="width:30px;">SL</th>
+                    <th style="width:100px;">Đơn giá</th>
+                    <th style="width:100px;">Thành tiền</th>
+                    <th style="width:60px;">Bảo hành</th>
 
-        <?php if (!empty($content_lines)): ?>
-            <div style="margin-bottom:20px;">
-                <h4 style="margin-bottom:8px;color:#333;">Nội dung yêu cầu và triển khai:</h4>
-                <?php foreach ($content_lines as $idx => $line): ?>
-                    <div style="margin-bottom:16px;border:1px solid #ddd;border-radius:4px;overflow:hidden;">
-                        <div style="background:#f8f9fa;padding:8px;border-bottom:1px solid #ddd;font-weight:bold;">
-                            Nội dung <?php echo ($idx + 1); ?>
-                        </div>
-                        <div style="display:flex;">
-                            <div style="flex:1;padding:12px;border-right:1px solid #ddd;">
-                                <strong>Yêu cầu:</strong><br>
-                                <?php echo nl2br(esc_html($line->requirement ?? '')); ?>
-                            </div>
-                            <div style="flex:1;padding:12px;">
-                                <strong>Triển khai:</strong><br>
-                                <?php echo nl2br(esc_html($line->implementation ?? '')); ?>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($content_lines)) : ?>
+                    <?php foreach ($content_lines as $idx => $line) :
+                        $line_total = floatval($line->total_price ?? 0);
+                        $total_content_amount += $line_total;
+                    ?>
+                        <tr>
+                            <td class="text-center"><?php echo $idx + 1; ?></td>
+                            <td><?php echo nl2br(esc_html($line->requirement ?? '--')); ?></td>
+                            <td><?php echo nl2br(esc_html($line->implementation ?? '--')); ?></td>
+                            <td class="text-center"><?php echo esc_html($line->quantity ?? 1); ?></td>
+                            <td class="text-end"><?php echo number_format($line->unit_price ?? 0, 0, ',', '.'); ?></td>
+                            <td class="text-end"><?php echo number_format($line_total, 0, ',', '.'); ?></td>
+                            <td><?php echo nl2br(esc_html($line->warranty ?? '--')); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="7" class="text-center">Chưa có nội dung triển khai.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="5" class="text-end">Tổng tiền</th>
+                    <th colspan="2"><?php echo number_format($total_content_amount, 0, ',', '.'); ?> VNĐ</th>
+                </tr>
+                <tr>
+                    <th colspan="2">Ghi chú đơn hàng</th>
+                    <td colspan="5"><?php echo esc_html($order->note) ?? '--'; ?></td>
+                </tr>
+            </tfoot>
+        </table>
+        <div class="sign">
+            <div style="text-align:center;">
+                <strong>Khách hàng</strong><br><br><br>
+                __________________
             </div>
-        <?php endif; ?>
-
-        <!-- <div style="margin-top:32px;border-top:2px solid #333;padding-top:16px;">
-            <div style="text-align:right;font-size:18px;font-weight:bold;">
-                <strong>Tổng tiền: <?php echo number_format($order->total_amount, 0, ',', '.'); ?> VNĐ</strong>
+            <div style="text-align:center;">
+                <strong>Người lập chứng từ</strong><br><br><br>
+                __________________
             </div>
-        </div> -->
-
-        <div style="margin-top:32px;display:flex;justify-content:space-between;">
-            <div><strong>Khách hàng</strong><br><br><br>__________________</div>
-            <div><strong>Người lập hóa đơn</strong><br><br><br>__________________</div>
         </div>
     </div>
 </div>
 <div id="aerp-invoice-print-area-device" style="display:none; font-family: Arial, sans-serif;">
-    <div style="max-width:700px;margin:0 auto;padding:24px;">
-        <h2 style="text-align:center;">HÓA ĐƠN NHẬN THIẾT BỊ</h2>
-        <div style="margin-bottom:16px;">
-            <strong>Mã đơn hàng:</strong> <?php echo esc_html($order->order_code); ?><br>
-            <strong>Ngày lập:</strong> <?php echo esc_html($order->order_date); ?><br>
-            <strong>Khách hàng:</strong> <?php echo $customer ? esc_html($customer->full_name) : '--'; ?><br>
-            <strong>Nhân viên phụ trách:</strong> <?php echo $employee ? esc_html($employee) : '--'; ?><br>
+    <style>
+        @media print {
+            body {
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+                color: #000;
+            }
+        }
+
+        .sheet {
+            width: 100%;
+        }
+
+        .inv-header {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .inv-meta {
+            margin-bottom: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 16px;
+        }
+
+        table.inv {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .inv th,
+        .inv td {
+            border: 1px solid #000;
+            padding: 6px;
+        }
+
+        .inv thead th {
+            background: #f1f1f1;
+            text-align: center;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .sign {
+            margin-top: 16px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .note {
+            margin-top: 6px;
+            font-size: 11px;
+            font-style: italic;
+        }
+    </style>
+    <div class="sheet">
+        <h3 class="inv-header">BIÊN NHẬN THIẾT BỊ</h3>
+        <div class="inv-meta">
+            <div><strong>Mã đơn hàng:</strong> <?php echo esc_html($order->order_code); ?></div>
+            <div><strong>Ngày lập:</strong> <?php echo esc_html($order->order_date); ?></div>
+            <div><strong>Khách hàng:</strong> <?php echo $customer ? esc_html($customer->full_name) : '--'; ?></div>
+            <div><strong>Nhân viên phụ trách:</strong> <?php echo $employee ? esc_html($employee) : '--'; ?></div>
         </div>
-        <table border="1" cellpadding="6" cellspacing="0" width="100%" style="border-collapse:collapse;">
+        <table class="inv">
             <thead>
                 <tr>
-                    <th>#</th>
+                    <th style="width:32px;">#</th>
                     <th>Tên thiết bị</th>
-                    <th>Serial/IMEI</th>
+                    <th style="width:120px;">Serial/IMEI</th>
                     <th>Tình trạng</th>
                     <th>Ghi chú</th>
                 </tr>
             </thead>
             <tbody>
-                <?php if (!empty($device_list)) :
-                    foreach ($device_list as $idx => $device) :
-                ?>
+                <?php if (!empty($device_list)) : ?>
+                    <?php foreach ($device_list as $idx => $device) : ?>
                         <tr>
-                            <td><?php echo $idx + 1; ?></td>
+                            <td class="text-center"><?php echo $idx + 1; ?></td>
                             <td><?php echo esc_html($device->device_name); ?></td>
                             <td><?php echo esc_html($device->serial_number); ?></td>
                             <td><?php echo esc_html($device->status); ?></td>
                             <td><?php echo esc_html($device->note); ?></td>
                         </tr>
-                    <?php endforeach;
-                else: ?>
+                    <?php endforeach; ?>
+                <?php else: ?>
                     <tr>
-                        <td colspan="8" style="text-align:center;">Chưa có thiết bị nào.</td>
+                        <td colspan="5" class="text-center">Chưa có thiết bị nào.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
-
         </table>
-        <div style="margin-top:32px;display:flex;justify-content:space-between;">
-            <div><strong>Khách hàng</strong><br><br><br>__________________</div>
-            <div><strong>Người lập hóa đơn</strong><br><br><br>__________________</div>
+        <div class="sign">
+            <div style="text-align:center;">
+                <strong>Khách hàng</strong><br><br><br>
+                __________________
+            </div>
+            <div style="text-align:center;">
+                <strong>Người nhận thiết bị</strong><br><br><br>
+                __________________
+            </div>
+        </div>
+    </div>
+</div>
+<div id="aerp-invoice-print-area-device-return" style="display:none; font-family: Arial, sans-serif;">
+    <style>
+        @media print {
+            body {
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+                color: #000;
+            }
+        }
+
+        .sheet {
+            width: 100%;
+        }
+
+        .inv-header {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .inv-meta {
+            margin-bottom: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 16px;
+        }
+
+        table.inv {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .inv th,
+        .inv td {
+            border: 1px solid #000;
+            padding: 6px;
+        }
+
+        .inv thead th {
+            background: #f1f1f1;
+            text-align: center;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .sign {
+            margin-top: 16px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .note {
+            margin-top: 6px;
+            font-size: 11px;
+            font-style: italic;
+        }
+    </style>
+    <div class="sheet">
+        <h3 class="inv-header">BIÊN NHẬN THIẾT BỊ TRẢ</h3>
+        <div class="inv-meta">
+            <div><strong>Mã đơn hàng:</strong> <?php echo esc_html($order->order_code); ?></div>
+            <div><strong>Ngày lập:</strong> <?php echo esc_html($order->order_date); ?></div>
+            <div><strong>Khách hàng:</strong> <?php echo $customer ? esc_html($customer->full_name) : '--'; ?></div>
+            <div><strong>Nhân viên phụ trách:</strong> <?php echo $employee ? esc_html($employee) : '--'; ?></div>
+        </div>
+        <table class="inv">
+            <thead>
+                <tr>
+                    <th style="width:32px;">#</th>
+                    <th>Tên thiết bị</th>
+                    <th style="width:120px;">Serial/IMEI</th>
+                    <th>Ngày trả</th>
+                    <th>Ghi chú</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($device_returns)) : ?>
+                    <?php foreach ($device_returns as $idx => $device) : ?>
+                        <tr>
+                            <td class="text-center"><?php echo $idx + 1; ?></td>
+                            <td><?php echo esc_html($device->device_name); ?></td>
+                            <td><?php echo esc_html($device->serial_number); ?></td>
+                            <td><?php echo esc_html($device->return_date); ?></td>
+                            <td><?php echo esc_html($device->note); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="5" class="text-center">Chưa có thiết bị trả nào.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+        <div class="sign">
+            <div style="text-align:center;">
+                <strong>Khách hàng</strong><br><br><br>
+                __________________
+            </div>
+            <div style="text-align:center;">
+                <strong>Người trả thiết bị</strong><br><br><br>
+                __________________
+            </div>
         </div>
     </div>
 </div>
@@ -560,6 +1040,16 @@ ob_start();
             document.body.innerHTML = originalContents;
             location.reload();
         });
+
+        $('#print-invoice-device-return-btn').on('click', function() {
+            var printContents = document.getElementById('aerp-invoice-print-area-device-return').innerHTML;
+            var originalContents = document.body.innerHTML;
+            document.body.innerHTML = printContents;
+            window.print();
+            document.body.innerHTML = originalContents;
+            location.reload();
+        });
+
 
         // Legacy button handlers for backward compatibility
         $('#print-invoice-btn').on('click', function() {
