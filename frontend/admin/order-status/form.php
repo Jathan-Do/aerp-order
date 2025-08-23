@@ -45,16 +45,16 @@ if (function_exists('aerp_render_breadcrumb')) {
             <?php if ($edit_id): ?><input type="hidden" name="edit_id" value="<?php echo esc_attr($edit_id); ?>"><?php endif; ?>
             <div class="mb-3">
                 <label for="name" class="form-label">Tên trạng thái</label>
-                <input type="text" class="form-control" id="name" name="name" value="<?php echo esc_attr($editing->name ?? ''); ?>" required>
+                <input type="text" class="form-control shadow-sm" id="name" name="name" value="<?php echo esc_attr($editing->name ?? ''); ?>" required>
             </div>
             <div class="mb-3">
                 <label for="color" class="form-label">Màu sắc</label>
-                <input type="color" class="form-control form-control-color" id="color" name="color" value="<?php echo esc_attr($editing->color ?: '#007bff'); ?>">
+                <input type="color" class="form-control shadow-sm form-control-color" id="color" name="color" value="<?php echo esc_attr($editing->color ?: '#007bff'); ?>">
                 <div class="form-text">Màu sắc để phân biệt trạng thái</div>
             </div>
             <div class="mb-3">
                 <label for="description" class="form-label">Mô tả</label>
-                <textarea class="form-control" id="description" name="description" rows="2"><?php echo esc_textarea($editing->description ?? ''); ?></textarea>
+                <textarea class="form-control shadow-sm" id="description" name="description" rows="2"><?php echo esc_textarea($editing->description ?? ''); ?></textarea>
             </div>
             <button type="submit" name="aerp_save_order_status" class="btn btn-primary"><?php echo $edit_id ? 'Cập nhật' : 'Thêm mới'; ?></button>
             <a href="<?php echo home_url('/aerp-order-statuses'); ?>" class="btn btn-secondary ms-2">Quay lại</a>

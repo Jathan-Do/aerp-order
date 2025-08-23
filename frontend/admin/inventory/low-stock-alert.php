@@ -60,6 +60,7 @@ ob_start();
         padding: 6px 12px !important;
         background: #fff !important;
         font-size: 1rem !important;
+        box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
     }
 
     .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -106,7 +107,7 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div class="col-md-4">
                 <label for="threshold" class="form-label">Ngưỡng cảnh báo tồn kho thấp</label>
                 <div class="input-group">
-                    <input type="number" class="form-control" id="threshold" name="threshold"
+                    <input type="number" class="form-control shadow-sm" id="threshold" name="threshold"
                         value="<?php echo esc_attr($threshold); ?>" min="0" required>
                     <span class="input-group-text">sản phẩm</span>
                 </div>
@@ -134,7 +135,7 @@ if (function_exists('aerp_render_breadcrumb')) {
             <input type="hidden" name="page" value="aerp-low-stock-alert">
             <div class="col-md-4">
                 <label for="warehouse_id" class="form-label">Kho</label>
-                <select class="form-select warehouse-select-by-user" id="warehouse_id" name="warehouse_id">
+                <select class="form-select shadow-sm warehouse-select-by-user" id="warehouse_id" name="warehouse_id">
                     <option value="">-- Tất cả kho --</option>
                     <?php foreach ($warehouses as $warehouse): ?>
                         <option value="<?php echo esc_attr($warehouse->id); ?>" <?php selected($warehouse_id, $warehouse->id); ?>>
@@ -145,7 +146,7 @@ if (function_exists('aerp_render_breadcrumb')) {
             </div>
             <div class="col-md-4">
                 <label for="threshold_filter" class="form-label">Ngưỡng tùy chỉnh</label>
-                <input type="number" class="form-control" id="threshold_filter" name="threshold"
+                <input type="number" class="form-control shadow-sm" id="threshold_filter" name="threshold"
                     value="<?php echo esc_attr($threshold); ?>" min="0">
             </div>
             <div class="col-md-4">

@@ -31,6 +31,7 @@ ob_start();
         padding: 6px 12px !important;
         background: #fff !important;
         font-size: 1rem !important;
+        box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
     }
 
     .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -78,7 +79,7 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div class="row">
                 <div class="col-12 col-md-2 mb-2">
                     <label for="filter-status" class="form-label mb-1">Trạng thái</label>
-                    <select id="filter-status" name="status_id" class="form-select">
+                    <select id="filter-status" name="status_id" class="form-select shadow-sm">
                         <?php
                         $statuses = aerp_get_order_statuses();
                         aerp_safe_select_options($statuses, '', 'id', 'name', true);
@@ -87,7 +88,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                 </div>
                 <div class="col-12 col-md-2 mb-2">
                     <label for="filter-status" class="form-label mb-1">Tình trạng</label>
-                    <select id="filter-status" name="status" class="form-select">
+                    <select id="filter-status" name="status" class="form-select shadow-sm">
                         <option value="">Tất cả loại</option>
                         <option value="new">Mới tiếp nhận</option>
                         <option value="assigned">Đã phân đơn</option>
@@ -99,7 +100,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                 </div>
                 <div class="col-12 col-md-2 mb-2">
                     <label for="filter-employee" class="form-label mb-1">Nhân viên</label>
-                    <select id="filter-employee" name="employee_id" class="form-select <?php echo aerp_user_has_role($user_id, 'admin') ? 'employee-select-all' : 'employee-select'; ?>">
+                    <select id="filter-employee" name="employee_id" class="form-select shadow-sm <?php echo aerp_user_has_role($user_id, 'admin') ? 'employee-select-all' : 'employee-select'; ?>">
                         <?php
                         $employees = function_exists('aerp_get_order_assigned_employees') ? aerp_get_order_assigned_employees() : [];
                         aerp_safe_select_options($employees, '', 'user_id', 'full_name', true);
@@ -108,7 +109,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                 </div>
                 <div class="col-12 col-md-2 mb-2">
                     <label for="filter-customer" class="form-label mb-1">Khách hàng</label>
-                    <select id="filter-customer" name="customer_id" class="form-select customer-select">
+                    <select id="filter-customer" name="customer_id" class="form-select shadow-sm customer-select">
                         <?php
                         $customers = function_exists('aerp_get_customers') ? aerp_get_customers() : [];
                         aerp_safe_select_options($customers, '', 'id', 'full_name', true);
@@ -117,8 +118,9 @@ if (function_exists('aerp_render_breadcrumb')) {
                 </div>
                 <div class="col-12 col-md-2 mb-2">
                     <label for="filter-order-type" class="form-label mb-1">Loại đơn</label>
-                    <select id="filter-order-type" name="order_type" class="form-select">
+                    <select id="filter-order-type" name="order_type" class="form-select shadow-sm">
                         <option value="">Tất cả loại</option>
+                        <option value="content">Nội dung yêu cầu</option>
                         <option value="product">Bán hàng</option>
                         <option value="service">Dịch vụ</option>
                         <option value="mixed">Tổng hợp</option>
@@ -130,7 +132,7 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div class="row">
                 <div class="col-12 col-md-2 mb-2">
                     <label for="filter-customer-source" class="form-label mb-1">Nguồn khách hàng</label>
-                    <select id="filter-customer-source" name="customer_source_id" class="form-select">
+                    <select id="filter-customer-source" name="customer_source_id" class="form-select shadow-sm">
                         <option value="">Tất cả nguồn</option>
                         <?php
                         $customer_sources = function_exists('aerp_get_customer_sources') ? aerp_get_customer_sources() : [];
@@ -148,11 +150,11 @@ if (function_exists('aerp_render_breadcrumb')) {
                 </div>
                 <div class="col-12 col-md-2 mb-2">
                     <label for="filter-date-from" class="form-label mb-1">Từ ngày</label>
-                    <input type="date" id="filter-date-from" name="date_from" class="form-control">
+                    <input type="date" id="filter-date-from" name="date_from" class="form-control shadow-sm">
                 </div>
                 <div class="col-12 col-md-2 mb-2">
                     <label for="filter-date-to" class="form-label mb-1">Đến ngày</label>
-                    <input type="date" id="filter-date-to" name="date_to" class="form-control">
+                    <input type="date" id="filter-date-to" name="date_to" class="form-control shadow-sm">
                 </div>
                 <div class="col-12 col-md-1 d-flex align-items-end mb-2">
                     <button type="submit" class="btn btn-primary w-100">Lọc</button>

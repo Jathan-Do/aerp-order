@@ -103,6 +103,7 @@ class AERP_Frontend_Order_Manager
                     case 'status':
                     case 'cancel_reason':
                     case 'reject_reason':
+                    case 'order_type':
                         $format[] = '%s';
                         break;
                     default:
@@ -304,6 +305,51 @@ class AERP_Frontend_Order_Manager
             if (!empty($items_to_delete)) {
                 $ids_placeholder = implode(', ', array_fill(0, count($items_to_delete), '%d'));
                 $wpdb->query($wpdb->prepare("DELETE FROM $item_table WHERE id IN ($ids_placeholder)", $items_to_delete));
+            }
+
+            // 3.5. Tự động cập nhật order_type dựa trên item_type trong order_items (cho cả thêm mới và cập nhật)
+            if (!empty($_POST['order_items']) && is_array($_POST['order_items'])) {
+                $count_product = 0;
+                $count_service = 0;
+                
+                foreach ($_POST['order_items'] as $item) {
+                    $item_type = isset($item['item_type']) ? sanitize_text_field($item['item_type']) : 'product';
+                    $product_name = sanitize_text_field($item['product_name'] ?? '');
+                    $quantity = floatval($item['quantity'] ?? 0);
+                    
+                    // Chỉ đếm các dòng hợp lệ
+                    if (!empty($product_name) && $quantity > 0) {
+                        if ($item_type === 'product') {
+                            $count_product++;
+                        } elseif ($item_type === 'service') {
+                            $count_service++;
+                        }
+                    }
+                }
+                
+                // Cập nhật order_type dựa trên loại sản phẩm/dịch vụ
+                if ($count_product > 0 && $count_service > 0) {
+                    $new_order_type = 'mixed';
+                } elseif ($count_product > 0) {
+                    $new_order_type = 'product';
+                } elseif ($count_service > 0) {
+                    $new_order_type = 'service';
+                } else {
+                    // Nếu không có order_items hợp lệ, giữ nguyên order_type hiện tại
+                    $new_order_type = $order_type;
+                }
+                
+                // Chỉ cập nhật nếu order_type thay đổi và không phải là device/return/content
+                if ($new_order_type !== $order_type && !in_array($order_type, ['device', 'return', 'content'])) {
+                    $wpdb->update($table, ['order_type' => $new_order_type], ['id' => $order_id], ['%s'], ['%d']);
+                }
+            } else {
+                // Nếu không có order_items, kiểm tra xem có phải đang chuyển từ content sang product/service không
+                if (in_array($order_type, ['product', 'service', 'mixed']) && !in_array($existing_order_type ?? '', ['device', 'return', 'content'])) {
+                    // Nếu order_type là product/service/mixed nhưng không có order_items, 
+                    // vẫn cập nhật order_type vào database để đảm bảo tính nhất quán
+                    $wpdb->update($table, ['order_type' => $order_type], ['id' => $order_id], ['%s'], ['%d']);
+                }
             }
 
             // 4. Lưu thông tin TRẢ THIẾT BỊ

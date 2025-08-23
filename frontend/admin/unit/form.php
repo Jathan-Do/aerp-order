@@ -38,11 +38,11 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="name" class="form-label">Tên đơn vị</label>
-                    <input type="text" name="name" id="name" value="<?php echo $edit_unit ? esc_attr($edit_unit->name) : ''; ?>" class="form-control" required>
+                    <input type="text" name="name" id="name" value="<?php echo $edit_unit ? esc_attr($edit_unit->name) : ''; ?>" class="form-control shadow-sm" required>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="symbol" class="form-label">Ký hiệu</label>
-                    <input type="text" name="symbol" id="symbol" value="<?php echo $edit_unit ? esc_attr($edit_unit->symbol) : ''; ?>" class="form-control">
+                    <input type="text" name="symbol" id="symbol" value="<?php echo $edit_unit ? esc_attr($edit_unit->symbol) : ''; ?>" class="form-control shadow-sm">
                 </div>
             </div>
             <button type="submit" name="aerp_save_unit" class="btn btn-primary"><?php echo $edit_id ? 'Cập nhật' : 'Thêm mới'; ?></button>

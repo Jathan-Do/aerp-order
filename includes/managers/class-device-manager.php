@@ -14,10 +14,11 @@ class AERP_Device_Manager
             'device_name' => sanitize_text_field($_POST['device_name']),
             'serial_number' => sanitize_text_field($_POST['serial_number']),
             'status' => sanitize_text_field($_POST['status']),
+            'progress_id' => !empty($_POST['progress_id']) ? absint($_POST['progress_id']) : null,
             'note' => sanitize_text_field($_POST['note']),
             'partner_id' => sanitize_text_field($_POST['partner_id']),
         ];
-        $format = ['%s', '%s', '%s', '%d'];
+        $format = ['%s', '%s', '%s', '%d', '%s', '%d'];
         if ($id) {
             $wpdb->update($table, $data, ['id' => $id], $format, ['%d']);
             $msg = 'Đã cập nhật thiết bị!';

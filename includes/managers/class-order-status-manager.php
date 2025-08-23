@@ -12,7 +12,7 @@ class AERP_Order_Status_Manager
         $id = isset($_POST['edit_id']) ? absint($_POST['edit_id']) : 0;
         $data = [
             'name' => sanitize_text_field($_POST['name']),
-            'color' => sanitize_text_field($_POST['color']),
+            'color' => sanitize_hex_color($_POST['color']),
             'description' => sanitize_text_field($_POST['description']),
         ];
         $format = ['%s', '%s', '%s', '%d'];

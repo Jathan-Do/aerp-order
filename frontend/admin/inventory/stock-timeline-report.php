@@ -69,6 +69,7 @@ ob_start();
         padding: 6px 12px !important;
         background: #fff !important;
         font-size: 1rem !important;
+        box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
     }
 
     .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -111,7 +112,7 @@ if (function_exists('aerp_render_breadcrumb')) {
 
             <div class="col-md-3">
                 <label for="warehouse_id" class="form-label">Kho</label>
-                <select class="form-select warehouse-select-by-user" id="warehouse_id" name="warehouse_id">
+                <select class="form-select shadow-sm warehouse-select-by-user" id="warehouse_id" name="warehouse_id">
                     <option value="">-- Tất cả kho --</option>
                     <?php foreach ($warehouses as $warehouse): ?>
                         <option value="<?php echo esc_attr($warehouse->id); ?>" <?php selected($warehouse_id, $warehouse->id); ?>>
@@ -123,7 +124,7 @@ if (function_exists('aerp_render_breadcrumb')) {
 
             <div class="col-md-3">
                 <label for="product_id" class="form-label">Sản phẩm <span class="text-danger">*</span></label>
-                <select class="form-select product-select-by-warehouse" id="product_id" name="product_id" required>
+                <select class="form-select shadow-sm product-select-by-warehouse" id="product_id" name="product_id" required>
                     <option value="">-- Chọn sản phẩm --</option>
                     <?php foreach ($products as $product): ?>
                         <option value="<?php echo esc_attr($product->id); ?>" <?php selected($product_id, $product->id); ?>>
@@ -135,12 +136,12 @@ if (function_exists('aerp_render_breadcrumb')) {
 
             <div class="col-md-2">
                 <label for="start_date" class="form-label">Từ ngày</label>
-                <input type="date" class="form-control bg-light" id="start_date" name="start_date" value="<?php echo esc_attr($start_date); ?>">
+                <input type="date" class="form-control shadow-sm bg-light" id="start_date" name="start_date" value="<?php echo esc_attr($start_date); ?>">
             </div>
 
             <div class="col-md-2">
                 <label for="end_date" class="form-label">Đến ngày</label>
-                <input type="date" class="form-control bg-light" id="end_date" name="end_date" value="<?php echo esc_attr($end_date); ?>">
+                <input type="date" class="form-control shadow-sm bg-light" id="end_date" name="end_date" value="<?php echo esc_attr($end_date); ?>">
             </div>
 
             <div class="col-md-2">

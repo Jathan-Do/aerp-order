@@ -118,11 +118,11 @@ if (function_exists('aerp_render_breadcrumb')) {
             <?php if ($is_edit): ?><input type="hidden" name="id" value="<?php echo esc_attr($warehouse->id); ?>"><?php endif; ?>
             <div class="mb-3">
                 <label class="form-label">Tên kho</label>
-                <input type="text" name="name" class="form-control" value="<?php echo esc_attr($warehouse->name ?? ''); ?>" required>
+                <input type="text" name="name" class="form-control shadow-sm" value="<?php echo esc_attr($warehouse->name ?? ''); ?>" required>
             </div>
             <div class="mb-3">
                 <label class="form-label">Chi nhánh</label>
-                <select name="work_location_id" class="form-select work-location-select" required>
+                <select name="work_location_id" class="form-select shadow-sm work-location-select" required>
                     <?php $locations = aerp_get_work_locations();
                     aerp_safe_select_options($locations, $warehouse->work_location_id, 'id', 'name', true);
                     ?>

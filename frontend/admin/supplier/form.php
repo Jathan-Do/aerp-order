@@ -51,23 +51,23 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Tên nhà cung cấp</label>
-                    <input type="text" name="name" class="form-control" value="<?php echo esc_attr($supplier->name ?? ''); ?>" required>
+                    <input type="text" name="name" class="form-control shadow-sm" value="<?php echo esc_attr($supplier->name ?? ''); ?>" required>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Số điện thoại</label>
-                    <input type="text" name="phone" class="form-control" value="<?php echo esc_attr($supplier->phone ?? ''); ?>">
+                    <input type="text" name="phone" class="form-control shadow-sm" value="<?php echo esc_attr($supplier->phone ?? ''); ?>">
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Email</label>
-                    <input type="email" name="email" class="form-control" value="<?php echo esc_attr($supplier->email ?? ''); ?>">
+                    <input type="email" name="email" class="form-control shadow-sm" value="<?php echo esc_attr($supplier->email ?? ''); ?>">
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Địa chỉ</label>
-                    <input type="text" name="address" class="form-control" value="<?php echo esc_attr($supplier->address ?? ''); ?>">
+                    <input type="text" name="address" class="form-control shadow-sm" value="<?php echo esc_attr($supplier->address ?? ''); ?>">
                 </div>
                 <div class="col-12 mb-3">
                     <label class="form-label">Ghi chú</label>
-                    <textarea name="note" class="form-control" rows="2"><?php echo esc_textarea($supplier->note ?? ''); ?></textarea>
+                    <textarea name="note" class="form-control shadow-sm" rows="2"><?php echo esc_textarea($supplier->note ?? ''); ?></textarea>
                 </div>
             </div>
             <div class="d-flex gap-2">

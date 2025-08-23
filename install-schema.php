@@ -23,6 +23,7 @@ function aerp_order_get_table_names()
         $wpdb->prefix . 'aerp_inventory_transfer_items',
         $wpdb->prefix . 'aerp_suppliers',
         $wpdb->prefix . 'aerp_warehouse_managers',
+        $wpdb->prefix . 'aerp_order_device_progresses',
     ];
 }
 
@@ -45,7 +46,7 @@ function aerp_order_install_schema()
         customer_source_id BIGINT DEFAULT NULL,
         status_id BIGINT,
         status ENUM('new','assigned','rejected','completed','paid','cancelled') DEFAULT 'new',
-        order_type ENUM('product','device','return') DEFAULT 'product',
+        order_type ENUM('product','device','return','content','service','mixed') DEFAULT 'content',
         cancel_reason TEXT DEFAULT NULL,
         reject_reason TEXT DEFAULT NULL,
         note TEXT,
@@ -79,6 +80,7 @@ function aerp_order_install_schema()
         serial_number VARCHAR(100) DEFAULT NULL,
         status VARCHAR(100) DEFAULT NULL,
         device_status ENUM('received','disposed') DEFAULT 'received',
+        progress_id BIGINT DEFAULT NULL,
         note TEXT DEFAULT NULL,
         partner_id BIGINT DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -86,6 +88,7 @@ function aerp_order_install_schema()
         INDEX idx_device_name (device_name),
         INDEX idx_serial_number (serial_number),
         INDEX idx_device_status (device_status),
+        INDEX idx_progress_id (progress_id),
         INDEX idx_partner_id (partner_id)
     ) $charset_collate;";
 
@@ -100,6 +103,19 @@ function aerp_order_install_schema()
         INDEX idx_order_id (order_id),
         INDEX idx_device_id (device_id),
         INDEX idx_return_date (return_date)
+    ) $charset_collate;";
+
+    // 1c-c. Tiến độ thiết bị (tùy chỉnh)
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_order_device_progresses (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT DEFAULT NULL,
+        color VARCHAR(20) DEFAULT '#007cba',
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_name (name),
+        INDEX idx_color (color),
+        INDEX idx_is_active (is_active)
     ) $charset_collate;";
 
     // 1d. Template nội dung triển khai
@@ -150,7 +166,7 @@ function aerp_order_install_schema()
         INDEX idx_product_id (product_id),
         INDEX idx_product_name (product_name)
     ) $charset_collate;";
-    
+
     // 3. Lịch sử trạng thái đơn
     $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_order_status_logs (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,

@@ -39,11 +39,11 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="name" class="form-label">Tên danh mục</label>
-                    <input type="text" name="name" id="name" value="<?php echo $edit_cat ? esc_attr($edit_cat->name) : ''; ?>" class="form-control" required>
+                    <input type="text" name="name" id="name" value="<?php echo $edit_cat ? esc_attr($edit_cat->name) : ''; ?>" class="form-control shadow-sm" required>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="parent_id" class="form-label">Danh mục cha</label>
-                    <select name="parent_id" id="parent_id" class="form-select">
+                    <select name="parent_id" id="parent_id" class="form-select shadow-sm">
                         <option value="">-- Không chọn --</option>
                         <?php foreach ($categories as $cat): if ($edit_id && $cat->id == $edit_id) continue; ?>
                             <option value="<?php echo $cat->id; ?>" <?php if ($edit_cat && $edit_cat->parent_id == $cat->id) echo 'selected'; ?>><?php echo esc_html($cat->name); ?></option>

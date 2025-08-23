@@ -133,40 +133,9 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
             $filters[] = "order_date <= %s";
             $params[] = $this->filters['date_to'];
         }
-        // Bổ sung filter loại đơn hàng động
         if (!empty($this->filters['order_type'])) {
-            global $wpdb;
-            $order_type = $this->filters['order_type'];
-            if ($order_type === 'product') {
-                $order_ids = $wpdb->get_col("SELECT order_id FROM {$wpdb->prefix}aerp_order_items GROUP BY order_id HAVING SUM(CASE WHEN item_type = 'service' OR (item_type IS NULL AND product_id IS NULL) THEN 1 ELSE 0 END) = 0");
-                if (!empty($order_ids)) {
-                    $filters[] = "id IN (" . implode(',', array_map('intval', $order_ids)) . ")";
-                } else {
-                    $filters[] = "0=1"; // Không có đơn nào
-                }
-            } elseif ($order_type === 'service') {
-                $order_ids = $wpdb->get_col("SELECT order_id FROM {$wpdb->prefix}aerp_order_items GROUP BY order_id HAVING SUM(CASE WHEN item_type = 'product' OR (item_type IS NULL AND product_id IS NOT NULL) THEN 1 ELSE 0 END) = 0");
-                if (!empty($order_ids)) {
-                    $filters[] = "id IN (" . implode(',', array_map('intval', $order_ids)) . ")";
-                } else {
-                    $filters[] = "0=1"; // Không có đơn nào
-                }
-            } elseif ($order_type === 'mixed') {
-                $order_ids = $wpdb->get_col("SELECT order_id FROM {$wpdb->prefix}aerp_order_items GROUP BY order_id HAVING SUM(CASE WHEN item_type = 'product' OR (item_type IS NULL AND product_id IS NOT NULL) THEN 1 ELSE 0 END) > 0 AND SUM(CASE WHEN item_type = 'service' OR (item_type IS NULL AND product_id IS NULL) THEN 1 ELSE 0 END) > 0");
-                if (!empty($order_ids)) {
-                    $filters[] = "id IN (" . implode(',', array_map('intval', $order_ids)) . ")";
-                } else {
-                    $filters[] = "0=1"; // Không có đơn nào
-                }
-            } elseif ($order_type === 'device') {
-                // Đơn nhận thiết bị: lọc theo cột order_type = 'device' trong bảng aerp_order_orders
-                $filters[] = "order_type = %s";
-                $params[] = 'device';
-            } elseif ($order_type === 'return') {
-                // Đơn trả thiết bị: lọc theo cột order_type = 'return' trong bảng aerp_order_orders
-                $filters[] = "order_type = %s";
-                $params[] = 'return';
-            }
+            $filters[] = "order_type = %s";
+            $params[] = $this->filters['order_type'];
         }
         return [$filters, $params];
     }
@@ -177,7 +146,7 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
         $out = [];
         foreach ($phones as $phone) {
             $str = '<a href="tel:' . esc_attr($phone->phone_number) . '">' . esc_html($phone->phone_number) . '</a>';
-            $str .= ' <a href="#" class="copy-phone ms-1" data-phone="' . esc_attr($phone->phone_number) . '" title="Copy"><i class="fas fa-clipboard"></i></a>';
+            $str .= ' <a href="#" class="copy-phone ms-1" data-phone="' . esc_attr($phone->phone_number) . '" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Copy"><i class="fas fa-clipboard"></i></a>';
             if ($phone->is_primary) $str .= ' <span class="badge bg-success">Chính</span>';
             $out[] = $str;
         }
@@ -328,49 +297,26 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
     }
     protected function column_order_type($item)
     {
-        global $wpdb;
-        $order_id = $item->id;
-
-        // 1. Nếu có thiết bị trả thì là đơn trả thiết bị
-        $device_return_count = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_device_returns WHERE order_id = %d",
-            $order_id
-        ));
-        if ($device_return_count > 0) {
-            return '<span class="badge bg-danger">Trả thiết bị</span>';
+        $order_type = $item->order_type ?? '';
+        
+        if ($order_type === 'content') {
+            return '<span class="badge bg-secondary">Nội dung yêu cầu</span>';
         }
-
-        // 2. Nếu có thiết bị nhận thì là đơn nhận thiết bị
-        $device_count = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_devices WHERE order_id = %d",
-            $order_id
-        ));
-        if ($device_count > 0) {
+        if ($order_type === 'device') {
             return '<span class="badge bg-primary">Nhận thiết bị</span>';
         }
-
-        // 3. Nếu không, xác định như cũ
-        $count_product = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d AND (item_type = 'product' OR (item_type IS NULL AND product_id IS NOT NULL))",
-            $order_id
-        ));
-        $count_service = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d AND (item_type = 'service' OR (item_type IS NULL AND product_id IS NULL))",
-            $order_id
-        ));
-        if ($count_product > 0 && $count_service > 0) {
-            $type = 'mixed';
-        } elseif ($count_product > 0) {
-            $type = 'product';
-        } else {
-            $type = 'service';
+        if ($order_type === 'return') {
+            return '<span class="badge bg-danger">Trả thiết bị</span>';
         }
-        $types = [
-            'product' => '<span class="badge bg-info">Bán hàng</span>',
-            'service' => '<span class="badge bg-success">Dịch vụ</span>',
-            'mixed'   => '<span class="badge bg-warning">Tổng hợp</span>',
-        ];
-        return $types[$type] ?? esc_html($type);
+        if ($order_type === 'service') {
+            return '<span class="badge bg-success">Dịch vụ</span>';
+        }
+        if ($order_type === 'product') {
+            return '<span class="badge bg-info">Bán hàng</span>';
+        }
+        if ($order_type === 'mixed') {
+            return '<span class="badge bg-warning">Tổng hợp</span>';
+        }
     }
 
     protected function column_action($item)

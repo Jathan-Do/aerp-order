@@ -55,7 +55,7 @@ if (function_exists('aerp_render_breadcrumb')) {
         <form id="aerp-implementation-template-filter-form" class="row g-2 mb-3 aerp-table-ajax-form" data-table-wrapper="#aerp-implementation-template-table-wrapper" data-ajax-action="aerp_implementation_template_filter">
             <div class="col-12 col-md-3 mb-2">
                 <label for="filter-is_active" class="form-label mb-1">Trạng thái</label>
-                <select id="filter-is_active" name="is_active" class="form-select">
+                <select id="filter-is_active" name="is_active" class="form-select shadow-sm">
                     <option value="">-- Tất cả --</option>
                     <option value="1">Bật</option>
                     <option value="0">Tắt</option>

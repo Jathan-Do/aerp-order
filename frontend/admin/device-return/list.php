@@ -30,6 +30,7 @@ ob_start();
         padding: 6px 12px !important;
         background: #fff !important;
         font-size: 1rem !important;
+        box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
     }
 
     .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -72,11 +73,11 @@ if (function_exists('aerp_render_breadcrumb')) {
         <form id="aerp-device-return-filter-form" class="row g-2 mb-3 aerp-table-ajax-form" data-table-wrapper="#aerp-device-return-table-wrapper" data-ajax-action="aerp_device_return_filter_device_returns">
             <div class="col-12 col-md-2 mb-2">
                 <label for="filter-date-from" class="form-label mb-1">Từ ngày</label>
-                <input type="date" id="filter-date-from" name="date_from" class="form-control">
+                <input type="date" id="filter-date-from" name="date_from" class="form-control shadow-sm">
             </div>
             <div class="col-12 col-md-2 mb-2">
                 <label for="filter-date-to" class="form-label mb-1">Đến ngày</label>
-                <input type="date" id="filter-date-to" name="date_to" class="form-control">
+                <input type="date" id="filter-date-to" name="date_to" class="form-control shadow-sm">
             </div>
             <div class="col-12 col-md-1 d-flex align-items-end mb-2">
                 <button type="submit" class="btn btn-primary w-100">Lọc</button>

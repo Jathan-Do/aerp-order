@@ -32,6 +32,7 @@ ob_start();
         padding: 6px 12px !important;
         background: #fff !important;
         font-size: 1rem !important;
+        box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
     }
 
     .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -70,23 +71,34 @@ if (function_exists('aerp_render_breadcrumb')) {
             <?php if ($edit_id): ?><input type="hidden" name="edit_id" value="<?php echo esc_attr($edit_id); ?>"><?php endif; ?>
             <div class="mb-3">
                 <label for="device_name" class="form-label">Tên thiết bị</label>
-                <input type="text" class="form-control" id="device_name" name="device_name" value="<?php echo esc_attr($editing->device_name ?? ''); ?>" placeholder="Nhập tên thiết bị" required>
+                <input type="text" class="form-control shadow-sm" id="device_name" name="device_name" value="<?php echo esc_attr($editing->device_name ?? ''); ?>" placeholder="Nhập tên thiết bị" required>
             </div>
             <div class="mb-3">
                 <label for="serial_number" class="form-label">Serial/IMEI</label>
-                <input type="text" class="form-control" id="serial_number" name="serial_number" value="<?php echo esc_attr($editing->serial_number ?? ''); ?>" placeholder="Nhập serial/IMEI" required>
+                <input type="text" class="form-control shadow-sm" id="serial_number" name="serial_number" value="<?php echo esc_attr($editing->serial_number ?? ''); ?>" placeholder="Nhập serial/IMEI">
             </div>
             <div class="mb-3">
                 <label for="status" class="form-label">Tình trạng</label>
-                <input type="text" class="form-control" id="status" name="status" value="<?php echo esc_attr($editing->status ?? ''); ?>" placeholder="Nhập tình trạng" required>
+                <input type="text" class="form-control shadow-sm" id="status" name="status" value="<?php echo esc_attr($editing->status ?? ''); ?>" placeholder="Nhập tình trạng">
+            </div>
+            <div class="mb-3">
+                <label for="progress_id" class="form-label">Tiến độ</label>
+                <select class="form-select shadow-sm" id="progress_id" name="progress_id">
+                    <option value="">-- Chọn tiến độ --</option>
+                    <?php 
+                    $progresses = AERP_Device_Progress_Manager::get_active();
+                    foreach ($progresses as $progress): ?>
+                        <option value="<?php echo esc_attr($progress->id); ?>" <?php selected($editing->progress_id ?? '', $progress->id); ?>><?php echo esc_html($progress->name); ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
             <div class="mb-3">
                 <label for="note" class="form-label">Ghi chú</label>
-                <textarea class="form-control" id="note" name="note" rows="2" placeholder="Nhập ghi chú"><?php echo esc_textarea($editing->note ?? ''); ?></textarea>
+                <textarea class="form-control shadow-sm" id="note" name="note" rows="2" placeholder="Nhập ghi chú"><?php echo esc_textarea($editing->note ?? ''); ?></textarea>
             </div>
             <div class="mb-3">
                 <label for="partner_id" class="form-label">Đối tác</label>
-                <select class="form-select supplier-select" id="partner_id" name="partner_id" style="width:100%">
+                <select class="form-select shadow-sm supplier-select" id="partner_id" name="partner_id" style="width:100%">
                     <option value="">-- Chọn đối tác --</option>
                     <?php foreach (AERP_Supplier_Manager::get_all() as $s): ?>
                         <option value="<?php echo esc_attr($s->id); ?>" <?php selected($editing->partner_id, $s->id); ?>><?php echo esc_html($s->name); ?></option>

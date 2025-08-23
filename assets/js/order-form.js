@@ -37,31 +37,31 @@ jQuery(document).ready(function ($) {
         return `<div class="row mb-2 order-item-row">
             <div class="col-md-2 mb-2">
                 <label class="form-label">Loại</label>
-                <select class="form-select item-type-select" name="order_items[${idx}][item_type]">
+                <select class="form-select shadow-sm item-type-select shadow-sm" name="order_items[${idx}][item_type]">
                     <option value="product">Sản phẩm</option>
                     <option value="service">Dịch vụ</option>
                 </select>
             </div>
             <div class="col-md-2 mb-2">
                 <label class="form-label">Sản phẩm trong đơn</label>
-                <input type="text" class="form-control product-name-input" name="order_items[${idx}][product_name]" placeholder="Tên sản phẩm/dịch vụ" style="display:none">
-                <select class="form-select product-select-all-warehouses" name="order_items[${idx}][product_id]" style="width:100%"></select>
+                <input type="text" class="form-control shadow-sm shadow-sm product-name-input" name="order_items[${idx}][product_name]" placeholder="Tên sản phẩm/dịch vụ" style="display:none">
+                <select class="form-select shadow-sm product-select-all-warehouses" name="order_items[${idx}][product_id]" style="width:100%"></select>
                 <input type="hidden" name="order_items[${idx}][product_id]" class="product-id-input">
             </div>
             <div class="col-md-2 mb-2 d-flex align-items-end">
                 <div class="w-100">
                     <label class="form-label">Số lượng</label>
-                    <input type="number" class="form-control" name="order_items[${idx}][quantity]" placeholder="Số lượng" min="0" step="0.01" >
+                    <input type="number" class="form-control shadow-sm shadow-sm" name="order_items[${idx}][quantity]" placeholder="Số lượng" min="0" step="0.01" >
                 </div>
                 <span class="unit-label ms-2"></span>
                 <input type="hidden" name="order_items[${idx}][unit_name]" class="unit-name-input">
             </div>
-            <div class="col-md-1 mb-2">
-                <label class="form-label">VAT</label>
-                <input type="number" class="form-control" name="order_items[${idx}][vat_percent]" placeholder="VAT (%)" min="0" max="100" step="0.01">
+            <div class="col-md-1 mb-2  vat-percent" style="display:none;">
+                <label class="form-label">VAT %</label>
+                <input type="number" class="form-control shadow-sm shadow-sm" name="order_items[${idx}][vat_percent]" placeholder="VAT (%)" min="0" max="100" step="0.01" >
             </div>
-            <div class="col-md-2 mb-2"><label class="form-label">Đơn giá</label><input type="number" class="form-control" name="order_items[${idx}][unit_price]" placeholder="Đơn giá" min="0" step="0.01" ></div>
-            <div class="col-md-2 mb-2"><label class="form-label">Thành tiền</label><input type="text" class="form-control total-price-field" placeholder="Thành tiền" readonly></div>
+            <div class="col-md-2 mb-2"><label class="form-label">Đơn giá</label><input type="number" class="form-control shadow-sm shadow-sm" name="order_items[${idx}][unit_price]" placeholder="Đơn giá" min="0" step="0.01" ></div>
+            <div class="col-md-2 mb-2"><label class="form-label">Thành tiền</label><input type="text" class="form-control shadow-sm shadow-sm total-price-field" placeholder="Thành tiền" readonly></div>
             <div class="col-md-1 mb-2 d-flex align-items-end"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>
         </div>`;
     }
@@ -142,6 +142,15 @@ jQuery(document).ready(function ($) {
                     }
                 }
             });
+
+            // Áp dụng trạng thái checkbox VAT toàn cục cho dòng mới
+            // var isVatOn = $("#toggle-vat").is(":checked");
+            // if (isVatOn) {
+            //     $newRow.find('.vat-percent').css('display', 'block');
+            // } else {
+            //     $newRow.find('.vat-percent').css('display', 'none');
+            //     $newRow.find('input[name*="[vat_percent]"]').val(0).trigger('input');
+            // }
         });
     $(document).on("click", ".remove-order-item", function () {
         $(this).closest(".order-item-row").remove();
@@ -594,15 +603,15 @@ jQuery(document).ready(function ($) {
             var row = `<div class="row mb-2 device-return-row">
                 <div class="col-md-4">
                     <label class="form-label">Thiết bị nhận</label>
-                    <select class="form-select received-device-select" style="width:100%" name="device_returns[${deviceReturnIndex}][device_id]"></select>
+                    <select class="form-select shadow-sm received-device-select shadow-sm" style="width:100%" name="device_returns[${deviceReturnIndex}][device_id]"></select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Ngày trả</label>
-                    <input type="date" class="form-control" name="device_returns[${deviceReturnIndex}][return_date]" value="${today}">
+                    <input type="date" class="form-control shadow-sm shadow-sm" name="device_returns[${deviceReturnIndex}][return_date]" value="${today}">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Ghi chú</label>
-                    <input type="text" class="form-control" name="device_returns[${deviceReturnIndex}][note]" placeholder="Ghi chú">
+                    <textarea type="text" class="form-control shadow-sm shadow-sm" name="device_returns[${deviceReturnIndex}][note]" placeholder="Ghi chú" rows="1"></textarea>
                 </div>
                 <div class="col-md-1 mt-2 d-flex align-items-end">
                     <button type="button" class="btn btn-outline-danger remove-device-return-row">Xóa</button>
@@ -718,3 +727,17 @@ window.initAerpProductSelect2 = function (selector, options = {}) {
         });
     });
 })(jQuery);
+
+// // Thêm đoạn xử lý toggle VAT toàn cục cho tất cả dòng (nếu chưa có hoặc cần sửa lại)
+// $(document).on('change', '#toggle-vat', function() {
+//     var isVatOn = $(this).is(':checked');
+//     $('#order-items-container .order-item-row').each(function() {
+//         var $vat = $(this).find('.vat-percent');
+//         if (isVatOn) {
+//             $vat.css('display', 'block');
+//         } else {
+//             $vat.css('display', 'none');
+//             $(this).find('input[name*="[vat_percent]"]').val(0).trigger('input');
+//         }
+//     });
+// });

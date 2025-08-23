@@ -705,6 +705,7 @@ function aerp_device_filter_devices_callback()
         'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
         'order' => sanitize_text_field($_POST['order'] ?? ''),
         'partner_id' => intval($_POST['partner_id'] ?? 0),
+        'progress_id' => intval($_POST['progress_id'] ?? 0),
     ];
     $table = new AERP_Device_Table();
     $table->set_filters($filters);
@@ -726,6 +727,28 @@ function aerp_device_return_filter_device_returns_callback()
         'date_to' => sanitize_text_field($_POST['date_to'] ?? ''),
     ];
     $table = new AERP_Device_Return_Table();
+    $table->set_filters($filters);
+    ob_start();
+    $table->render();
+    $html = ob_get_clean();
+    wp_send_json_success(['html' => $html]);
+}
+
+add_action('wp_ajax_aerp_device_progress_filter', 'aerp_device_progress_filter_callback');
+add_action('wp_ajax_nopriv_aerp_device_progress_filter', 'aerp_device_progress_filter_callback');
+function aerp_device_progress_filter_callback()
+{
+    $raw_is_active = isset($_POST['is_active']) ? $_POST['is_active'] : '';
+    $is_active = ($raw_is_active === '' || $raw_is_active === null) ? '' : intval($raw_is_active);
+    $filters = [
+        'search_term' => sanitize_text_field($_POST['s'] ?? ''),
+        'paged' => intval($_POST['paged'] ?? 1),
+        'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
+        'order' => sanitize_text_field($_POST['order'] ?? ''),
+        'is_active' => $is_active,
+        'color' => sanitize_text_field($_POST['color'] ?? ''),
+    ];
+    $table = new AERP_Device_Progress_Table();
     $table->set_filters($filters);
     ob_start();
     $table->render();

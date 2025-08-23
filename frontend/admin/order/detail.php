@@ -32,14 +32,23 @@ $device_list = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}a
 $is_device_order = !empty($device_list);
 
 // Xác định tab active theo order_type
-$active_tab = 'products';
+$active_tab = 'content';
 if (!empty($order->order_type)) {
-    if ($order->order_type === 'device') {
-        $active_tab = 'devices';
-    } elseif ($order->order_type === 'return') {
-        $active_tab = 'device-returns';
-    } else {
-        $active_tab = 'products';
+    switch ($order->order_type) {
+        case 'device':
+            $active_tab = 'devices';
+            break;
+        case 'return':
+            $active_tab = 'device-returns';
+            break;
+        case 'product':
+        case 'service':
+        case 'mixed':
+            $active_tab = 'products';
+            break;
+        default:
+            $active_tab = 'content';
+            break;
     }
 }
 
@@ -175,10 +184,10 @@ if (function_exists('aerp_render_breadcrumb')) {
     <div class="card aerp-tabs-container">
         <div class="card-header pb-0">
             <div class="nav nav-tabs" role="tablist">
-                <a class="nav-link <?php echo $active_tab === 'products' ? 'active' : ''; ?>" id="tab-products-link" data-bs-toggle="tab" href="#tab-products" role="tab" aria-controls="tab-products" aria-selected="<?php echo $active_tab === 'products' ? 'true' : 'false'; ?>">Sản phẩm trong đơn</a>
+                <a class="nav-link <?php echo $active_tab === 'content' ? 'active' : ''; ?>" id="tab-content-link" data-bs-toggle="tab" href="#tab-content" role="tab" aria-controls="tab-content" aria-selected="<?php echo $active_tab === 'content' ? 'true' : 'false'; ?>">Nội dung yêu cầu/triển khai</a>
+                <a class="nav-link <?php echo (in_array($active_tab, ['products', 'service'])) ? 'active' : ''; ?>" id="tab-products-link" data-bs-toggle="tab" href="#tab-products" role="tab" aria-controls="tab-products" aria-selected="<?php echo (in_array($active_tab, ['products', 'service'])) ? 'true' : 'false'; ?>">Sản phẩm/Dịch vụ trong đơn</a>
                 <a class="nav-link <?php echo $active_tab === 'devices' ? 'active' : ''; ?>" id="tab-devices-link" data-bs-toggle="tab" href="#tab-devices" role="tab" aria-controls="tab-devices" aria-selected="<?php echo $active_tab === 'devices' ? 'true' : 'false'; ?>">Thiết bị nhận từ khách</a>
                 <a class="nav-link <?php echo $active_tab === 'device-returns' ? 'active' : ''; ?>" id="tab-device-returns-link" data-bs-toggle="tab" href="#tab-device-returns" role="tab" aria-controls="tab-device-returns" aria-selected="<?php echo $active_tab === 'device-returns' ? 'true' : 'false'; ?>">Thiết bị đã trả</a>
-                <a class="nav-link <?php echo $active_tab === 'content' ? 'active' : ''; ?>" id="tab-content-link" data-bs-toggle="tab" href="#tab-content" role="tab" aria-controls="tab-content" aria-selected="<?php echo $active_tab === 'content' ? 'true' : 'false'; ?>">Nội dung yêu cầu/triển khai</a>
             </div>
         </div>
         <div class="card-body">
@@ -478,7 +487,7 @@ if (function_exists('aerp_render_breadcrumb')) {
 
                 <div class="col-12 col-md-2">
                     <label class="form-label mb-1">Trạng thái cũ</label>
-                    <select name="old_status_id" class="form-select">
+                    <select name="old_status_id" class="form-select shadow-sm">
                         <?php
                         $statuses = aerp_get_order_statuses();
                         aerp_safe_select_options($statuses, '', 'id', 'name', true);
@@ -488,7 +497,7 @@ if (function_exists('aerp_render_breadcrumb')) {
 
                 <div class="col-12 col-md-2">
                     <label class="form-label mb-1">Trạng thái mới</label>
-                    <select name="new_status_id" class="form-select">
+                    <select name="new_status_id" class="form-select shadow-sm">
                         <?php
                         $statuses = aerp_get_order_statuses();
                         aerp_safe_select_options($statuses, '', 'id', 'name', true);

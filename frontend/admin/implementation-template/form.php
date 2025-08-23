@@ -50,11 +50,11 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div class="row">
                 <div class="col-12 mb-3">
                     <label class="form-label">Tên template</label>
-                    <input type="text" name="name" class="form-control" value="<?php echo esc_attr($template->name ?? ''); ?>" required>
+                    <input type="text" name="name" class="form-control shadow-sm" value="<?php echo esc_attr($template->name ?? ''); ?>" required>
                 </div>
                 <div class="col-12 mb-3">
                     <label class="form-label">Nội dung</label>
-                    <textarea name="content" class="form-control" rows="8" required><?php echo esc_textarea($template->content ?? ''); ?></textarea>
+                    <textarea name="content" class="form-control shadow-sm" rows="8" required><?php echo esc_textarea($template->content ?? ''); ?></textarea>
                 </div>
                 <div class="col-12 mb-3 ms-3 form-check form-switch">
                     <input type="checkbox" role="switch" class="form-check-input" id="is_active" name="is_active" <?php checked(($template->is_active ?? 1) == 1); ?> style="width: 3em; height: 1.5em; margin-right: 10px;">

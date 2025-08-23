@@ -64,6 +64,7 @@ ob_start();
         padding: 6px 12px !important;
         background: #fff !important;
         font-size: 1rem !important;
+        box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
     }
 
     .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -106,7 +107,7 @@ if (function_exists('aerp_render_breadcrumb')) {
 
             <div class="col-md-2">
                 <label for="warehouse_id" class="form-label">Kho</label>
-                <select class="form-select warehouse-select-by-user" id="warehouse_id" name="warehouse_id">
+                <select class="form-select shadow-sm warehouse-select-by-user" id="warehouse_id" name="warehouse_id">
                     <option value="">-- Tất cả kho --</option>
                     <?php foreach ($warehouses as $warehouse): ?>
                         <option value="<?php echo esc_attr($warehouse->id); ?>" <?php selected($warehouse_id, $warehouse->id); ?>>
@@ -118,7 +119,7 @@ if (function_exists('aerp_render_breadcrumb')) {
 
             <div class="col-md-2">
                 <label for="product_id" class="form-label">Sản phẩm</label>
-                <select class="form-select product-select-by-warehouse" id="product_id" name="product_id">
+                <select class="form-select shadow-sm product-select-by-warehouse" id="product_id" name="product_id">
                     <option value="">-- Tất cả sản phẩm --</option>
                     <?php foreach ($products as $product): ?>
                         <option value="<?php echo esc_attr($product->id); ?>" <?php selected($product_id, $product->id); ?>>
@@ -130,7 +131,7 @@ if (function_exists('aerp_render_breadcrumb')) {
 
             <div class="col-md-2">
                 <label for="type" class="form-label">Loại</label>
-                <select class="form-select" id="type" name="type">
+                <select class="form-select shadow-sm" id="type" name="type">
                     <option value="">-- Tất cả --</option>
                     <option value="import" <?php selected($type, 'import'); ?>>Nhập kho</option>
                     <option value="export" <?php selected($type, 'export'); ?>>Xuất kho</option>
@@ -140,12 +141,12 @@ if (function_exists('aerp_render_breadcrumb')) {
 
             <div class="col-md-2">
                 <label for="start_date" class="form-label">Từ ngày</label>
-                <input type="date" class="form-control bg-body" id="start_date" name="start_date" value="<?php echo esc_attr($start_date); ?>">
+                <input type="date" class="form-control shadow-sm bg-body" id="start_date" name="start_date" value="<?php echo esc_attr($start_date); ?>">
             </div>
 
             <div class="col-md-2">
                 <label for="end_date" class="form-label">Đến ngày</label>
-                <input type="date" class="form-control bg-body" id="end_date" name="end_date" value="<?php echo esc_attr($end_date); ?>">
+                <input type="date" class="form-control shadow-sm bg-body" id="end_date" name="end_date" value="<?php echo esc_attr($end_date); ?>">
             </div>
 
             <div class="col-md-2">
@@ -241,7 +242,7 @@ if (function_exists('aerp_render_breadcrumb')) {
             <input type="hidden" name="manager_user_id" value="<?php echo esc_attr($user_id); ?>">
             <div class="col-12 col-md-2 mb-2">
                 <label for="filter-type" class="form-label mb-1">Loại phiếu</label>
-                <select id="filter-type" name="type" class="form-select">
+                <select id="filter-type" name="type" class="form-select shadow-sm">
                     <option value="">-- Tất cả --</option>
                     <option value="import">Nhập kho</option>
                     <option value="export">Xuất kho</option>
@@ -250,7 +251,7 @@ if (function_exists('aerp_render_breadcrumb')) {
             </div>
             <div class="col-12 col-md-2 mb-2">
                 <label for="filter-status" class="form-label mb-1">Trạng thái</label>
-                <select id="filter-status" name="status" class="form-select">
+                <select id="filter-status" name="status" class="form-select shadow-sm">
                     <option value="">-- Tất cả --</option>
                     <option value="confirmed">Đã xác nhận</option>
                     <option value="draft">Nháp</option>
@@ -258,7 +259,7 @@ if (function_exists('aerp_render_breadcrumb')) {
             </div>
             <div class="col-12 col-md-2 mb-2">
                 <label for="filter-warehouse" class="form-label mb-1">Kho</label>
-                <select id="filter-warehouse" name="warehouse_id" class="form-select warehouse-select-by-user">
+                <select id="filter-warehouse" name="warehouse_id" class="form-select shadow-sm warehouse-select-by-user">
                     <?php
                     $warehouses = aerp_get_warehouses_by_user($user_id);
                     aerp_safe_select_options($warehouses, $warehouse_id, 'id', 'name', true);
@@ -267,7 +268,7 @@ if (function_exists('aerp_render_breadcrumb')) {
             </div>
             <div class="col-12 col-md-2 mb-2">
                 <label for="filter-supplier" class="form-label mb-1">Nhà cung cấp</label>
-                <select id="filter-supplier" name="supplier_id" class="form-select supplier-select">
+                <select id="filter-supplier" name="supplier_id" class="form-select shadow-sm supplier-select">
                     <?php
                     $suppliers = aerp_get_suppliers();
                     aerp_safe_select_options($suppliers, $supplier_id, 'id', 'name', true);

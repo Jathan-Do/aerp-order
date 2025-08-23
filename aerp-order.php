@@ -56,6 +56,7 @@ function aerp_order_init()
     require_once AERP_ORDER_PATH . 'includes/table/class-table-low-stock.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-device.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-device-return.php';
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-device-progress.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-implementation-template.php';
     // Load các class cần thiết manager
     $includes = [
@@ -72,6 +73,7 @@ function aerp_order_init()
         'class-supplier-manager.php',
         'class-device-manager.php',
         'class-device-return-manager.php',
+        'class-device-progress-manager.php',
         'class-implementation-template-manager.php',
     ];
     foreach ($includes as $file) {
@@ -93,6 +95,7 @@ function aerp_order_init()
         'AERP_Supplier_Manager',
         'AERP_Device_Manager',
         'AERP_Device_Return_Manager',
+        'AERP_Device_Progress_Manager',
         'AERP_Implementation_Template_Manager',
         ];
     foreach ($managers as $manager) {

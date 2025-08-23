@@ -32,6 +32,7 @@ ob_start();
         padding: 6px 12px !important;
         background: #fff !important;
         font-size: 1rem !important;
+        box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
     }
 
     .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -71,13 +72,13 @@ if (function_exists('aerp_render_breadcrumb')) {
             <?php if ($edit_id): ?>
                 <div class="mb-3">
                     <label for="order_code" class="form-label">Đơn hàng</label>
-                    <input type="text" class="form-control" id="order_code" value="<?php echo esc_attr(aerp_get_order_code_by_id($editing->order_id) ?? ''); ?>" readonly disabled>
+                    <input type="text" class="form-control shadow-sm" id="order_code" value="<?php echo esc_attr(aerp_get_order_code_by_id($editing->order_id) ?? ''); ?>" readonly disabled>
                     <input type="hidden" name="order_id" value="<?php echo esc_attr($editing->order_id); ?>">
                 </div>
             <?php endif; ?>
             <div class="mb-3">
                 <label for="device_id" class="form-label">Thiết bị</label>
-                <select type="text" class="form-select received-device-select" id="device_id" name="device_id" data-placeholder="Nhập thiết bị" required>
+                <select type="text" class="form-select shadow-sm received-device-select" id="device_id" name="device_id" data-placeholder="Nhập thiết bị" required>
                     <?php
                     $devices = aerp_get_devices_select2();
                     aerp_safe_select_options($devices, $editing->device_id, 'id', 'device_name', true);
@@ -86,11 +87,11 @@ if (function_exists('aerp_render_breadcrumb')) {
             </div>
             <div class="mb-3">
                 <label for="return_date" class="form-label">Ngày trả lại</label>
-                <input type="date" class="form-control" id="return_date" name="return_date" value="<?php echo esc_attr($editing->return_date ?? ''); ?>" placeholder="Nhập ngày trả lại" required>
+                <input type="date" class="form-control shadow-sm" id="return_date" name="return_date" value="<?php echo esc_attr($editing->return_date ?? ''); ?>" placeholder="Nhập ngày trả lại" required>
             </div>
             <div class="mb-3">
                 <label for="note" class="form-label">Ghi chú</label>
-                <textarea class="form-control" id="note" name="note" rows="2" placeholder="Nhập ghi chú"><?php echo esc_textarea($editing->note ?? ''); ?></textarea>
+                <textarea class="form-control shadow-sm" id="note" name="note" rows="2" placeholder="Nhập ghi chú"><?php echo esc_textarea($editing->note ?? ''); ?></textarea>
             </div>
             <button type="submit" name="aerp_save_device_return" class="btn btn-primary"><?php echo $edit_id ? 'Cập nhật' : 'Thêm mới'; ?></button>
             <a href="<?php echo home_url('/aerp-device-returns'); ?>" class="btn btn-secondary ms-2">Quay lại</a>

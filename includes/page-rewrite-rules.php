@@ -19,6 +19,7 @@ add_action('init', function () {
     add_rewrite_rule('^aerp-low-stock-alert/?$', 'index.php?aerp_report_page=low_stock_alert', 'top');
     add_rewrite_rule('^aerp-devices/?$', 'index.php?aerp_device_page=devices', 'top');
     add_rewrite_rule('^aerp-device-returns/?$', 'index.php?aerp_device_return_page=device_returns', 'top');
+    add_rewrite_rule('^aerp-device-progresses/?$', 'index.php?aerp_device_progress_page=device_progresses', 'top');
     add_rewrite_rule('^aerp-implementation-templates/?$', 'index.php?aerp_impl_template_page=impl_templates', 'top');
     add_rewrite_rule('^aerp-report-order/?$', 'index.php?aerp_report_dashboard_page=1', 'top');
     $rules = get_option('rewrite_rules');
@@ -70,6 +71,9 @@ add_action('init', function () {
     if ($rules && !isset($rules['^aerp-device-returns/?$'])) {
         flush_rewrite_rules();
     }
+    if ($rules && !isset($rules['^aerp-device-progresses/?$'])) {
+        flush_rewrite_rules();
+    }
     if ($rules && !isset($rules['^aerp-report-order/?$'])) {
         flush_rewrite_rules();
     }
@@ -102,6 +106,7 @@ add_filter('query_vars', function ($vars) {
     $vars[] = 'aerp_supplier_page';
     $vars[] = 'aerp_device_page';
     $vars[] = 'aerp_device_return_page';
+    $vars[] = 'aerp_device_progress_page';
     $vars[] = 'aerp_impl_template_page';
     $vars[] = 'aerp_report_page';
     $vars[] = 'aerp_report_template_name';
@@ -376,6 +381,30 @@ add_action('template_redirect', function () {
                 return;
             default:
                 $template_name = 'device-return/list.php';
+                break;
+        }
+        if ($template_name) {
+            include AERP_ORDER_PATH . 'frontend/admin/' . $template_name;
+            exit;
+        }
+    }
+    
+    // Routes for device progress management
+    $aerp_device_progress_page = get_query_var('aerp_device_progress_page');
+    if ($aerp_device_progress_page === 'device_progresses') {
+        $template_name = '';
+        switch ($action_from_get) {
+            case 'add':
+                $template_name = 'device-progress/form.php';
+                break;
+            case 'edit':
+                $template_name = 'device-progress/form.php';
+                break;
+            case 'delete':
+                AERP_Device_Progress_Manager::handle_single_delete();
+                return;
+            default:
+                $template_name = 'device-progress/list.php';
                 break;
         }
         if ($template_name) {

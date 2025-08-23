@@ -43,6 +43,7 @@ ob_start();
         padding: 6px 12px !important;
         background: #fff !important;
         font-size: 1rem !important;
+        box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
     }
 
     .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -92,7 +93,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                 <!-- Chọn kho -->
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Kho</label>
-                    <select class="form-select warehouse-select-by-user" name="warehouse_id" required>
+                    <select class="form-select shadow-sm warehouse-select-by-user" name="warehouse_id" required>
                         <option value="">-- Chọn kho --</option>
                         <?php foreach (AERP_Warehouse_Manager::get_all() as $w): ?>
                             <option value="<?php echo esc_attr($w->id); ?>" <?php selected($log && $log->warehouse_id == $w->id); ?>>
@@ -105,7 +106,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                 <!-- Chọn sản phẩm -->
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Sản phẩm</label>
-                    <select class="form-select product-select-by-warehouse" name="product_id" required style="width:100%">
+                    <select class="form-select shadow-sm product-select-by-warehouse" name="product_id" required style="width:100%">
                         <option value="">-- Chọn sản phẩm --</option>
                         <?php if ($log && $log->product_id): ?>
                             <?php $product = function_exists('aerp_get_product') ? aerp_get_product($log->product_id) : null; ?>
@@ -119,21 +120,21 @@ if (function_exists('aerp_render_breadcrumb')) {
                 <!-- Tồn kho hệ thống -->
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Tồn kho hệ thống</label>
-                    <input type="text" class="form-control system-qty" value="<?php echo esc_attr($system_qty); ?>" readonly>
+                    <input type="text" class="form-control shadow-sm system-qty" value="<?php echo esc_attr($system_qty); ?>" readonly>
 
                 </div>
 
                 <!-- Số lượng thực tế -->
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Số lượng thực tế</label>
-                    <input type="number" class="form-control" name="actual_qty" min="0" required value="<?php echo esc_attr($actual_qty); ?>">
+                    <input type="number" class="form-control shadow-sm" name="actual_qty" min="0" required value="<?php echo esc_attr($actual_qty); ?>">
 
                 </div>
 
                 <!-- Ghi chú -->
                 <div class="col-12 mb-3">
                     <label class="form-label">Ghi chú</label>
-                    <textarea name="note" class="form-control" rows="2"><?php echo esc_textarea($log->note ?? ''); ?></textarea>
+                    <textarea name="note" class="form-control shadow-sm" rows="2"><?php echo esc_textarea($log->note ?? ''); ?></textarea>
                 </div>
             </div>
             <!-- Submit -->

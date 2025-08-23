@@ -30,6 +30,7 @@ ob_start();
         padding: 6px 12px !important;
         background: #fff !important;
         font-size: 1rem !important;
+        box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
     }
 
     .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -63,19 +64,35 @@ if (function_exists('aerp_render_breadcrumb')) {
 <div class="card">
     <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
         <h5 class="mb-0">Danh sách thiết bị</h5>
-        <!-- <a href="<?php echo esc_url(home_url('/aerp-devices/?action=add')); ?>" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Thêm mới
-        </a> -->
+        <div class="d-flex gap-2 flex-column flex-md-row">
+            <a href="<?php echo esc_url(home_url('/aerp-device-progresses')); ?>" class="btn btn-primary">
+                <i class="fas fa-cog"></i> Quản lý tiến độ
+            </a>
+            <!-- <a href="<?php echo esc_url(home_url('/aerp-devices/?action=add')); ?>" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Thêm mới
+            </a> -->
+        </div>
     </div>
     <div class="card-body">
         <!-- Filter Form -->
         <form id="aerp-device-filter-form" class="row g-2 mb-3 aerp-table-ajax-form" data-table-wrapper="#aerp-device-table-wrapper" data-ajax-action="aerp_device_filter_devices">
             <div class="col-12 col-md-3 mb-2">
                 <label for="filter-partner" class="form-label mb-1">Đối tác</label>
-                <select id="filter-partner" name="partner_id" class="form-select supplier-select" style="width:100%">
+                <select id="filter-partner" name="partner_id" class="form-select shadow-sm supplier-select" style="width:100%">
                     <option value="">-- Tất cả --</option>
                     <?php foreach (AERP_Supplier_Manager::get_all() as $s): ?>
                         <option value="<?php echo esc_attr($s->id); ?>"><?php echo esc_html($s->name); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-12 col-md-3 mb-2">
+                <label for="filter-progress" class="form-label mb-1">Tiến độ</label>
+                <select id="filter-progress" name="progress_id" class="form-select shadow-sm">
+                    <option value="">-- Tất cả --</option>
+                    <?php 
+                    $progresses = AERP_Device_Progress_Manager::get_active();
+                    foreach ($progresses as $progress): ?>
+                        <option value="<?php echo esc_attr($progress->id); ?>"><?php echo esc_html($progress->name); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>

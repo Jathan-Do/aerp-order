@@ -37,6 +37,7 @@ ob_start();
         padding: 6px 12px !important;
         background: #fff !important;
         font-size: 1rem !important;
+        box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
     }
 
     .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -83,7 +84,7 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="warehouse_id" class="form-label">Kho</label>
-                    <select class="form-select warehouse-select-by-user" id="warehouse_id" name="warehouse_id" required>
+                    <select class="form-select shadow-sm warehouse-select-by-user" id="warehouse_id" name="warehouse_id" required>
                         <option value="">-- Chọn kho --</option>
                         <?php
                         $warehouses = function_exists('aerp_get_warehouses_by_user_select2')
@@ -99,7 +100,7 @@ if (function_exists('aerp_render_breadcrumb')) {
 
                 <div class="col-md-6 mb-3">
                     <label for="product_id" class="form-label">Sản phẩm</label>
-                    <select class="form-select <?php echo ($type !== 'import') ? 'product-select-by-warehouse' : 'product-select-all'; ?>" id="product_id" name="product_id" required style="width:100%">
+                    <select class="form-select shadow-sm <?php echo ($type !== 'import') ? 'product-select-by-warehouse' : 'product-select-all'; ?>" id="product_id" name="product_id" required style="width:100%">
                         <option value="">-- Chọn sản phẩm --</option>
                         <?php if ($log && $log->product_id): ?>
                             <?php $product = function_exists('aerp_get_product') ? aerp_get_product($log->product_id) : null; ?>
@@ -114,18 +115,18 @@ if (function_exists('aerp_render_breadcrumb')) {
 
                 <div class="col-md-6 mb-3">
                     <label for="quantity" class="form-label">Số lượng</label>
-                    <input type="number" name="quantity" id="quantity" class="form-control" min="1" required
+                    <input type="number" name="quantity" id="quantity" class="form-control shadow-sm" min="1" required
                         value="<?php echo esc_attr($log->quantity ?? ''); ?>">
                 </div>
 
                 <div class="col-md-6 mb-3">
                     <label for="note" class="form-label">Ghi chú</label>
-                    <textarea name="note" id="note" class="form-control" rows="1"><?php echo esc_textarea($log->note ?? ''); ?></textarea>
+                    <textarea name="note" id="note" class="form-control shadow-sm" rows="1"><?php echo esc_textarea($log->note ?? ''); ?></textarea>
                 </div>
                 <?php if ($type === 'import'): ?>
                     <div class="col-md-6 mb-3">
                         <label for="supplier_id" class="form-label">Nhà cung cấp</label>
-                        <select class="form-select supplier-select" id="supplier_id" name="supplier_id" required style="width:100%">
+                        <select class="form-select shadow-sm supplier-select" id="supplier_id" name="supplier_id" required style="width:100%">
                             <option value="">-- Chọn nhà cung cấp --</option>
                             <?php foreach (AERP_Supplier_Manager::get_all() as $s): ?>
                                 <option value="<?php echo esc_attr($s->id); ?>" <?php selected($log && $log->supplier_id == $s->id); ?>>

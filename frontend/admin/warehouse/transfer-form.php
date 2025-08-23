@@ -32,6 +32,7 @@ ob_start();
         padding: 6px 12px !important;
         background: #fff !important;
         font-size: 1rem !important;
+        box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
     }
 
     .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -80,7 +81,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                     <?php
                     $warehouses = AERP_Warehouse_Manager::aerp_get_warehouses_by_user($user_id);
                     ?>
-                    <select name="from_warehouse_id" class="form-select" required>
+                    <select name="from_warehouse_id" class="form-select shadow-sm" required>
                         <option value="">-- Chọn kho xuất --</option>
                         <?php foreach ($warehouses as $w): ?>
                             <option value="<?php echo esc_attr($w->id); ?>">
@@ -91,7 +92,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Kho nhập</label>
-                    <select name="to_warehouse_id" class="form-select" required>
+                    <select name="to_warehouse_id" class="form-select shadow-sm" required>
                         <option value="">-- Chọn kho nhập --</option>
                         <?php foreach (AERP_Warehouse_Manager::get_all() as $w): ?>
                             <option value="<?php echo esc_attr($w->id); ?>">
@@ -104,10 +105,10 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div id="transfer-items-container">
                 <div class="row transfer-item-row">
                     <div class="col-md-6 mb-3">
-                        <select class="form-select product-select" name="products[0][product_id]" required style="width:100%"></select>
+                        <select class="form-select shadow-sm product-select" name="products[0][product_id]" required style="width:100%"></select>
                     </div>
                     <div class="col-md-5 mb-3">
-                        <input type="number" name="products[0][quantity]" class="form-control" placeholder="Số lượng" min="1" required>
+                        <input type="number" name="products[0][quantity]" class="form-control shadow-sm" placeholder="Số lượng" min="1" required>
                     </div>
                     <div class="col-md-1 mb-3 d-flex align-items-end">
                         <button type="button" class="btn btn-outline-danger remove-transfer-item">Xóa</button>
@@ -117,7 +118,7 @@ if (function_exists('aerp_render_breadcrumb')) {
             <button type="button" class="btn btn-secondary mb-3" id="add-transfer-item">Thêm sản phẩm</button>
             <div class="mb-3">
                 <label class="form-label">Ghi chú</label>
-                <textarea name="note" class="form-control" rows="2"></textarea>
+                <textarea name="note" class="form-control shadow-sm" rows="2"></textarea>
             </div>
             <button type="submit" name="aerp_save_inventory_transfer" class="btn btn-primary">Ghi nhận chuyển kho</button>
             <a href="<?php echo home_url('/aerp-inventory-transfers'); ?>" class="btn btn-secondary">Quay lại</a>
@@ -166,10 +167,10 @@ if (function_exists('aerp_render_breadcrumb')) {
             var idx = $('#transfer-items-container .transfer-item-row').length;
             var row = `<div class="row transfer-item-row">
         <div class="col-md-6 mb-3">
-            <select class="form-select product-select" name="products[${idx}][product_id]" required style="width:100%"></select>
+            <select class="form-select shadow-sm product-select" name="products[${idx}][product_id]" required style="width:100%"></select>
         </div>
         <div class="col-md-5 mb-3">
-            <input type="number" name="products[${idx}][quantity]" class="form-control" placeholder="Số lượng" min="1" required>
+            <input type="number" name="products[${idx}][quantity]" class="form-control shadow-sm" placeholder="Số lượng" min="1" required>
         </div>
         <div class="col-md-1 mb-3 d-flex align-items-end">
             <button type="button" class="btn btn-outline-danger remove-transfer-item">Xóa</button>
