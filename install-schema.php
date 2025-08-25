@@ -98,6 +98,7 @@ function aerp_order_install_schema()
         order_id BIGINT NOT NULL,
         device_id BIGINT NOT NULL,
         return_date DATE DEFAULT NULL,
+        status ENUM('draft','confirmed') DEFAULT 'draft',
         note TEXT DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_order_id (order_id),

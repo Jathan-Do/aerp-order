@@ -116,6 +116,8 @@ if (function_exists('aerp_render_breadcrumb')) {
                         ?>
                     </select>
                 </div>
+            </div>
+            <div class="row">
                 <div class="col-12 col-md-2 mb-2">
                     <label for="filter-order-type" class="form-label mb-1">Loại đơn</label>
                     <select id="filter-order-type" name="order_type" class="form-select shadow-sm">
@@ -128,8 +130,6 @@ if (function_exists('aerp_render_breadcrumb')) {
                         <option value="return">Trả thiết bị</option>
                     </select>
                 </div>
-            </div>
-            <div class="row">
                 <div class="col-12 col-md-2 mb-2">
                     <label for="filter-customer-source" class="form-label mb-1">Nguồn khách hàng</label>
                     <select id="filter-customer-source" name="customer_source_id" class="form-select shadow-sm">

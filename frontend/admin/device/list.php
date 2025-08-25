@@ -68,9 +68,9 @@ if (function_exists('aerp_render_breadcrumb')) {
             <a href="<?php echo esc_url(home_url('/aerp-device-progresses')); ?>" class="btn btn-primary">
                 <i class="fas fa-cog"></i> Quản lý tiến độ
             </a>
-            <!-- <a href="<?php echo esc_url(home_url('/aerp-devices/?action=add')); ?>" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Thêm mới
-            </a> -->
+            <a href="<?php echo esc_url(home_url('/aerp-device-returns')); ?>" class="btn btn-primary">
+                <i class="fas fa-cog"></i> Quản lý thiết bị trả lại
+            </a>
         </div>
     </div>
     <div class="card-body">
@@ -94,6 +94,14 @@ if (function_exists('aerp_render_breadcrumb')) {
                     foreach ($progresses as $progress): ?>
                         <option value="<?php echo esc_attr($progress->id); ?>"><?php echo esc_html($progress->name); ?></option>
                     <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-12 col-md-2 mb-2">
+                <label for="filter-device-status" class="form-label mb-1">Trạng thái</label>
+                <select id="filter-device-status" name="device_status" class="form-select shadow-sm">
+                    <option value="">Tất cả</option>
+                    <option value="disposed">Nhận thiết bị</option>
+                    <option value="received">Trả thiết bị</option>
                 </select>
             </div>
             <div class="col-12 col-md-1 d-flex align-items-end mb-2">

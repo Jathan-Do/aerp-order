@@ -13,10 +13,11 @@ class AERP_Device_Return_Table extends AERP_Frontend_Table
                 'device_id' => 'Thiết bị',
                 'return_date' => 'Ngày trả lại',
                 'note' => 'Ghi chú',
+                'status' => 'Trạng thái',
                 'action' => 'Thao tác'
             ],
-            'sortable_columns' => ['id', 'order_id', 'device_id', 'return_date'],
-            'searchable_columns' => ['order_id', 'device_id', 'return_date', 'note'],
+            'sortable_columns' => ['id', 'order_id', 'device_id', 'return_date', 'status'],
+            'searchable_columns' => ['order_id', 'device_id', 'return_date', 'note', 'status'],
             'primary_key' => 'id',
             'per_page' => 10,
             'actions' => [],
@@ -100,6 +101,45 @@ class AERP_Device_Return_Table extends AERP_Frontend_Table
         $filters = [];
         $params = [];
 
+        // Permission-based visibility (mirror order table)
+        global $wpdb;
+        $current_user_id = get_current_user_id();
+        if (!(function_exists('aerp_user_has_role') && aerp_user_has_role($current_user_id, 'admin'))) {
+            $current_user_employee = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+                $current_user_id
+            ));
+            $employee_current_id = $current_user_employee->id;
+            if ($current_user_employee) {
+                if (function_exists('aerp_user_has_permission') && aerp_user_has_permission($current_user_id, 'order_view_full')) {
+                    if ($current_user_employee->work_location_id) {
+                        $branch_employee_ids = $wpdb->get_col($wpdb->prepare(
+                            "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE work_location_id = %d",
+                            $current_user_employee->work_location_id
+                        ));
+                        if (!empty($branch_employee_ids)) {
+                            $placeholders = implode(',', array_fill(0, count($branch_employee_ids), '%d'));
+                            $filters[] = "order_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_orders WHERE employee_id IN ($placeholders) OR created_by = %d)";
+                            $params = array_merge($params, $branch_employee_ids, [$employee_current_id]);
+                        } else {
+                            $filters[] = "order_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_orders WHERE created_by = %d)";
+                            $params[] = $employee_current_id;
+                        }
+                    } else {
+                        $filters[] = "order_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_orders WHERE created_by = %d)";
+                        $params[] = $employee_current_id;
+                    }
+                } else {
+                    $filters[] = "order_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_orders WHERE employee_id = %d OR created_by = %d)";
+                    $params[] = (int)$current_user_employee->id;
+                    $params[] = $employee_current_id;
+                }
+            } else {
+                $filters[] = "order_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_orders WHERE created_by = %d)";
+                $params[] = $employee_current_id;
+            }
+        }
+
         if (!empty($this->filters['date_from'])) {
             $filters[] = "return_date >= %s";
             $params[] = $this->filters['date_from'];
@@ -107,6 +147,11 @@ class AERP_Device_Return_Table extends AERP_Frontend_Table
         if (!empty($this->filters['date_to'])) {
             $filters[] = "return_date <= %s";
             $params[] = $this->filters['date_to'];
+        }
+
+        if (!empty($this->filters['status'])) {
+            $filters[] = "status = %s";
+            $params[] = $this->filters['status'];
         }
 
         return [$filters, $params];
@@ -125,5 +170,9 @@ class AERP_Device_Return_Table extends AERP_Frontend_Table
             ],
             [$like, $like]
         ];
+    }
+    protected function column_status($item)
+    {
+        return '<span class="badge bg-' . ($item->status === 'confirmed' ? 'success' : 'warning') . '">' . ($item->status === 'confirmed' ? 'Đã hoàn thành' : 'Chưa hoàn thành') . '</span>';
     }
 }

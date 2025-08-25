@@ -103,8 +103,11 @@ class AERP_Device_Table extends AERP_Frontend_Table
             ));
         }
         $buttons = [];
-        $order_url = esc_url(home_url('/aerp-order-orders/?action=add&customer_id=' . $customer_id)); 
-        $buttons[] = sprintf('<a data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Tạo đơn trả" href="%s" class="btn btn-sm btn-info mb-2"><i class="fas fa-file-invoice "></i></a>', esc_url($order_url));
+        // Tạo đơn trả: truyền cả customer_id và device_id để form-add tự preselect
+        $order_url = esc_url(home_url('/aerp-order-orders/?action=add&order_type=return&customer_id=' . $customer_id . '&device_id=' . intval($item->id)));
+        if ($item->device_status === 'received') {
+            $buttons[] = sprintf('<a data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Tạo đơn trả" href="%s" class="btn btn-sm btn-info mb-2"><i class="fas fa-file-invoice "></i></a>', esc_url($order_url));
+        }
         if ($is_admin || $is_department_lead) {
             $buttons[] = sprintf('<a data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Chỉnh sửa" href="%s" class="btn btn-sm btn-success mb-2"><i class="fas fa-edit"></i></a>', esc_url($edit_url));
             $buttons[] = sprintf('<a data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Xóa" href="%s" class="btn btn-sm btn-danger mb-2" onclick="return confirm(\'Bạn có chắc muốn xóa?\')"><i class="fas fa-trash"></i></a>', esc_url($delete_url));
@@ -150,6 +153,45 @@ class AERP_Device_Table extends AERP_Frontend_Table
         $filters = [];
         $params = [];
 
+        // Permission-based visibility (mirror order table)
+        global $wpdb;
+        $current_user_id = get_current_user_id();
+        if (!(function_exists('aerp_user_has_role') && aerp_user_has_role($current_user_id, 'admin'))) {
+            $current_user_employee = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+                $current_user_id
+            ));
+            $employee_current_id = $current_user_employee->id;
+            if ($current_user_employee) {
+                if (function_exists('aerp_user_has_permission') && aerp_user_has_permission($current_user_id, 'order_view_full')) {
+                    if ($current_user_employee->work_location_id) {
+                        $branch_employee_ids = $wpdb->get_col($wpdb->prepare(
+                            "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE work_location_id = %d",
+                            $current_user_employee->work_location_id
+                        ));
+                        if (!empty($branch_employee_ids)) {
+                            $placeholders = implode(',', array_fill(0, count($branch_employee_ids), '%d'));
+                            $filters[] = "order_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_orders WHERE employee_id IN ($placeholders) OR created_by = %d)";
+                            $params = array_merge($params, $branch_employee_ids, [$employee_current_id]);
+                        } else {
+                            $filters[] = "order_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_orders WHERE created_by = %d)";
+                            $params[] = $employee_current_id;
+                        }
+                    } else {
+                        $filters[] = "order_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_orders WHERE created_by = %d)";
+                        $params[] = $employee_current_id;
+                    }
+                } else {
+                    $filters[] = "order_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_orders WHERE employee_id = %d OR created_by = %d)";
+                    $params[] = (int)$current_user_employee->id;
+                    $params[] = $employee_current_id;
+                }
+            } else {
+                $filters[] = "order_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_orders WHERE created_by = %d)";
+                $params[] = $employee_current_id;
+            }
+        }
+
         if (!empty($this->filters['partner_id'])) {
             $filters[] = 'partner_id = %s';
             $params[] = $this->filters['partner_id'];
@@ -159,7 +201,10 @@ class AERP_Device_Table extends AERP_Frontend_Table
             $filters[] = 'progress_id = %d';
             $params[] = (int)$this->filters['progress_id'];
         }
-
+        if (!empty($this->filters['device_status'])) {
+            $filters[] = "device_status = %s";
+            $params[] = $this->filters['device_status'];
+        }
         return [$filters, $params];
     }
 }

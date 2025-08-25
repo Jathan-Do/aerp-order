@@ -367,7 +367,8 @@ class AERP_Frontend_Order_Manager
                             'device_id' => $device_id,
                             'return_date' => $return_date,
                             'note' => $note,
-                        ], ['%d', '%d', '%s', '%s']);
+                            'status' => 'draft',
+                        ], ['%d', '%d', '%s', '%s', '%s']);
                     }
                 }
             } else {
@@ -604,17 +605,20 @@ class AERP_Frontend_Order_Manager
         if ($order_type === 'return') {
             // Nếu là đơn trả thiết bị: cập nhật trạng thái thiết bị thành 'disposed' khi hoàn thành
             $device_returns = $wpdb->get_results($wpdb->prepare(
-                "SELECT device_id FROM {$wpdb->prefix}aerp_order_device_returns WHERE order_id = %d",
+                "SELECT device_id FROM {$wpdb->prefix}aerp_order_device_returns WHERE order_id = %d AND status = 'draft'",
                 $order_id
             ));
-            
+            $wpdb->query($wpdb->prepare(
+                "UPDATE {$wpdb->prefix}aerp_order_device_returns SET status = 'confirmed' WHERE order_id = %d AND status = 'draft'",
+                $order_id
+            ));
             if (!empty($device_returns)) {
                 $device_ids = array_column($device_returns, 'device_id');
                 $device_ids_placeholder = implode(', ', array_fill(0, count($device_ids), '%d'));
                 
                 // Cập nhật trạng thái thiết bị thành 'disposed' khi hoàn thành trả thiết bị
                 $wpdb->query($wpdb->prepare(
-                    "UPDATE {$wpdb->prefix}aerp_order_devices SET device_status = 'disposed' WHERE id IN ($device_ids_placeholder)",
+                    "UPDATE {$wpdb->prefix}aerp_order_devices SET device_status = 'disposed' WHERE id IN ($device_ids_placeholder) AND device_status = 'received'",
                     $device_ids
                 ));
             }

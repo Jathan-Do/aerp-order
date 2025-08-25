@@ -57,6 +57,7 @@ if (function_exists('aerp_render_breadcrumb')) {
     aerp_render_breadcrumb([
         ['label' => 'Trang chủ', 'url' => home_url('/aerp-dashboard'), 'icon' => 'fas fa-home'],
         ['label' => 'Danh mục', 'url' => home_url('/aerp-categories')],
+        ['label' => 'Quản lý thiết bị', 'url' => home_url('/aerp-devices')],
         ['label' => 'Quản lý thiết bị trả lại']
     ]);
 }
@@ -78,6 +79,14 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div class="col-12 col-md-2 mb-2">
                 <label for="filter-date-to" class="form-label mb-1">Đến ngày</label>
                 <input type="date" id="filter-date-to" name="date_to" class="form-control shadow-sm">
+            </div>
+            <div class="col-12 col-md-2 mb-2">
+                <label for="filter-status" class="form-label mb-1">Trạng thái</label>
+                <select id="filter-status" name="status" class="form-select shadow-sm">
+                    <option value="">Tất cả</option>
+                    <option value="draft">Chưa hoàn thành</option>
+                    <option value="confirmed">Đã hoàn thành</option>
+                </select>
             </div>
             <div class="col-12 col-md-1 d-flex align-items-end mb-2">
                 <button type="submit" class="btn btn-primary w-100">Lọc</button>

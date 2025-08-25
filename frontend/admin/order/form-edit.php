@@ -61,8 +61,13 @@ ob_start();
         font-weight: 500;
     }
 
-    .nav-tabs .nav-link:not(.active):hover {
+    .nav-tabs .nav-link:not(.active):not(:disabled):hover {
         color: white !important;
+    }
+    .nav-tabs .nav-link:disabled{
+        color: #6c757d !important;
+        background-color: #e9ecef !important;
+        border-color: #dee2e6 !important;
     }
 </style>
 <div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
@@ -131,7 +136,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                 </div>
                 <div class="col-md-4 mb-3">
                     <label for="employee_id" class="form-label">Nhân viên phụ trách</label>
-                    <select class="form-select shadow-sm employee-select" id="employee_id" name="employee_id">
+                    <select class="form-select shadow-sm <?php echo aerp_user_has_role($user_id, 'admin') ? 'employee-select-all' : 'employee-select'; ?> shadow-sm employee-select" id="employee_id" name="employee_id" required>
                         <option value="">-- Chọn nhân viên --</option>
                         <?php
                         $selected_id = $editing->employee_id;
@@ -165,8 +170,50 @@ if (function_exists('aerp_render_breadcrumb')) {
                     </select>
                 </div>
                 <hr />
-                <div class="col-12 mb-3">
-                    <label class="form-label fs-5">Nội dung yêu cầu và triển khai</label>
+                <div class="col-md-12 mb-3">
+                    <!-- <label class="form-label fs-5">Loại đơn</label> -->
+                    <input type="hidden" id="order_type" name="order_type" value="<?= esc_attr($order_type); ?>">
+                    <ul class="nav nav-tabs gap-1" id="order-type-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button 
+                                type="button" 
+                                class="nav-link<?= $order_type === 'content' ? ' active' : '' ?>" 
+                                data-type="content" 
+                                role="tab"
+                                <?= ($order_type && $order_type !== 'content') ? 'disabled' : '' ?>
+                            >Nội dung yêu cầu & Triển khai</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button 
+                                type="button" 
+                                class="nav-link<?= ($order_type === 'product' || $order_type === 'service' || $order_type === 'mixed') ? ' active' : '' ?>" 
+                                data-type="product" 
+                                role="tab"
+                                <?= ($order_type && !in_array($order_type, ['product', 'service', 'mixed', 'content'])) ? 'disabled' : '' ?>
+                            >Bán hàng/ Dịch vụ</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button 
+                                type="button" 
+                                class="nav-link<?= $order_type === 'device' ? ' active' : '' ?>" 
+                                data-type="device" 
+                                role="tab"
+                                <?= ($order_type && $order_type !== 'device' && $order_type !== 'content') ? 'disabled' : '' ?>
+                            >Nhận thiết bị</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button 
+                                type="button" 
+                                class="nav-link<?= $order_type === 'return' ? ' active' : '' ?>" 
+                                data-type="return" 
+                                role="tab"
+                                <?= ($order_type && $order_type !== 'return' && $order_type !== 'content') ? 'disabled' : '' ?>
+                            >Trả thiết bị</button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-12 mb-3" id="content-section" style="display:<?= $order_type === 'content' ? 'block' : 'none' ?>">
+                    <!-- <label class="form-label fs-5">Nội dung yêu cầu và triển khai</label> -->
                     <div id="content-container">
                         <?php
                         // Lấy nội dung hiện có
@@ -244,7 +291,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                             echo '</div>';
                             echo '<div class="col-md-2">';
                             echo '<label class="form-label">Bảo hành</label>';
-                            echo '<input type="text" class="form-control shadow-sm" name="content_lines[0][warranty]" placeholder="VD: 12 tháng">';
+                            echo '<input type="text" class="form-control shadow-sm" name="content_lines[0][warranty]" placeholder="VD: 12 tháng" value="1 tháng">';
                             echo '</div>';
                             echo '<div class="col-md-2 mt-2 d-flex align-items-end">';
                             echo '<button type="button" class="btn btn-outline-danger remove-content">Xóa dòng</button>';
@@ -258,23 +305,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                         <small class="form-text text-muted">(Mỗi dòng có thể chọn template riêng và chỉnh sửa nội dung theo yêu cầu cụ thể)</small>
                     </div>
                 </div>
-                <hr />
-                <div class="col-md-12 mb-3">
-                    <label class="form-label fs-5">Loại đơn</label>
-                    <input type="hidden" id="order_type" name="order_type" value="<?= esc_attr($order_type); ?>">
-                    <ul class="nav nav-tabs gap-1" id="order-type-tabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button type="button" class="nav-link<?= $order_type === 'product' || 'service' || 'mixed' ? ' active' : '' ?>" data-type="product" role="tab">Bán hàng/ Dịch vụ</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button type="button" class="nav-link<?= $order_type === 'device' ? ' active' : '' ?>" data-type="device" role="tab">Nhận thiết bị</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button type="button" class="nav-link <?= $order_type === 'return' ? ' active' : '' ?>" data-type="return" role="tab">Trả thiết bị</button>
-                        </li>
-                    </ul>
-                </div>
-                <div class="col-12 mb-3">
+                <div class="col-12 mb-3" id="order-items-section" style="display:<?= $order_type === 'product' || $order_type === 'service' || $order_type === 'mixed' ? 'block' : 'none' ?>">
                     <div id="order-items-container">
                         <!-- <label class="form-label">Sản phẩm trong đơn</label> -->
                         <div class="form-check mb-2">
@@ -346,7 +377,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                             echo '<div class="col-md-2 mb-2 d-flex align-items-end">';
                             echo '<div class="w-100">';
                             echo '<label class="form-label">Số lượng</label>';
-                            echo '<input type="number" class="form-control shadow-sm" name="order_items[0][quantity]" placeholder="Số lượng" min="0" step="0.01" value="1">';
+                            echo '<input type="number" class="form-control shadow-sm" name="order_items[0][quantity]" placeholder="Số lượng" min="0" step="0.01">';
                             echo '</div>';
                             echo '<span class="unit-label ms-2"></span>';
                             echo '</div>';
@@ -388,7 +419,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                                         <label class="form-label">Ghi chú</label>
                                         <textarea type="text" class="form-control shadow-sm" name="devices[<?= $idx ?>][note]" value="<?= esc_attr($device->note) ?>" placeholder="Ghi chú" rows="1"></textarea>
                                     </div>
-                                    <div class="col-md-2">
+                                    <!-- <div class="col-md-2">
                                         <label class="form-label">Đối tác sửa</label>
                                         <select class="form-select shadow-sm partner-select supplier-select" style="width:100%" name="devices[<?= $idx ?>][partner_id]">
                                             <option value="">-- Chọn nhà cung cấp --</option>
@@ -398,7 +429,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                                                 </option>
                                             <?php endforeach; ?>
                                         </select>
-                                    </div>
+                                    </div> -->
                                     <div class="col-md-1 mt-2 d-flex align-items-end">
                                         <button type="button" class="btn btn-outline-danger remove-device-row">Xóa</button>
                                     </div>
@@ -422,13 +453,13 @@ if (function_exists('aerp_render_breadcrumb')) {
                                     <label class="form-label">Ghi chú</label>
                                     <textarea type="text" class="form-control shadow-sm" name="devices[0][note]" placeholder="Ghi chú" rows="1"></textarea>
                                 </div>
-                                <div class="col-md-2">
+                                <!-- <div class="col-md-2">
                                     <label class="form-label">Đối tác sửa</label>
                                     <select class="form-select shadow-sm partner-select supplier-select" style="width:100%" name="devices[0][partner_id]">
                                         <option value="">-- Chọn nhà cung cấp --</option>
 
                                     </select>
-                                </div>
+                                </div> -->
                                 <div class="col-md-1 mt-2 d-flex align-items-end">
                                     <button type="button" class="btn btn-outline-danger remove-device-row">Xóa</button>
                                 </div>
@@ -437,7 +468,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                     </div>
                     <button type="button" class="btn btn-secondary" id="add-device-row">Thêm thiết bị</button>
                 </div>
-                <div class="col-12 mb-3" id="device-return-section" style="display:none">
+                <div class="col-12 mb-3" id="device-return-section" style="display:<?= $order_type === 'return' ? 'block' : 'none' ?>">
                     <div id="device-return-table">
                         <?php
                         // Load các dòng trả thiết bị
@@ -561,43 +592,6 @@ if (function_exists('aerp_render_breadcrumb')) {
 </div>
 <script>
     jQuery(document).ready(function($) {
-        function toggleDeviceSection() {
-            var type = $('#order_type').val();
-            if (type === 'device') {
-                $('#device-list-section').show();
-                $('#device-return-section').hide();
-                $('#order-items-container').hide();
-                $('#add-order-item').hide();
-                // Tắt input sản phẩm khi là đơn nhận thiết bị
-                $('#order-items-container input, #order-items-container select').prop('disabled', true);
-            } else if (type === 'return') {
-                $('#device-list-section').hide();
-                $('#device-return-section').show();
-                $('#order-items-container').hide();
-                $('#add-order-item').hide();
-                // Tắt input sản phẩm khi là đơn trả thiết bị
-                $('#order-items-container input, #order-items-container select').prop('disabled', true);
-            } else {
-                // Bán hàng/Dịch vụ
-                $('#device-list-section').hide();
-                $('#device-return-section').hide();
-                $('#order-items-container').show();
-                $('#add-order-item').show();
-                // Bật lại input sản phẩm
-                $('#order-items-container input, #order-items-container select').prop('disabled', false);
-            }
-        }
-        // Tabs: đổi loại đơn
-        $(document).on('click', '#order-type-tabs .nav-link', function() {
-            $('#order-type-tabs .nav-link').removeClass('active');
-            $(this).addClass('active');
-            var type = $(this).data('type');
-            $('#order_type').val(type);
-            toggleDeviceSection();
-        });
-        toggleDeviceSection();
-
-
         // Thêm dòng thiết bị
         let deviceIndex = $('#device-list-table .row').length;
         $('#add-device-row').on('click', function() {
@@ -606,12 +600,6 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div class="col-md-2 mb-2"><label class="form-label">Serial/IMEI</label><input type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][serial_number]" placeholder="Serial/IMEI"></div>
             <div class="col-md-2 mb-2"><label class="form-label">Tình trạng</label><textarea type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][status]" placeholder="Tình trạng" rows="1"></textarea></div>
             <div class="col-md-2 mb-2"><label class="form-label">Ghi chú</label><textarea type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][note]" placeholder="Ghi chú" rows="1"></textarea></div>
-            <div class="col-md-2 mb-2">
-                <label class="form-label">Đối tác sửa</label>
-                <select class="form-select shadow-sm partner-select supplier-select" style="width:100%" name="devices[${deviceIndex}][partner_id]">
-                    <option value="">-- Chọn đối tác --</option>
-                </select>
-            </div>
             <div class="col-md-1 mb-2 d-flex align-items-end">
                 <button type="button" class="btn btn-outline-danger remove-device-row">Xóa</button>
             </div>
@@ -718,7 +706,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Bảo hành</label>
-                    <input type="text" class="form-control shadow-sm" name="content_lines[${contentIndex}][warranty]" placeholder="VD: 12 tháng">
+                    <input type="text" class="form-control shadow-sm" name="content_lines[${contentIndex}][warranty]" placeholder="VD: 12 tháng" value="1 tháng">
                 </div>
                 <div class="col-md-2 mt-2 d-flex align-items-end">
                     <button type="button" class="btn btn-outline-danger remove-content">Xóa dòng</button>

@@ -332,23 +332,39 @@ jQuery(document).ready(function ($) {
             $("#order-type-tabs .nav-link").removeClass("active");
             $(this).addClass("active");
             var type = $(this).data("type");
+            var other_type = $(this).data("other-type");
             $("#order_type").val(type);
             // Toggle UI theo loại đơn
             if (type === "device") {
                 $("#device-list-section").show();
-                $("#order-items-container").hide();
-                $("#add-order-item").hide();
+                $("#order-items-section").hide();
                 $("#device-return-section").hide();
+                $("#content-section").hide();
+                $("#revenue-section").hide();
             } else if (type === "return") {
                 $("#device-list-section").hide();
                 $("#device-return-section").show();
-                $("#order-items-container").hide();
-                $("#add-order-item").hide();
+                $("#order-items-section").hide();
+                $("#revenue-section").hide();
+                $("#content-section").hide();
+            } else if (type === "content") {
+                $("#device-list-section").hide();
+                $("#device-return-section").hide();
+                $("#order-items-section").hide();
+                $("#revenue-section").hide();
+                $("#content-section").show();
+            } else if (other_type === "revenue") {
+                $("#device-list-section").hide();
+                $("#device-return-section").hide();
+                $("#order-items-section").hide();
+                $("#content-section").hide();
+                $("#revenue-section").show();
             } else {
                 $("#device-list-section").hide();
                 $("#device-return-section").hide();
-                $("#order-items-container").show();
-                $("#add-order-item").show();
+                $("#order-items-section").show();
+                $("#content-section").hide();
+                $("#revenue-section").hide();
             }
         });
 

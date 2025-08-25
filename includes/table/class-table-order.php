@@ -59,6 +59,7 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
         // Lấy thông tin user hiện tại
         $current_user_id = get_current_user_id();
 
+
         // Nếu là admin thì được xem tất cả đơn hàng
         if (function_exists('aerp_user_has_role') && aerp_user_has_role($current_user_id, 'admin')) {
             // Không filter gì cả, admin xem full
@@ -67,7 +68,7 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
                 "SELECT id, work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
                 $current_user_id
             ));
-
+            $employee_current_id = $current_user_employee->id;
             if ($current_user_employee) {
                 // Kiểm tra quyền order_view_full
                 if (aerp_user_has_permission($current_user_id, 'order_view_full')) {
@@ -81,27 +82,27 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
                         if (!empty($branch_employee_ids)) {
                             $placeholders = implode(',', array_fill(0, count($branch_employee_ids), '%d'));
                             $filters[] = "(employee_id IN ($placeholders) OR created_by = %d)";
-                            $params = array_merge($params, $branch_employee_ids, [$current_user_id]);
+                            $params = array_merge($params, $branch_employee_ids, [$employee_current_id]);
                         } else {
                             // Nếu không có nhân viên nào trong chi nhánh, chỉ hiển thị đơn mình tạo
                             $filters[] = "created_by = %d";
-                            $params[] = $current_user_id;
+                            $params[] = $employee_current_id;
                         }
                     } else {
                         // Không có chi nhánh, chỉ hiển thị đơn mình tạo
                         $filters[] = "created_by = %d";
-                        $params[] = $current_user_id;
+                        $params[] = $employee_current_id;
                     }
                 } else {
                     // Không có quyền: chỉ hiển thị đơn hàng của user hiện tại (tạo hoặc được phân)
                     $filters[] = "(employee_id = %d OR created_by = %d)";
                     $params[] = $current_user_employee->id;
-                    $params[] = $current_user_id;
+                    $params[] = $employee_current_id;
                 }
             } else {
                 // Không phải nhân viên, chỉ hiển thị đơn mình tạo
                 $filters[] = "created_by = %d";
-                $params[] = $current_user_id;
+                $params[] = $employee_current_id;
             }
         }
 
@@ -298,7 +299,7 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
     protected function column_order_type($item)
     {
         $order_type = $item->order_type ?? '';
-        
+
         if ($order_type === 'content') {
             return '<span class="badge bg-secondary">Nội dung yêu cầu</span>';
         }

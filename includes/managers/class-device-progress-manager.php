@@ -67,7 +67,7 @@ class AERP_Device_Progress_Manager
     {
         global $wpdb;
         $table = $wpdb->prefix . 'aerp_order_device_progresses';
-        return $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d", $id));
+        return $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d AND is_active = 1", $id));
     }
 
     public static function get_all()

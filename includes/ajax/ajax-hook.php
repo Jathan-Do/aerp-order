@@ -497,16 +497,65 @@ add_action('wp_ajax_aerp_order_search_products_in_warehouse_in_worklocation', fu
 add_action('wp_ajax_aerp_order_search_received_devices', function () {
     global $wpdb;
     $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
+    $device_id = isset($_GET['device_id']) ? absint($_GET['device_id']) : 0;
     $results = [];
 
-    // Chỉ lấy các device có device_status là 'received'
+    $current_user_id = get_current_user_id();
+
+    // Base: chỉ lấy thiết bị còn đang nhận
     $sql = "SELECT id, device_name, serial_number, status FROM {$wpdb->prefix}aerp_order_devices WHERE device_status = %s";
     $params = ['received'];
+
+    // Quyền xem theo đơn hàng liên quan
+    if (!(function_exists('aerp_user_has_role') && aerp_user_has_role($current_user_id, 'admin'))) {
+        $current_user_employee = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+            $current_user_id
+        ));
+        $employee_id = $current_user_employee ? (int)$current_user_employee->id : 0;
+
+        if ($current_user_employee) {
+            if (function_exists('aerp_user_has_permission') && aerp_user_has_permission($current_user_id, 'order_view_full')) {
+                if ($current_user_employee->work_location_id) {
+                    $branch_employee_ids = $wpdb->get_col($wpdb->prepare(
+                        "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE work_location_id = %d",
+                        $current_user_employee->work_location_id
+                    ));
+                    if (!empty($branch_employee_ids)) {
+                        $placeholders = implode(',', array_fill(0, count($branch_employee_ids), '%d'));
+                        $sql .= " AND order_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_orders WHERE employee_id IN ($placeholders) OR created_by = %d)";
+                        $params = array_merge($params, array_map('intval', $branch_employee_ids), [$employee_id]);
+                    } else {
+                        $sql .= " AND order_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_orders WHERE created_by = %d)";
+                        $params[] = $employee_id;
+                    }
+                } else {
+                    $sql .= " AND order_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_orders WHERE created_by = %d)";
+                    $params[] = $employee_id;
+                }
+            } else {
+                $sql .= " AND order_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_orders WHERE employee_id = %d OR created_by = %d)";
+                $params[] = $employee_id; // employee_id so với ID nhân sự
+                $params[] = $employee_id; // created_by so với ID user
+            }
+        } else {
+            $sql .= " AND order_id IN (SELECT id FROM {$wpdb->prefix}aerp_order_orders WHERE created_by = %d)";
+            $params[] = $employee_id;
+        }
+    }
+
+    // Tìm theo id cụ thể (preselect)
+    if ($device_id > 0) {
+        $sql .= " AND id = %d";
+        $params[] = $device_id;
+    }
+    // Tìm kiếm theo tên/serial
     if ($q !== '') {
         $sql .= " AND (device_name LIKE %s OR serial_number LIKE %s)";
         $params[] = '%' . $wpdb->esc_like($q) . '%';
         $params[] = '%' . $wpdb->esc_like($q) . '%';
     }
+
     $sql .= " ORDER BY id DESC LIMIT 30";
     $devices = $wpdb->get_results($wpdb->prepare($sql, ...$params));
 
@@ -525,6 +574,7 @@ add_action('wp_ajax_aerp_order_search_received_devices', function () {
     }
     wp_send_json($results);
 });
+
 add_action('wp_ajax_aerp_order_search_products_in_warehouse', function () {
     global $wpdb;
     $warehouse_id = isset($_GET['warehouse_id']) ? intval($_GET['warehouse_id']) : 0;
@@ -706,6 +756,7 @@ function aerp_device_filter_devices_callback()
         'order' => sanitize_text_field($_POST['order'] ?? ''),
         'partner_id' => intval($_POST['partner_id'] ?? 0),
         'progress_id' => intval($_POST['progress_id'] ?? 0),
+        'device_status' => sanitize_text_field($_POST['device_status'] ?? ''),
     ];
     $table = new AERP_Device_Table();
     $table->set_filters($filters);
@@ -725,6 +776,7 @@ function aerp_device_return_filter_device_returns_callback()
         'order' => sanitize_text_field($_POST['order'] ?? ''),
         'date_from' => sanitize_text_field($_POST['date_from'] ?? ''),
         'date_to' => sanitize_text_field($_POST['date_to'] ?? ''),
+        'status' => sanitize_text_field($_POST['status'] ?? ''),
     ];
     $table = new AERP_Device_Return_Table();
     $table->set_filters($filters);
