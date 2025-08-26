@@ -13,7 +13,7 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
                 'customer_id' => 'Tên KH',
                 'address' => 'Địa chỉ',
                 'phones' => 'Số điện thoại',
-                'content_lines' => 'Nội dung yêu cầu & triển khai',
+                'content_lines' => 'ND yêu cầu & triển khai',
                 'status_id' => 'Trạng thái',
                 'note' => 'Ghi chú',
                 'employee_id' => 'Người triển khai',
@@ -45,10 +45,6 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
             'table_wrapper' => '#aerp-order-table-wrapper',
 
         ]);
-    }
-    public function set_filters($filters = [])
-    {
-        parent::set_filters($filters); // Gọi cha để xử lý đầy đủ orderby, order, paged, search_term
     }
     protected function get_extra_filters()
     {

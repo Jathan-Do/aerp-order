@@ -60,7 +60,10 @@ ob_start();
         border-color: #dee2e6;
         font-weight: 500;
     }
-
+    .nav-tabs .nav-link.active {
+        border-color:rgb(157, 157, 158);
+        border-bottom-color: #fff;
+    }
     .nav-tabs .nav-link:not(.active):not(:disabled):hover {
         color: white !important;
     }
@@ -209,6 +212,9 @@ if (function_exists('aerp_render_breadcrumb')) {
                                 role="tab"
                                 <?= ($order_type && $order_type !== 'return' && $order_type !== 'content') ? 'disabled' : '' ?>
                             >Trả thiết bị</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button type="button" class="nav-link" data-other-type="revenue" role="tab">Doanh thu</button>
                         </li>
                     </ul>
                 </div>
@@ -531,6 +537,22 @@ if (function_exists('aerp_render_breadcrumb')) {
                         ?>
                     </div>
                     <button type="button" class="btn btn-secondary  " id="add-device-return-row">Thêm dòng trả thiết bị</button>
+                </div>
+                <div class="col-12 mb-3" id="revenue-section" style="display:none">
+                    <!-- <label class="form-label fs-5">Nội dung yêu cầu và triển khai</label> -->
+                    <div id="revenue-container">
+                        <div class="row mb-2 revenue-row">
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Nhân viên</label>
+                                <select class="form-select shadow-sm <?php echo aerp_user_has_role($user_id, 'admin') ? 'employee-select-all' : 'employee-select'; ?>
+                                 shadow-sm" style="width:100%" name=""></select>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Hoa hồng</label>
+                                <input type="number" class="form-control shadow-sm" name="" placeholder="0" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="note" class="form-label">Ghi chú</label>

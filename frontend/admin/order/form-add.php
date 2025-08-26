@@ -49,9 +49,12 @@ ob_start();
         border-color: #dee2e6;
         font-weight: 500;
     }
-
+    .nav-tabs .nav-link.active {
+        border-color:rgb(157, 157, 158);
+        border-bottom-color: #fff;
+    }
     .nav-tabs .nav-link:not(.active):hover {
-        color: white !important;
+        color: white !important; 
     }
 </style>
 <div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
@@ -331,6 +334,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                         </div>
                     </div>
                 </div>
+                
                 <div class="col-md-6 mb-3">
                     <label for="note" class="form-label">Ghi chú</label>
                     <textarea class="form-control shadow-sm shadow-sm" id="note" name="note" rows="2" placeholder="Nội dung ghi chú"></textarea>
