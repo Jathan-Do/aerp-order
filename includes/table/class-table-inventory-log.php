@@ -102,8 +102,10 @@ class AERP_Inventory_Log_Table extends AERP_Frontend_Table
     }
     protected function get_extra_filters()
     {
+        global $wpdb;
         $filters = [];
         $params = [];
+
         if (!empty($this->filters['status'])) {
             $filters[] = "status = %s";
             $params[] = $this->filters['status'];
@@ -120,10 +122,57 @@ class AERP_Inventory_Log_Table extends AERP_Frontend_Table
             $filters[] = "supplier_id = %d";
             $params[] = $this->filters['supplier_id'];
         }
+
+        // Filter theo quyền xem phiếu nhập/xuất kho
         if (!empty($this->filters['manager_user_id'])) {
-            $filters[] = "warehouse_id IN (SELECT warehouse_id FROM {$GLOBALS['wpdb']->prefix}aerp_warehouse_managers WHERE user_id = %d)";
-            $params[] = (int)$this->filters['manager_user_id'];
+            $employee_id = (int)$this->filters['manager_user_id'];
+            $user_id = get_current_user_id();
+            // Nếu là admin thì không filter gì cả, được thấy hết
+            if (function_exists('aerp_user_has_role') && aerp_user_has_role($user_id, 'admin')) {
+                // Admin: không filter, thấy tất cả
+            } else {
+                if ($employee_id) {
+                    // Lấy work_location_id của user hiện tại
+                    $work_location_id = $wpdb->get_var($wpdb->prepare(
+                        "SELECT work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE id = %d",
+                        $employee_id
+                    ));
+
+                    // 1. Lấy tất cả kho mà user hiện tại quản lý (không phụ thuộc chi nhánh)
+                    $user_warehouse_ids = $wpdb->get_col($wpdb->prepare(
+                        "SELECT warehouse_id FROM {$wpdb->prefix}aerp_warehouse_managers WHERE user_id = %d",
+                        $employee_id
+                    ));
+                    $user_warehouse_ids = array_map('intval', $user_warehouse_ids);
+
+                    // 2. Lấy tất cả kho thuộc cùng chi nhánh với user hiện tại
+                    $branch_warehouse_ids = [];
+                    if ($work_location_id) {
+                        $branch_warehouse_ids = $wpdb->get_col($wpdb->prepare(
+                            "SELECT id FROM {$wpdb->prefix}aerp_warehouses WHERE work_location_id = %d",
+                            $work_location_id
+                        ));
+                        $branch_warehouse_ids = array_map('intval', $branch_warehouse_ids);
+                    }
+
+                    // 3. Gộp tất cả warehouse IDs
+                    $all_warehouse_ids = array_unique(array_merge($user_warehouse_ids, $branch_warehouse_ids));
+
+                    if (!empty($all_warehouse_ids)) {
+                        $placeholders = implode(',', array_fill(0, count($all_warehouse_ids), '%d'));
+                        $filters[] = "warehouse_id IN ($placeholders)";
+                        $params = array_merge($params, $all_warehouse_ids);
+                    } else {
+                        // Nếu không có kho nào thì trả về điều kiện không có kết quả
+                        $filters[] = "0=1";
+                    }
+                } else {
+                    // Nếu không tìm thấy employee_id thì không có quyền xem gì cả
+                    $filters[] = "0=1";
+                }
+            }
         }
+
         return [$filters, $params];
     }
 }

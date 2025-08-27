@@ -44,8 +44,17 @@ class AERP_Inventory_Transfer_Table extends AERP_Frontend_Table
     }
     protected function column_created_by($item)
     {
-        $user = get_userdata($item->created_by);
-        return $user ? esc_html($user->display_name) : 'ID: ' . intval($item->created_by);
+        global $wpdb;
+        $user_id = intval($item->created_by);
+        // Lấy tên nhân viên từ bảng employee dựa vào user_id
+        $employee = $wpdb->get_row($wpdb->prepare(
+            "SELECT full_name FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+            $user_id
+        ));
+        if ($employee && !empty($employee->full_name)) {
+            return esc_html($employee->full_name);
+        }
+        return '-- ';
     }
     protected function column_products($item)
     {

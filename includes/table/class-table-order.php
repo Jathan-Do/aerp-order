@@ -210,7 +210,26 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
 
     protected function column_profit($item)
     {
-        $profit = ($item->total_amount ?? 0) - ($item->cost ?? 0);
+        global $wpdb;
+        $orderId = (int) $item->id;
+
+        // Lợi nhuận = Tổng tiền nội dung triển khai - Chi phí đơn hàng - Tổng tiền SP/DV - Tổng chi phí mua ngoài
+        $contentTotal = (float) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(total_price),0) FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d",
+            $orderId
+        ));
+        $itemsTotal = (float) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(quantity * unit_price),0) FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d",
+            $orderId
+        ));
+        $externalCostTotal = (float) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(external_cost),0) FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d AND purchase_type = 'external'",
+            $orderId
+        ));
+
+        $orderCost = (float) ($item->cost ?? 0);
+        $profit = $contentTotal - $orderCost - $itemsTotal - $externalCostTotal;
+
         $color_class = $profit >= 0 ? 'text-success' : 'text-danger';
         return sprintf('<span class="%s fw-bold">%s %s</span>', $color_class, number_format($profit, 0), 'đ');
     }
@@ -294,25 +313,74 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
     }
     protected function column_order_type($item)
     {
+        global $wpdb;
         $order_type = $item->order_type ?? '';
 
-        if ($order_type === 'content') {
-            return '<span class="badge bg-secondary">Nội dung yêu cầu</span>';
+        // Lấy các item_type và purchase_type để xác định có mua ngoài không
+        $items = $wpdb->get_results($wpdb->prepare(
+            "SELECT item_type, purchase_type FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d",
+            $item->id
+        ));
+
+        $has_product = false;
+        $has_service = false;
+        $has_external = false;
+
+        if (!empty($items)) {
+            foreach ($items as $item_row) {
+                if ($item_row->item_type === 'product') {
+                    $has_product = true;
+                } elseif ($item_row->item_type === 'service') {
+                    $has_service = true;
+                }
+
+                if (isset($item_row->purchase_type) && $item_row->purchase_type === 'external') {
+                    $has_external = true;
+                }
+            }
         }
-        if ($order_type === 'device') {
-            return '<span class="badge bg-primary">Nhận thiết bị</span>';
+
+        // Nếu có order_type trong DB, ưu tiên sử dụng, nhưng nếu là product thì kiểm tra có mua ngoài không
+        if (!empty($order_type)) {
+            $type_labels = [
+                'content' => '<span class="badge bg-secondary">Nội dung</span>',
+                'device' => '<span class="badge bg-primary">Nhận thiết bị</span>',
+                'return' => '<span class="badge bg-danger">Trả thiết bị</span>',
+                'service' => '<span class="badge bg-success">Dịch vụ</span>',
+                'product' => '<span class="badge bg-info">Bán hàng</span>',
+                'mixed' => '<span class="badge bg-warning">Tổng hợp</span>'
+            ];
+
+            if ($order_type === 'product') {
+                $label = $type_labels['product'];
+                if ($has_external) {
+                    $label .= '<br><small class="text-muted">(Có mua ngoài)</small>';
+                }
+                return $label;
+            }
+
+            if (isset($type_labels[$order_type])) {
+                return $type_labels[$order_type];
+            }
         }
-        if ($order_type === 'return') {
-            return '<span class="badge bg-danger">Trả thiết bị</span>';
+
+        // Fallback: xác định dựa trên order_items nếu không có order_type
+        if (empty($items)) {
+            return '<span class="badge bg-secondary">Không xác định</span>';
         }
-        if ($order_type === 'service') {
-            return '<span class="badge bg-success">Dịch vụ</span>';
-        }
-        if ($order_type === 'product') {
-            return '<span class="badge bg-info">Bán hàng</span>';
-        }
-        if ($order_type === 'mixed') {
+
+        if ($has_product && $has_service) {
             return '<span class="badge bg-warning">Tổng hợp</span>';
+        } elseif ($has_product) {
+            $label = '<span class="badge bg-info">Bán hàng</span>';
+            if ($has_external) {
+                $label .= '<br><small class="text-muted">(Có mua ngoài)</small>';
+            }
+            return $label;
+        } elseif ($has_service) {
+            return '<span class="badge bg-success">Dịch vụ</span>';
+        } else {
+            return '<span class="badge bg-secondary">Không xác định</span>';
         }
     }
 
@@ -409,5 +477,12 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
             ],
             [$like, $like]
         ];
+    }
+    protected function column_note($item)
+    {
+        $note = isset($item->note) ? $item->note : '';
+        // Giới hạn chiều cao, nếu vượt thì scroll
+        $style = 'max-height:300px; overflow:auto; display:block; white-space:pre-line;';
+        return sprintf('<div style="%s">%s</div>', esc_attr($style), esc_html($note));
     }
 }

@@ -81,7 +81,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                     <?php
                     $warehouses = AERP_Warehouse_Manager::aerp_get_warehouses_by_user($user_id);
                     ?>
-                    <select name="from_warehouse_id" class="form-select shadow-sm" required>
+                    <select name="warehouse_id" class="form-select shadow-sm warehouse-select-by-user" required>
                         <option value="">-- Chọn kho xuất --</option>
                         <?php foreach ($warehouses as $w): ?>
                             <option value="<?php echo esc_attr($w->id); ?>">
@@ -92,7 +92,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Kho nhập</label>
-                    <select name="to_warehouse_id" class="form-select shadow-sm" required>
+                    <select name="to_warehouse_id" class="form-select shadow-sm warehouse-select" required>
                         <option value="">-- Chọn kho nhập --</option>
                         <?php foreach (AERP_Warehouse_Manager::get_all() as $w): ?>
                             <option value="<?php echo esc_attr($w->id); ?>">
@@ -105,7 +105,7 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div id="transfer-items-container">
                 <div class="row transfer-item-row">
                     <div class="col-md-6 mb-3">
-                        <select class="form-select shadow-sm product-select" name="products[0][product_id]" required style="width:100%"></select>
+                        <select class="form-select shadow-sm product-select-by-warehouse" name="products[0][product_id]" required style="width:100%"></select>
                     </div>
                     <div class="col-md-5 mb-3">
                         <input type="number" name="products[0][quantity]" class="form-control shadow-sm" placeholder="Số lượng" min="1" required>
@@ -127,9 +127,11 @@ if (function_exists('aerp_render_breadcrumb')) {
 </div>
 <script>
     jQuery(function($) {
-        function initProductSelect2($selector, warehouseId) {
-            $selector.select2({
-                placeholder: '-- Chọn sản phẩm --',
+        function initSelect2(context) {
+            var $ctx = context ? $(context) : $(document);
+            // Chỉ init những select chưa được init
+            $ctx.find('.product-select-by-warehouse').filter(':not(.select2-hidden-accessible)').select2({
+                placeholder: '-- Chọn sản phẩm trong kho --',
                 allowClear: true,
                 ajax: {
                     url: (typeof aerp_order_ajax !== 'undefined' ? aerp_order_ajax.ajaxurl : ajaxurl),
@@ -137,9 +139,9 @@ if (function_exists('aerp_render_breadcrumb')) {
                     delay: 250,
                     data: function(params) {
                         return {
-                            action: 'aerp_order_search_products_in_warehouse',
-                            warehouse_id: warehouseId,
-                            q: params.term || ''
+                            action: "aerp_order_search_products_in_warehouse",
+                            warehouse_id: $("select[name='warehouse_id']").val(),
+                            q: params.term || "",
                         };
                     },
                     processResults: function(data) {
@@ -149,25 +151,31 @@ if (function_exists('aerp_render_breadcrumb')) {
                 },
                 minimumInputLength: 0
             });
-        }
-        function reinitAllProductSelects() {
-            var warehouseId = $("select[name='from_warehouse_id']").val();
-            $(".product-select").each(function() {
-                if ($(this).hasClass('select2-hidden-accessible')) {
-                    $(this).select2('destroy');
+
+            $ctx.find('.product-select-by-warehouse').off('select2:select').on('select2:select', function(e) {
+                const warehouse_id = $("select[name='warehouse_id']").val();
+                if (!warehouse_id) {
+                    alert('Vui lòng chọn kho trước!');
+                    $(this).val(null).trigger('change');
+                    return;
                 }
-                initProductSelect2($(this), warehouseId);
             });
         }
-        reinitAllProductSelects();
-        $("select[name='from_warehouse_id']").on('change', function() {
-            reinitAllProductSelects();
+
+        // Khởi tạo cho hàng đầu tiên
+        initSelect2();
+
+        // Đổi kho xuất -> reset toàn bộ dropdown sản phẩm để nạp lại theo kho
+        $("select[name='warehouse_id']").on('change', function() {
+            $('.product-select-by-warehouse').val(null).trigger('change');
         });
+
+        // Thêm dòng sản phẩm
         $('#add-transfer-item').on('click', function() {
             var idx = $('#transfer-items-container .transfer-item-row').length;
             var row = `<div class="row transfer-item-row">
         <div class="col-md-6 mb-3">
-            <select class="form-select shadow-sm product-select" name="products[${idx}][product_id]" required style="width:100%"></select>
+            <select class="form-select shadow-sm product-select-by-warehouse" name="products[${idx}][product_id]" required style="width:100%"></select>
         </div>
         <div class="col-md-5 mb-3">
             <input type="number" name="products[${idx}][quantity]" class="form-control shadow-sm" placeholder="Số lượng" min="1" required>
@@ -177,9 +185,11 @@ if (function_exists('aerp_render_breadcrumb')) {
         </div>
     </div>`;
             $('#transfer-items-container').append(row);
-            var warehouseId = $("select[name='from_warehouse_id']").val();
-            initProductSelect2($('#transfer-items-container .transfer-item-row:last .product-select'), warehouseId);
+            // Init select2 cho dòng mới
+            initSelect2($('#transfer-items-container .transfer-item-row:last'));
         });
+
+        // Xóa dòng
         $(document).on('click', '.remove-transfer-item', function() {
             $(this).closest('.transfer-item-row').remove();
         });

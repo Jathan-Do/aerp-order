@@ -49,12 +49,20 @@ ob_start();
         border-color: #dee2e6;
         font-weight: 500;
     }
+
     .nav-tabs .nav-link.active {
-        border-color:rgb(157, 157, 158);
+        border-color: rgb(157, 157, 158);
         border-bottom-color: #fff;
     }
+
     .nav-tabs .nav-link:not(.active):hover {
-        color: white !important; 
+        color: white !important;
+    }
+
+    /* Ẩn hoàn toàn select2 khi không cần thiết */
+    .product-select-all-warehouses[style*="display: none"]+.select2-container,
+    .product-select-all-warehouses[style*="display:none"]+.select2-container {
+        display: none !important;
     }
 </style>
 <div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
@@ -274,6 +282,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                 </div>
                 <div class="col-12 mb-3" id="order-items-section" style="display:none">
                     <div id="order-items-container">
+                        <!-- <label class="form-label">Sản phẩm trong đơn</label> -->
                         <div class="form-check mb-2">
                             <label class="form-check-label" for="toggle-vat">VAT %</label>
                             <input class="form-check-input" type="checkbox" id="toggle-vat">
@@ -281,36 +290,58 @@ if (function_exists('aerp_render_breadcrumb')) {
                         <div class="row order-item-row">
                             <div class="col-md-2 mb-2">
                                 <label class="form-label">Loại</label>
-                                <select class="form-select shadow-sm item-type-select shadow-sm" name="order_items[0][item_type]">
+                                <select class="form-select shadow-sm item-type-select" name="order_items[0][item_type]">
                                     <option value="product">Sản phẩm</option>
                                     <option value="service">Dịch vụ</option>
                                 </select>
                             </div>
+                            <div class="col-md-2 mb-2 purchase-type-container">
+                                <label class="form-label">Nguồn mua</label>
+                                <select class="form-select shadow-sm purchase-type-select" name="order_items[0][purchase_type]">
+                                    <option value="warehouse">Từ kho</option>
+                                    <option value="external">Mua ngoài</option>
+                                </select>
+                            </div>
                             <div class="col-md-2 mb-2">
                                 <label class="form-label">Sản phẩm trong đơn</label>
-                                <input type="text" class="form-control shadow-sm product-name-input shadow-sm" name="order_items[0][product_name]" placeholder="Tên sản phẩm/dịch vụ" style="display:none">
-                                <select class="form-select shadow-sm product-select-all-warehouses shadow-sm" name="order_items[0][product_id]" style="width:100%"></select>
+                                <input type="text" class="form-control shadow-sm product-name-input" name="order_items[0][product_name]" placeholder="Tên sản phẩm/dịch vụ" style="display:none">
+                                <select class="form-select shadow-sm product-select-all-warehouses" name="order_items[0][product_id]" style="width:100%"></select>
+                                <input type="hidden" name="order_items[0][product_id]" class="product-id-input">
                             </div>
                             <div class="col-md-2 mb-2 d-flex align-items-end">
                                 <div class="w-100">
                                     <label class="form-label">Số lượng</label>
-                                    <input type="number" class="form-control shadow-sm shadow-sm" name="order_items[0][quantity]" placeholder="Số lượng" min="0" step="0.01">
+                                    <input type="number" class="form-control shadow-sm" name="order_items[0][quantity]" placeholder="Số lượng" min="0" step="0.01">
                                 </div>
                                 <span class="unit-label ms-2"></span>
                                 <input type="hidden" name="order_items[0][unit_name]" class="unit-name-input">
                             </div>
                             <div class="col-md-1 mb-2 vat-percent" style="display:none;">
                                 <label class="form-label">VAT %</label>
-                                <input type="number" class="form-control shadow-sm shadow-sm" name="order_items[0][vat_percent]" placeholder="VAT (%)" min="0" max="100" step="0.01">
+                                <input type="number" class="form-control shadow-sm" name="order_items[0][vat_percent]" placeholder="VAT (%)" min="0" max="100" step="0.01" value="0">
                             </div>
                             <div class="col-md-2 mb-2">
                                 <label class="form-label">Đơn giá</label>
-                                <input type="number" class="form-control shadow-sm shadow-sm" name="order_items[0][unit_price]" placeholder="Đơn giá" min="0" step="0.01">
+                                <input type="number" class="form-control shadow-sm" name="order_items[0][unit_price]" placeholder="Đơn giá" min="0" step="0.01">
                             </div>
                             <div class="col-md-2 mb-2">
                                 <label class="form-label">Thành tiền</label>
-                                <input type="text" class="form-control shadow-sm shadow-sm total-price-field" placeholder="Thành tiền" readonly>
+                                <input type="text" class="form-control shadow-sm total-price-field" placeholder="Thành tiền" readonly>
                             </div>
+                            
+                            <!-- External purchase fields (hidden by default) -->
+                            <div class="col-md-2 mb-2 external-fields" style="display:none;">
+                                <label class="form-label">Nhà cung cấp</label>
+                                <input type="text" class="form-control shadow-sm external-supplier-input" name="order_items[0][external_supplier_name]" placeholder="Tên nhà cung cấp">
+                            </div>
+                            <div class="col-md-2 mb-2 external-fields" style="display:none;">
+                                <label class="form-label">Chi phí mua ngoài</label>
+                                <input type="number" class="form-control shadow-sm external-cost-input" name="order_items[0][external_cost]" placeholder="Chi phí" min="0" step="0.01">
+                            </div>
+                            <!-- <div class="col-md-2 mb-2 external-fields" style="display:none;">
+                                <label class="form-label">Ngày giao hàng dự kiến</label>
+                                <input type="date" class="form-control shadow-sm external-delivery-input" name="order_items[0][external_delivery_date]">
+                            </div> -->
                             <div class="col-md-1 mb-2 d-flex align-items-end">
                                 <button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button>
                             </div>
@@ -334,7 +365,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="col-md-6 mb-3">
                     <label for="note" class="form-label">Ghi chú</label>
                     <textarea class="form-control shadow-sm shadow-sm" id="note" name="note" rows="2" placeholder="Nội dung ghi chú"></textarea>
@@ -629,15 +660,40 @@ include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
             if ($('#order-items-container .order-item-row').length > 0) {
                 let $firstRow = $('#order-items-container .order-item-row').first();
                 let itemType = $firstRow.find('.item-type-select').val();
+                let purchaseType = $firstRow.find('.purchase-type-select').val();
                 let $nameInput = $firstRow.find('.product-name-input');
                 let $select = $firstRow.find('.product-select-all-warehouses');
+                let $purchaseTypeContainer = $firstRow.find('.purchase-type-container');
+                let $externalFields = $firstRow.next('.external-fields');
 
                 if (itemType === 'service') {
+                    // Ẩn trường nguồn mua cho dịch vụ
+                    $purchaseTypeContainer.hide();
+
                     $nameInput.show();
                     $select.hide();
+
+                    // Ẩn external fields
+                    $externalFields.hide();
                 } else {
-                    $nameInput.hide();
-                    $select.show();
+                    // Hiển thị trường nguồn mua cho sản phẩm
+                    $purchaseTypeContainer.show();
+
+                    if (purchaseType === 'external') {
+                        // Nếu là mua ngoài, hiển thị input text và external fields
+                        $nameInput.show();
+                        $select.hide();
+
+                        // Hiển thị external fields
+                        $externalFields.show();
+                    } else {
+                        // Nếu là từ kho, hiển thị select2
+                        $nameInput.hide();
+                        $select.show();
+
+                        // Ẩn external fields
+                        $externalFields.hide();
+                    }
                 }
             }
         });
@@ -694,10 +750,18 @@ include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
                     url: typeof aerp_order_ajax !== 'undefined' ? aerp_order_ajax.ajaxurl : ajaxurl,
                     dataType: 'json',
                     delay: 250,
-                    data: function(params){
-                        return { action: 'aerp_order_search_received_devices', q: params.term, device_id: deviceIdFromUrl };
+                    data: function(params) {
+                        return {
+                            action: 'aerp_order_search_received_devices',
+                            q: params.term,
+                            device_id: deviceIdFromUrl
+                        };
                     },
-                    processResults: function(data){ return { results: data }; },
+                    processResults: function(data) {
+                        return {
+                            results: data
+                        };
+                    },
                     cache: true,
                 },
                 minimumInputLength: 0,
@@ -708,8 +772,11 @@ include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
                 $.ajax({
                     url: typeof aerp_order_ajax !== 'undefined' ? aerp_order_ajax.ajaxurl : ajaxurl,
                     dataType: 'json',
-                    data: { action: 'aerp_order_search_received_devices', device_id: deviceIdFromUrl },
-                }).then(function(data){
+                    data: {
+                        action: 'aerp_order_search_received_devices',
+                        device_id: deviceIdFromUrl
+                    },
+                }).then(function(data) {
                     if (data && data.length) {
                         const item = data[0];
                         const option = new Option(item.text, item.id, true, true);

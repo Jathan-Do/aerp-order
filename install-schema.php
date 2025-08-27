@@ -163,6 +163,10 @@ function aerp_order_install_schema()
         unit_name VARCHAR(255),
         vat_percent FLOAT NULL,
         item_type VARCHAR(20) DEFAULT 'product',
+        purchase_type VARCHAR(20) DEFAULT 'warehouse',
+        external_supplier_name VARCHAR(255) DEFAULT NULL,
+        external_cost FLOAT DEFAULT 0,
+        external_delivery_date DATE DEFAULT NULL,
         INDEX idx_order_id (order_id),
         INDEX idx_product_id (product_id),
         INDEX idx_product_name (product_name)
@@ -237,8 +241,12 @@ function aerp_order_install_schema()
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         work_location_id BIGINT DEFAULT NULL,
+        warehouse_type ENUM('branch','personal') DEFAULT 'branch',
+        owner_user_id BIGINT DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_name (name)
+        INDEX idx_name (name),
+        INDEX idx_warehouse_type (warehouse_type),
+        INDEX idx_owner_user_id (owner_user_id)
     ) $charset_collate;";
 
     // 5e. Tồn kho từng sản phẩm theo từng kho
@@ -313,9 +321,11 @@ function aerp_order_install_schema()
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         user_id BIGINT NOT NULL,
         warehouse_id BIGINT NOT NULL,
+        manager_type ENUM('branch_manager','personal_owner') DEFAULT 'branch_manager',
         UNIQUE KEY uq_user_warehouse (user_id, warehouse_id),
         INDEX idx_user_id (user_id),
-        INDEX idx_warehouse_id (warehouse_id)
+        INDEX idx_warehouse_id (warehouse_id),
+        INDEX idx_manager_type (manager_type)
     ) $charset_collate;";
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';

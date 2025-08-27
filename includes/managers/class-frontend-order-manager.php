@@ -285,8 +285,12 @@ class AERP_Frontend_Order_Manager
                         'unit_name'     => isset($item['unit_name']) ? sanitize_text_field($item['unit_name']) : '',
                         'vat_percent'   => $vat_percent,
                         'item_type'     => $item_type,
+                        'purchase_type' => isset($item['purchase_type']) ? sanitize_text_field($item['purchase_type']) : 'warehouse',
+                        'external_supplier_name' => isset($item['external_supplier_name']) ? sanitize_text_field($item['external_supplier_name']) : null,
+                        'external_cost' => isset($item['external_cost']) ? floatval($item['external_cost']) : 0.00,
+                        'external_delivery_date' => isset($item['external_delivery_date']) ? sanitize_text_field($item['external_delivery_date']) : null,
                     ];
-                    $item_format = ['%d', '%d', '%s', '%f', '%f', '%f', '%s', '%f', '%s'];
+                    $item_format = ['%d', '%d', '%s', '%f', '%f', '%f', '%s', '%f', '%s', '%s', '%s', '%f', '%s'];
 
                     if ($item_id > 0 && in_array($item_id, $existing_item_ids, true)) {
                         // Cập nhật sản phẩm đã có

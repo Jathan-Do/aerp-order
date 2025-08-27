@@ -60,17 +60,26 @@ ob_start();
         border-color: #dee2e6;
         font-weight: 500;
     }
+
     .nav-tabs .nav-link.active {
-        border-color:rgb(157, 157, 158);
+        border-color: rgb(157, 157, 158);
         border-bottom-color: #fff;
     }
+
     .nav-tabs .nav-link:not(.active):not(:disabled):hover {
         color: white !important;
     }
-    .nav-tabs .nav-link:disabled{
+
+    .nav-tabs .nav-link:disabled {
         color: #6c757d !important;
         background-color: #e9ecef !important;
         border-color: #dee2e6 !important;
+    }
+
+    /* Ẩn hoàn toàn select2 khi không cần thiết */
+    .product-select-all-warehouses[style*="display: none"]+.select2-container,
+    .product-select-all-warehouses[style*="display:none"]+.select2-container {
+        display: none !important;
     }
 </style>
 <div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
@@ -178,40 +187,36 @@ if (function_exists('aerp_render_breadcrumb')) {
                     <input type="hidden" id="order_type" name="order_type" value="<?= esc_attr($order_type); ?>">
                     <ul class="nav nav-tabs gap-1" id="order-type-tabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button 
-                                type="button" 
-                                class="nav-link<?= $order_type === 'content' ? ' active' : '' ?>" 
-                                data-type="content" 
+                            <button
+                                type="button"
+                                class="nav-link<?= $order_type === 'content' ? ' active' : '' ?>"
+                                data-type="content"
                                 role="tab"
-                                <?= ($order_type && $order_type !== 'content') ? 'disabled' : '' ?>
-                            >Nội dung yêu cầu & Triển khai</button>
+                                <?= ($order_type && $order_type !== 'content') ? 'disabled' : '' ?>>Nội dung yêu cầu & Triển khai</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button 
-                                type="button" 
-                                class="nav-link<?= ($order_type === 'product' || $order_type === 'service' || $order_type === 'mixed') ? ' active' : '' ?>" 
-                                data-type="product" 
+                            <button
+                                type="button"
+                                class="nav-link<?= ($order_type === 'product' || $order_type === 'service' || $order_type === 'mixed') ? ' active' : '' ?>"
+                                data-type="product"
                                 role="tab"
-                                <?= ($order_type && !in_array($order_type, ['product', 'service', 'mixed', 'content'])) ? 'disabled' : '' ?>
-                            >Bán hàng/ Dịch vụ</button>
+                                <?= ($order_type && !in_array($order_type, ['product', 'service', 'mixed', 'content'])) ? 'disabled' : '' ?>>Bán hàng/ Dịch vụ</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button 
-                                type="button" 
-                                class="nav-link<?= $order_type === 'device' ? ' active' : '' ?>" 
-                                data-type="device" 
+                            <button
+                                type="button"
+                                class="nav-link<?= $order_type === 'device' ? ' active' : '' ?>"
+                                data-type="device"
                                 role="tab"
-                                <?= ($order_type && $order_type !== 'device' && $order_type !== 'content') ? 'disabled' : '' ?>
-                            >Nhận thiết bị</button>
+                                <?= ($order_type && $order_type !== 'device' && $order_type !== 'content') ? 'disabled' : '' ?>>Nhận thiết bị</button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button 
-                                type="button" 
-                                class="nav-link<?= $order_type === 'return' ? ' active' : '' ?>" 
-                                data-type="return" 
+                            <button
+                                type="button"
+                                class="nav-link<?= $order_type === 'return' ? ' active' : '' ?>"
+                                data-type="return"
                                 role="tab"
-                                <?= ($order_type && $order_type !== 'return' && $order_type !== 'content') ? 'disabled' : '' ?>
-                            >Trả thiết bị</button>
+                                <?= ($order_type && $order_type !== 'return' && $order_type !== 'content') ? 'disabled' : '' ?>>Trả thiết bị</button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button type="button" class="nav-link" data-other-type="revenue" role="tab">Doanh thu</button>
@@ -328,38 +333,109 @@ if (function_exists('aerp_render_breadcrumb')) {
                                 echo '<div class="col-md-2 mb-2">';
                                 echo '<label class="form-label">Loại</label>';
                                 echo '<select class="form-select shadow-sm item-type-select" name="order_items[' . $idx . '][item_type]">';
-                                echo '<option value="product"' . selected($item_type, 'product', false) . '>Sản phẩm</option>';
-                                echo '<option value="service"' . selected($item_type, 'service', false) . '>Dịch vụ</option>';
+                                echo '<option value="product"' . ($item_type === 'product' ? ' selected' : '') . '>Sản phẩm</option>';
+                                echo '<option value="service"' . ($item_type === 'service' ? ' selected' : '') . '>Dịch vụ</option>';
                                 echo '</select>';
                                 echo '</div>';
-                                // Tên sản phẩm/dịch vụ
+
+                                // Select nguồn mua (chỉ hiển thị cho sản phẩm)
+                                $purchase_type = isset($item->purchase_type) ? $item->purchase_type : 'warehouse';
+                                $purchase_type_style = ($item_type === 'service') ? ' style="display:none;"' : '';
+                                echo '<div class="col-md-2 mb-2 purchase-type-container"' . $purchase_type_style . '>';
+                                echo '<label class="form-label">Nguồn mua</label>';
+                                echo '<select class="form-select shadow-sm purchase-type-select" name="order_items[' . $idx . '][purchase_type]">';
+                                echo '<option value="warehouse"' . ($purchase_type === 'warehouse' ? ' selected' : '') . '>Từ kho</option>';
+                                echo '<option value="external"' . ($purchase_type === 'external' ? ' selected' : '') . '>Mua ngoài</option>';
+                                echo '</select>';
+                                echo '</div>';
+
+                                // Input tên sản phẩm/dịch vụ
                                 echo '<div class="col-md-2 mb-2">';
                                 echo '<label class="form-label">Sản phẩm trong đơn</label>';
-                                echo '<input type="text" class="form-control shadow-sm product-name-input" name="order_items[' . $idx . '][product_name]" value="' . esc_attr($item->product_name) . '" placeholder="Tên sản phẩm/dịch vụ"' . ($item_type == 'service' ? '' : ' style="display:none"') . '>';
-                                // Select2 sản phẩm (ẩn nếu là dịch vụ)
-                                echo '<select class="form-select shadow-sm product-select-all-warehouses" name="order_items[' . $idx . '][product_id]" style="width:100%;' . ($item_type == 'service' ? 'display:none;' : '') . '">';
-                                if ($item_type == 'product' && !empty($item->product_id)) {
-                                    // Hiển thị option đã chọn
-                                    echo '<option value="' . esc_attr($item->product_id) . '" selected>' . esc_html($item->product_name) . '</option>';
+
+                                if ($item_type === 'service' || $purchase_type === 'external') {
+                                    // Hiển thị input text cho dịch vụ hoặc mua ngoài
+                                    $product_name_style = '';
+                                    $product_select_style = ' style="display:none;"';
+                                    $product_name_value = esc_attr($item->product_name);
+                                } else {
+                                    // Hiển thị select2 cho sản phẩm từ kho
+                                    $product_name_style = ' style="display:none;"';
+                                    $product_select_style = '';
+                                    $product_name_value = '';
                                 }
-                                echo '</select>';
+
+                                echo '<input type="text" class="form-control shadow-sm product-name-input" name="order_items[' . $idx . '][product_name]" placeholder="Tên sản phẩm/dịch vụ" value="' . $product_name_value . '"' . $product_name_style . '>';
+
+                                // Chỉ hiển thị select2 khi thực sự cần thiết
+                                if ($item_type === 'product' && $purchase_type === 'warehouse') {
+                                    echo '<select class="form-select shadow-sm product-select-all-warehouses" name="order_items[' . $idx . '][product_id]" style="width:100%">';
+                                    // Hiển thị option đã chọn để Select2 nhận diện giá trị hiện tại
+                                    if (!empty($item->product_id)) {
+                                        $selected_text = !empty($item->product_name) ? $item->product_name : ('Sản phẩm #' . intval($item->product_id));
+                                        echo '<option value="' . esc_attr($item->product_id) . '" selected>' . esc_html($selected_text) . '</option>';
+                                    }
+                                    echo '</select>';
+                                } else {
+                                    // Ẩn hoàn toàn select2 khi không cần thiết
+                                    echo '<select class="form-select shadow-sm product-select-all-warehouses" name="order_items[' . $idx . '][product_id]" style="display:none !important; width:100%"></select>';
+                                }
+
+                                echo '<input type="hidden" name="order_items[' . $idx . '][product_id]" class="product-id-input" value="' . esc_attr($item->product_id) . '">';
                                 echo '</div>';
-                                // Số lượng, đơn giá, v.v. giữ nguyên
+
+                                // Input số lượng
                                 echo '<div class="col-md-2 mb-2 d-flex align-items-end">';
                                 echo '<div class="w-100">';
                                 echo '<label class="form-label">Số lượng</label>';
-                                echo '<input type="number" class="form-control shadow-sm" name="order_items[' . $idx . '][quantity]" value="' . esc_attr($item->quantity) . '" placeholder="Số lượng" min="0" step="0.01">';
+                                echo '<input type="number" class="form-control shadow-sm" name="order_items[' . $idx . '][quantity]" placeholder="Số lượng" min="0" step="0.01" value="' . esc_attr($item->quantity) . '">';
                                 echo '</div>';
                                 echo '<span class="unit-label ms-2">' . esc_html($item->unit_name ?? '') . '</span>';
-                                echo '<input type="hidden" name="order_items[' . $idx . '][unit_name]" value="' . esc_attr($item->unit_name ?? '') . '" class="unit-name-input">';
+                                echo '<input type="hidden" name="order_items[' . $idx . '][unit_name]" class="unit-name-input" value="' . esc_attr($item->unit_name ?? '') . '">';
                                 echo '</div>';
-                                echo '<div class="col-md-1 vat-percent" style="display:none;">';
-                                echo '<label class="form-label">VAT</label>';
-                                echo '<input type="number" class="form-control shadow-sm" name="order_items[' . $idx . '][vat_percent]" value="' . esc_attr(isset($item->vat_percent) ? $item->vat_percent : '') . '" placeholder="VAT (%)" min="0" max="100" step="0.01">';
+
+                                // Input VAT
+                                $vat_percent = isset($item->vat_percent) ? floatval($item->vat_percent) : 0;
+                                $vat_style = ($vat_percent > 0) ? '' : ' style="display:none;"';
+                                echo '<div class="col-md-1 mb-2 vat-percent"' . $vat_style . '>';
+                                echo '<label class="form-label">VAT %</label>';
+                                echo '<input type="number" class="form-control shadow-sm" name="order_items[' . $idx . '][vat_percent]" placeholder="VAT (%)" min="0" max="100" step="0.01" value="' . esc_attr($vat_percent) . '">';
                                 echo '</div>';
-                                echo '<div class="col-md-2 mb-2"><label class="form-label">Đơn giá</label><input type="number" class="form-control shadow-sm" name="order_items[' . $idx . '][unit_price]" value="' . esc_attr($item->unit_price) . '" placeholder="Đơn giá" min="0" step="0.01"></div>';
-                                echo '<div class="col-md-2 mb-2"><label class="form-label">Thành tiền</label><input type="text" class="form-control shadow-sm total-price-field" value="' . number_format($item->total_price, 0, ',', '.') . '" placeholder="Thành tiền" readonly></div>';
-                                echo '<div class="col-md-1 mb-2 d-flex align-items-end"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>';
+
+                                // Input đơn giá
+                                echo '<div class="col-md-2 mb-2">';
+                                echo '<label class="form-label">Đơn giá</label>';
+                                echo '<input type="number" class="form-control shadow-sm" name="order_items[' . $idx . '][unit_price]" placeholder="Đơn giá" min="0" step="0.01" value="' . esc_attr($item->unit_price) . '">';
+                                echo '</div>';
+
+                                // Input thành tiền
+                                $total_price = $item->quantity * $item->unit_price;
+                                if ($vat_percent > 0) {
+                                    $total_price += ($total_price * $vat_percent / 100);
+                                }
+                                echo '<div class="col-md-2 mb-2">';
+                                echo '<label class="form-label">Thành tiền</label>';
+                                echo '<input type="text" class="form-control shadow-sm total-price-field" placeholder="Thành tiền" readonly value="' . number_format($total_price, 0, ',', '.') . '">';
+                                echo '</div>';
+                                 // External purchase fields (chỉ hiển thị cho mua ngoài)
+                                 $external_fields_style = ($purchase_type === 'external') ? '' : ' style="display:none;"';
+                                 echo '<div class="col-md-2 mb-2 external-fields"' . $external_fields_style . '>';
+                                 echo '<label class="form-label">Nhà cung cấp</label>';
+                                 echo '<input type="text" class="form-control shadow-sm external-supplier-input" name="order_items[' . $idx . '][external_supplier_name]" placeholder="Tên nhà cung cấp" value="' . esc_attr($item->external_supplier_name ?? '') . '">';
+                                 echo '</div>';
+                                 echo '<div class="col-md-2 mb-2 external-fields"' . $external_fields_style . '>';
+                                 echo '<label class="form-label">Chi phí mua ngoài</label>';
+                                 echo '<input type="number" class="form-control shadow-sm external-cost-input" name="order_items[' . $idx . '][external_cost]" placeholder="Chi phí" min="0" step="0.01" value="' . esc_attr($item->external_cost ?? '') . '">';
+                                 echo '</div>';
+                                 echo '<div class="col-md-2 mb-2 external-fields"' . $external_fields_style . '>';
+                                //  echo '<label class="form-label">Ngày giao hàng dự kiến</label>';
+                                //  echo '<input type="date" class="form-control shadow-sm external-delivery-input" name="order_items[' . $idx . '][external_delivery_date]" value="' . esc_attr($item->external_delivery_date ?? '') . '">';
+                                 echo '</div>';
+                                echo '</div>';
+
+                               
+                                echo '<div class="col-md-1 mb-2 d-flex align-items-end">';
+                                echo '<button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button>';
                                 echo '</div>';
                             }
                         } else {
@@ -372,10 +448,19 @@ if (function_exists('aerp_render_breadcrumb')) {
                             echo '<option value="service">Dịch vụ</option>';
                             echo '</select>';
                             echo '</div>';
+                            // Select nguồn mua
+                            echo '<div class="col-md-2 mb-2 purchase-type-container">';
+                            echo '<label class="form-label">Nguồn mua</label>';
+                            echo '<select class="form-select shadow-sm purchase-type-select" name="order_items[0][purchase_type]">';
+                            echo '<option value="warehouse" selected>Từ kho</option>';
+                            echo '<option value="external">Mua ngoài</option>';
+                            echo '</select>';
+                            echo '</div>';
                             // Tên sản phẩm/dịch vụ + select2 sản phẩm
                             echo '<div class="col-md-2 mb-2">';
                             echo '<label class="form-label">Sản phẩm trong đơn</label>';
                             echo '<input type="text" class="form-control shadow-sm product-name-input" name="order_items[0][product_name]" placeholder="Tên sản phẩm/dịch vụ" style="display:none">';
+                            // Dòng mặc định: product + warehouse, nên hiển thị select2
                             echo '<select class="form-select shadow-sm product-select-all-warehouses" name="order_items[0][product_id]" style="width:100%"></select>';
                             echo '<input type="hidden" name="order_items[0][unit_name]" class="unit-name-input">';
                             echo '</div>';
@@ -397,6 +482,19 @@ if (function_exists('aerp_render_breadcrumb')) {
                             // Thành tiền
                             echo '<div class="col-md-2 mb-2"><label class="form-label">Thành tiền</label><input type="text" class="form-control shadow-sm total-price-field" placeholder="Thành tiền" readonly></div>';
                             // Xóa dòng
+                            // External purchase fields (hidden by default)
+                            echo '<div class="col-md-2 mb-2 external-fields" style="display:none;">';
+                            echo '<label class="form-label">Nhà cung cấp</label>';
+                            echo '<input type="text" class="form-control shadow-sm external-supplier-input" name="order_items[0][external_supplier_name]" placeholder="Tên nhà cung cấp">';
+                            echo '</div>';
+                            echo '<div class="col-md-2 mb-2 external-fields" style="display:none;">';
+                            echo '<label class="form-label">Chi phí mua ngoài</label>';
+                            echo '<input type="number" class="form-control shadow-sm external-cost-input" name="order_items[0][external_cost]" placeholder="Chi phí" min="0" step="0.01">';
+                            echo '</div>';
+                            echo '<div class="col-md-2 mb-2 external-fields" style="display:none;">';
+                            // echo '<label class="form-label">Ngày giao hàng dự kiến</label>';
+                            // echo '<input type="date" class="form-control shadow-sm external-delivery-input" name="order_items[0][external_delivery_date]">';
+                            echo '</div>';
                             echo '<div class="col-md-1 mb-2 d-flex align-items-end"><button type="button" class="btn btn-outline-danger remove-order-item">Xóa</button></div>';
                             echo '</div>';
                         }
@@ -945,15 +1043,40 @@ if (function_exists('aerp_render_breadcrumb')) {
             $('#order-items-container .order-item-row').each(function() {
                 let $row = $(this);
                 let itemType = $row.find('.item-type-select').val();
+                let purchaseType = $row.find('.purchase-type-select').val();
                 let $nameInput = $row.find('.product-name-input');
                 let $select = $row.find('.product-select-all-warehouses');
+                let $purchaseTypeContainer = $row.find('.purchase-type-container');
+                let $externalFields = $row.next('.external-fields');
 
                 if (itemType === 'service') {
+                    // Ẩn trường nguồn mua cho dịch vụ
+                    $purchaseTypeContainer.hide();
+
                     $nameInput.show();
                     $select.hide();
+
+                    // Ẩn external fields
+                    $externalFields.hide();
                 } else {
-                    $nameInput.hide();
-                    $select.show();
+                    // Hiển thị trường nguồn mua cho sản phẩm
+                    $purchaseTypeContainer.show();
+
+                    if (purchaseType === 'external') {
+                        // Nếu là mua ngoài, hiển thị input text và external fields
+                        $nameInput.show();
+                        $select.hide();
+
+                        // Hiển thị external fields
+                        $externalFields.show();
+                    } else {
+                        // Nếu là từ kho, hiển thị select2
+                        $nameInput.hide();
+                        $select.show();
+
+                        // Ẩn external fields
+                        $externalFields.hide();
+                    }
                 }
             });
         });

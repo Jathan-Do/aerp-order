@@ -192,8 +192,36 @@ function aerp_inventory_log_filter_inventory_logs_callback()
         'warehouse_id' => intval($_POST['warehouse_id'] ?? 0),
         'supplier_id' => intval($_POST['supplier_id'] ?? 0),
         'manager_user_id' => sanitize_text_field($_POST['manager_user_id'] ?? ''),
-
     ];
+
+    global $wpdb;
+
+    // Chuẩn hóa: chấp nhận cả employee_id hoặc user_id
+    $raw = trim((string)$filters['manager_user_id']);
+    if ($raw === '') {
+        $user_id = get_current_user_id();
+        $employee_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+            $user_id
+        ));
+    } else {
+        $maybe_id = intval($raw);
+        // Nếu $maybe_id trùng employee_id thì dùng luôn
+        $employee_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE id = %d",
+            $maybe_id
+        ));
+        if (!$employee_id) {
+            // Không phải employee_id -> coi như user_id và convert
+            $employee_id = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+                $maybe_id
+            ));
+        }
+    }
+
+    $filters['manager_user_id'] = $employee_id ? intval($employee_id) : 0;
+
     $table = new AERP_Inventory_Log_Table();
     $table->set_filters($filters);
     ob_start();
@@ -333,21 +361,37 @@ add_action('wp_ajax_aerp_order_search_warehouses', function () {
 });
 add_action('wp_ajax_aerp_order_search_warehouses_by_user', function () {
     $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
+    $warehouse_id = isset($_GET['warehouse_id']) ? intval($_GET['warehouse_id']) : 0;
     $user_id = get_current_user_id();
-    global $wpdb;
-    $employee_id = $wpdb->get_var($wpdb->prepare(
-        "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
-        $user_id
-    ));
-    $warehouses = function_exists('aerp_get_warehouses_by_user_select2') ? aerp_get_warehouses_by_user_select2($q, $employee_id) : [];
+    
+    // Nếu có warehouse_id cụ thể, tìm theo ID đó
+    if ($warehouse_id > 0) {
+        global $wpdb;
+        $warehouse = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, name FROM {$wpdb->prefix}aerp_warehouses WHERE id = %d",
+            $warehouse_id
+        ));
+        
+        if ($warehouse) {
+            wp_send_json([[
+                'id' => $warehouse->id,
+                'text' => $warehouse->name,
+            ]]);
+        } else {
+            wp_send_json([]);
+        }
+        return;
+    }
+    
+    // Sử dụng function có sẵn thay vì viết lại logic
+    $warehouses = function_exists('aerp_get_warehouses_by_user_select2') ? aerp_get_warehouses_by_user_select2($q, $user_id) : [];
+    
     $results = [];
-    $count = 0;
     foreach ($warehouses as $warehouse) {
         $results[] = [
             'id' => $warehouse->id,
             'text' => $warehouse->name,
         ];
-        // if (!$q && ++$count >= 20) break;
     }
     wp_send_json($results);
 });
@@ -398,57 +442,75 @@ add_action('wp_ajax_aerp_order_search_products_in_warehouse_in_worklocation', fu
     global $wpdb;
     $warehouse_id = isset($_GET['warehouse_id']) ? intval($_GET['warehouse_id']) : 0;
     $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
+
     $current_user_id = get_current_user_id();
-    $employee_id = $wpdb->get_var($wpdb->prepare(
-        "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
-        $current_user_id
-    ));
     $results = [];
 
-    // Lấy work_location_id của user hiện tại
-    $work_location_id = $wpdb->get_var($wpdb->prepare(
-        "SELECT work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE id = %d",
-        $employee_id
-    ));
-
-    // 1. Lấy tất cả kho mà user hiện tại quản lý (không phụ thuộc chi nhánh)
-    $user_warehouse_ids = $wpdb->get_col($wpdb->prepare(
-        "SELECT warehouse_id FROM {$wpdb->prefix}aerp_warehouse_managers WHERE user_id = %d",
-        $employee_id
-    ));
-    $user_warehouse_ids = array_map('intval', $user_warehouse_ids);
-
-    // 2. Lấy tất cả kho thuộc cùng chi nhánh với user hiện tại
-    $branch_warehouse_ids = [];
-    if ($work_location_id) {
-        $branch_warehouse_ids = $wpdb->get_col($wpdb->prepare(
-            "SELECT id FROM {$wpdb->prefix}aerp_warehouses WHERE work_location_id = %d",
-            $work_location_id
-        ));
-        $branch_warehouse_ids = array_map('intval', $branch_warehouse_ids);
-    }
-
-    // 3. Xác định danh sách kho hợp lệ
-    if (!empty($user_warehouse_ids)) {
-        // Nếu user có quản lý kho, lấy cả kho quản lý và kho cùng chi nhánh
-        $warehouse_ids = array_unique(array_merge($user_warehouse_ids, $branch_warehouse_ids));
-    } else {
-        // Nếu không quản lý kho nào, chỉ lấy kho cùng chi nhánh
-        $warehouse_ids = $branch_warehouse_ids;
-    }
-
-    // Nếu không có kho nào hợp lệ thì trả về rỗng
-    if (empty($warehouse_ids)) {
-        wp_send_json($results);
-        return;
-    }
-
-    // Nếu có warehouse_id cụ thể và > 0, chỉ tìm trong kho đó nếu kho đó hợp lệ
-    if ($warehouse_id > 0) {
-        if (in_array($warehouse_id, $warehouse_ids)) {
+    // Admin: có thể xem tất cả kho
+    if (function_exists('aerp_user_has_role') && aerp_user_has_role($current_user_id, 'admin')) {
+        if ($warehouse_id > 0) {
             $warehouse_ids = [$warehouse_id];
         } else {
-            wp_send_json($results); // Không có quyền xem kho này
+            $warehouse_ids = $wpdb->get_col("SELECT id FROM {$wpdb->prefix}aerp_warehouses");
+        }
+    } else {
+        // Non-admin: union 3 nhóm kho (quản lý + cùng chi nhánh + cá nhân)
+        $employee_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+            $current_user_id
+        ));
+
+        // Nếu không có employee -> không có quyền
+        if (!$employee_id) {
+            wp_send_json($results);
+            return;
+        }
+
+        // Lấy work_location_id của user hiện tại
+        $work_location_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE id = %d",
+            $employee_id
+        ));
+
+        // 1) Kho được gán quản lý (có thể khác chi nhánh)
+        $managed_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT warehouse_id FROM {$wpdb->prefix}aerp_warehouse_managers WHERE user_id = %d",
+            $employee_id
+        ));
+        $managed_ids = array_map('intval', (array)$managed_ids);
+
+        // 2) Kho cùng chi nhánh
+        $branch_ids = [];
+        if ($work_location_id) {
+            $branch_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}aerp_warehouses WHERE work_location_id = %d",
+                $work_location_id
+            ));
+            $branch_ids = array_map('intval', (array)$branch_ids);
+        }
+
+        // 3) Kho cá nhân
+        $personal_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}aerp_warehouses WHERE warehouse_type = 'personal' AND owner_user_id = %d",
+            $employee_id
+        ));
+        $personal_ids = array_map('intval', (array)$personal_ids);
+
+        // Hợp nhất
+        $warehouse_ids = array_values(array_unique(array_merge($managed_ids, $branch_ids, $personal_ids)));
+
+        // Nếu chỉ định kho, chỉ giữ nếu hợp lệ
+        if ($warehouse_id > 0) {
+            if (in_array($warehouse_id, $warehouse_ids, true)) {
+                $warehouse_ids = [$warehouse_id];
+            } else {
+                wp_send_json($results); // Không có quyền xem kho này
+                return;
+            }
+        }
+
+        if (empty($warehouse_ids)) {
+            wp_send_json($results);
             return;
         }
     }
@@ -579,23 +641,49 @@ add_action('wp_ajax_aerp_order_search_products_in_warehouse', function () {
     global $wpdb;
     $warehouse_id = isset($_GET['warehouse_id']) ? intval($_GET['warehouse_id']) : 0;
     $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
-    $current_user_id = get_current_user_id();
+    $user_id = get_current_user_id();
+        $current_user_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+            $user_id
+        ));
     $results = [];
 
-    // Lấy tất cả kho mà user quản lý
-    $user_warehouses = aerp_get_warehouses_by_user($current_user_id);
-    $warehouse_ids = array_column($user_warehouses, 'id');
+    // Xác định danh sách kho được phép
+    if (function_exists('aerp_user_has_role') && aerp_user_has_role($user_id, 'admin')) {
+        // Admin: thấy tất cả hoặc 1 kho cụ thể nếu chọn
+        if ($warehouse_id > 0) {
+            $warehouse_ids = [$warehouse_id];
+        } else {
+            $warehouse_ids = $wpdb->get_col("SELECT id FROM {$wpdb->prefix}aerp_warehouses");
+        }
+    } else {
+        // Non-admin: dùng helper để lấy danh sách kho được phép
+        $user_warehouses = function_exists('aerp_get_warehouses_by_user')
+            ? aerp_get_warehouses_by_user($current_user_id)
+            : [];
+        $allowed_ids = array_map('intval', array_column((array)$user_warehouses, 'id'));
+
+        if (empty($allowed_ids)) {
+            wp_send_json($results);
+            return;
+        }
+
+        if ($warehouse_id > 0) {
+            if (in_array($warehouse_id, $allowed_ids, true)) {
+                $warehouse_ids = [$warehouse_id];
+            } else {
+                wp_send_json($results);
+                return;
+            }
+        } else {
+            $warehouse_ids = $allowed_ids;
+        }
+    }
 
     if (empty($warehouse_ids)) {
         wp_send_json($results);
         return;
     }
-
-    // Nếu có warehouse_id cụ thể và > 0, chỉ tìm trong kho đó
-    if ($warehouse_id > 0) {
-        $warehouse_ids = [$warehouse_id];
-    }
-    // Nếu warehouse_id = 0, tìm trong tất cả kho user quản lý
 
     $warehouse_ids_str = implode(',', array_map('intval', $warehouse_ids));
 

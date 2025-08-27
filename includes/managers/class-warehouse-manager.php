@@ -11,11 +11,18 @@ if (!class_exists('AERP_Warehouse_Manager')) {
             global $wpdb;
             $table = $wpdb->prefix . 'aerp_warehouses';
             $id = isset($_POST['id']) ? absint($_POST['id']) : 0;
+            
+            $warehouse_type = sanitize_text_field($_POST['warehouse_type'] ?? 'branch');
+            $work_location_id = $warehouse_type === 'branch' ? absint($_POST['work_location_id']) : null;
+            $owner_user_id = $warehouse_type === 'personal' ? absint($_POST['owner_user_id']) : null;
+            
             $data = [
                 'name' => sanitize_text_field($_POST['name']),
-                'work_location_id' => absint($_POST['work_location_id']), // ✅ dùng ID
+                'warehouse_type' => $warehouse_type,
+                'work_location_id' => $work_location_id,
+                'owner_user_id' => $owner_user_id,
             ];
-            $format = ['%s', '%d'];
+            $format = ['%s', '%s', '%d', '%d'];
 
             if ($id) {
                 $wpdb->update($table, $data, ['id' => $id], $format, ['%d']);
@@ -25,18 +32,34 @@ if (!class_exists('AERP_Warehouse_Manager')) {
                 $id = $wpdb->insert_id;
                 $msg = 'Đã thêm kho!';
             }
+            
             // --- Lưu user_ids vào bảng trung gian ---
             $user_ids = isset($_POST['user_ids']) ? (array)$_POST['user_ids'] : [];
             $user_ids = array_filter(array_map('intval', $user_ids));
             $manager_table = $wpdb->prefix . 'aerp_warehouse_managers';
+            
             // Xóa hết user cũ của kho này
             $wpdb->delete($manager_table, ['warehouse_id' => $id]);
-            // Thêm user mới
-            foreach ($user_ids as $user_id) {
-                $wpdb->insert($manager_table, [
-                    'user_id' => $user_id,
-                    'warehouse_id' => $id
-                ], ['%d', '%d']);
+            
+            // Thêm user mới với manager_type phù hợp
+            if ($warehouse_type === 'branch') {
+                // Chỉ thêm managers cho kho chi nhánh
+                foreach ($user_ids as $user_id) {
+                    $wpdb->insert($manager_table, [
+                        'user_id' => $user_id,
+                        'warehouse_id' => $id,
+                        'manager_type' => 'branch_manager'
+                    ], ['%d', '%d', '%s']);
+                }
+            } else {
+                // Kho cá nhân: chỉ thêm owner vào managers
+                if ($owner_user_id) {
+                    $wpdb->insert($manager_table, [
+                        'user_id' => $owner_user_id,
+                        'warehouse_id' => $id,
+                        'manager_type' => 'personal_owner'
+                    ], ['%d', '%d', '%s']);
+                }
             }
             // --- END ---
             aerp_clear_table_cache();
@@ -114,13 +137,55 @@ if (!class_exists('AERP_Warehouse_Manager')) {
             global $wpdb;
             $table = $wpdb->prefix . 'aerp_warehouses';
             $manager_table = $wpdb->prefix . 'aerp_warehouse_managers';
-            return $wpdb->get_results($wpdb->prepare(
+            
+            // Lấy kho theo quyền quản lý (branch_manager hoặc personal_owner)
+            $branch_warehouses = $wpdb->get_results($wpdb->prepare(
                 "SELECT w.* FROM $table w
                  INNER JOIN $manager_table m ON w.id = m.warehouse_id
-                 WHERE m.user_id = %d
+                 WHERE m.user_id = %d AND m.manager_type = 'branch_manager'
                  ORDER BY w.name ASC",
                 $user_id
             ));
+            
+            // Lấy kho cá nhân của user
+            $personal_warehouses = $wpdb->get_results($wpdb->prepare(
+                "SELECT w.* FROM $table w
+                 WHERE w.warehouse_type = 'personal' AND w.owner_user_id = %d
+                 ORDER BY w.name ASC",
+                $user_id
+            ));
+            
+            // Gộp và trả về
+            return array_merge($branch_warehouses, $personal_warehouses);
+        }
+        
+        public static function get_warehouses_by_type($user_id, $type = 'all')
+        {
+            global $wpdb;
+            $table = $wpdb->prefix . 'aerp_warehouses';
+            $manager_table = $wpdb->prefix . 'aerp_warehouse_managers';
+            
+            if ($type === 'branch') {
+                // Chỉ lấy kho chi nhánh mà user có quyền quản lý
+                return $wpdb->get_results($wpdb->prepare(
+                    "SELECT w.* FROM $table w
+                     INNER JOIN $manager_table m ON w.id = m.warehouse_id
+                     WHERE m.user_id = %d AND m.manager_type = 'branch_manager' AND w.warehouse_type = 'branch'
+                     ORDER BY w.name ASC",
+                    $user_id
+                ));
+            } elseif ($type === 'personal') {
+                // Chỉ lấy kho cá nhân của user
+                return $wpdb->get_results($wpdb->prepare(
+                    "SELECT w.* FROM $table w
+                     WHERE w.warehouse_type = 'personal' AND w.owner_user_id = %d
+                     ORDER BY w.name ASC",
+                    $user_id
+                ));
+            } else {
+                // Lấy tất cả kho mà user có quyền truy cập
+                return self::aerp_get_warehouses_by_user($user_id);
+            }
         }
     }
 }

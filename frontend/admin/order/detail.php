@@ -144,13 +144,27 @@ if (function_exists('aerp_render_breadcrumb')) {
                 <p class="mb-0"><?php echo esc_html($order->order_date); ?></p>
             </div>
             <div class="col-md-6 mb-2">
-                <label class="fw-bold form-label text-muted small mb-1">Chi phí</label>
+                <label class="fw-bold form-label text-muted small mb-1">Chi phí đơn hàng</label>
                 <p class="mb-0"><?php echo number_format($order->cost ?? 0, 0, ',', '.'); ?> đ</p>
             </div>
             <div class="col-md-6 mb-2">
                 <label class="fw-bold form-label text-muted small mb-1">Lợi nhuận</label>
                 <?php
-                $profit = ($order->total_amount ?? 0) - ($order->cost ?? 0);
+                // Lợi nhuận = Tổng tiền nội dung triển khai - Chi phí đơn hàng - Tổng tiền SP/DV - Tổng chi phí mua ngoài
+                $content_total_for_profit = (float) $wpdb->get_var($wpdb->prepare(
+                    "SELECT COALESCE(SUM(total_price),0) FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d",
+                    $order_id
+                ));
+                $items_total_for_profit = (float) $wpdb->get_var($wpdb->prepare(
+                    "SELECT COALESCE(SUM(quantity * unit_price),0) FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d",
+                    $order_id
+                ));
+                $external_cost_total = (float) $wpdb->get_var($wpdb->prepare(
+                    "SELECT COALESCE(SUM(external_cost),0) FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d AND purchase_type = 'external'",
+                    $order_id
+                ));
+                $order_cost = (float) ($order->cost ?? 0);
+                $profit = $content_total_for_profit - $order_cost - $items_total_for_profit - $external_cost_total;
                 $profit_color = $profit >= 0 ? 'text-success' : 'text-danger';
                 ?>
                 <p class="mb-0 fw-bold <?php echo $profit_color; ?>"><?php echo number_format($profit, 0, ',', '.'); ?> đ</p>
@@ -205,10 +219,18 @@ if (function_exists('aerp_render_breadcrumb')) {
                                     <th>VAT (%)</th>
                                     <th>Thành tiền (có VAT)</th>
                                     <th>Thành tiền</th>
+                                    <th>Nguồn mua</th>
+                                    <th>Chi phí mua ngoài</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if (!empty($order_items)) :
+                                <?php
+                                // Số tiền đã thu của khách = tổng total_price của bảng content_lines
+                                $collected_from_content = (float) $wpdb->get_var($wpdb->prepare(
+                                    "SELECT COALESCE(SUM(total_price),0) FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d",
+                                    $order_id
+                                ));
+                                if (!empty($order_items)) :
                                     foreach ($order_items as $idx => $item) :
                                         $line_total = $item->quantity * $item->unit_price;
                                         $vat_percent = isset($item->vat_percent) ? floatval($item->vat_percent) : 0;
@@ -224,6 +246,11 @@ if (function_exists('aerp_render_breadcrumb')) {
                                                 $unit_name = AERP_Product_Manager::get_unit_name($item->product_id);
                                             }
                                         }
+
+                                        // Tính lợi nhuận cho mua ngoài
+                                        $external_cost = isset($item->external_cost) ? floatval($item->external_cost) : 0;
+                                        $profit = $line_total - $external_cost;
+                                        $profit_color = $profit >= 0 ? 'text-success' : 'text-danger';
                                 ?>
                                         <tr>
                                             <td><?php echo $idx + 1; ?></td>
@@ -234,11 +261,33 @@ if (function_exists('aerp_render_breadcrumb')) {
                                             <td><?php echo $vat_percent > 0 ? esc_html($vat_percent) : '--'; ?></td>
                                             <td><?php echo number_format($line_total_with_vat, 0, ',', '.'); ?></td>
                                             <td><?php echo number_format($line_total, 0, ',', '.'); ?></td>
+                                            <td>
+                                                <?php
+                                                $purchase_type = isset($item->purchase_type) ? $item->purchase_type : 'warehouse';
+                                                if ($purchase_type === 'external') {
+                                                    echo '<span class="badge bg-warning">Mua ngoài</span>';
+                                                    if (!empty($item->external_supplier_name)) {
+                                                        echo '<br><small class="text-muted">' . esc_html($item->external_supplier_name) . '</small>';
+                                                    }
+                                                } else {
+                                                    echo '<span class="badge bg-info">Từ kho</span>';
+                                                }
+                                                ?>
+                                            </td>
+                                            <td>
+                                                <?php
+                                                if ($purchase_type === 'external' && $external_cost > 0) {
+                                                    echo number_format($external_cost, 0, ',', '.');
+                                                } else {
+                                                    echo '--';
+                                                }
+                                                ?>
+                                            </td>
                                         </tr>
                                     <?php endforeach;
                                 else: ?>
                                     <tr>
-                                        <td colspan="8" class="text-center text-muted">Chưa có sản phẩm nào.</td>
+                                        <td colspan="10" class="text-center text-muted">Chưa có sản phẩm nào.</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
@@ -247,6 +296,32 @@ if (function_exists('aerp_render_breadcrumb')) {
                                     <th colspan="6" class="text-end">Tổng cộng (có VAT)</th>
                                     <th><?php echo number_format($total_amount_with_vat ?? 0, 0, ',', '.'); ?></th>
                                     <th><?php echo number_format($total_amount, 0, ',', '.'); ?></th>
+                                    <th colspan="2"></th>
+                                </tr>
+                                <?php
+                                // Tính lợi nhuận theo công thức chuẩn
+                                $content_total_for_profit_tbl = (float) $wpdb->get_var($wpdb->prepare(
+                                    "SELECT COALESCE(SUM(total_price),0) FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d",
+                                    $order_id
+                                ));
+                                $items_total_for_profit_tbl = (float) $wpdb->get_var($wpdb->prepare(
+                                    "SELECT COALESCE(SUM(quantity * unit_price),0) FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d",
+                                    $order_id
+                                ));
+                                $external_cost_total_tbl = (float) $wpdb->get_var($wpdb->prepare(
+                                    "SELECT COALESCE(SUM(external_cost),0) FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d AND purchase_type = 'external'",
+                                    $order_id
+                                ));
+                                $order_cost_tbl = (float) ($order->cost ?? 0);
+                                $profit_tbl = $content_total_for_profit_tbl - $order_cost_tbl - $items_total_for_profit_tbl - $external_cost_total_tbl;
+                                ?>
+                                <tr>
+                                    <th colspan="8" class="text-end">Đã thu (nội dung)</th>
+                                    <th colspan="2"><?php echo number_format($collected_from_content, 0, ',', '.'); ?></th>
+                                </tr>
+                                <tr>
+                                    <th colspan="8" class="text-end">Lợi nhuận</th>
+                                    <th colspan="2" class="<?php echo ($profit_tbl >= 0 ? 'text-success' : 'text-danger'); ?>"><?php echo number_format($profit_tbl, 0, ',', '.'); ?> đ</th>
                                 </tr>
                             </tfoot>
                         </table>

@@ -231,17 +231,70 @@ if (!function_exists('aerp_get_warehouses_by_user_select2')) {
         if ($user_id === null) {
             $user_id = get_current_user_id();
         }
+        
+        // Nếu là admin thì lấy tất cả kho
+        if (function_exists('aerp_user_has_role') && aerp_user_has_role($user_id, 'admin')) {
+            $table = $wpdb->prefix . 'aerp_warehouses';
+            $sql = "SELECT id, name FROM $table";
+            $params = [];
+            if ($q) {
+                $sql .= " WHERE name LIKE %s";
+                $params[] = '%' . $wpdb->esc_like($q) . '%';
+            }
+            $sql .= " ORDER BY name ASC LIMIT 30";
+            return $wpdb->get_results($params ? $wpdb->prepare($sql, ...$params) : $sql);
+        }
+        
+        // Lấy employee_id từ user_id
+        $employee_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+            $user_id
+        ));
+        
+        if (!$employee_id) {
+            return [];
+        }
+        
+        // Lấy work_location_id của user hiện tại
+        $work_location_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE id = %d",
+            $employee_id
+        ));
+        
+        // 1. Lấy tất cả kho mà user hiện tại quản lý (không phụ thuộc chi nhánh)
+        $user_warehouse_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT warehouse_id FROM {$wpdb->prefix}aerp_warehouse_managers WHERE user_id = %d",
+            $employee_id
+        ));
+        $user_warehouse_ids = array_map('intval', $user_warehouse_ids);
+        
+        // 2. Lấy tất cả kho thuộc cùng chi nhánh với user hiện tại
+        $branch_warehouse_ids = [];
+        if ($work_location_id) {
+            $branch_warehouse_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}aerp_warehouses WHERE work_location_id = %d",
+                $work_location_id
+            ));
+            $branch_warehouse_ids = array_map('intval', $branch_warehouse_ids);
+        }
+        
+        // 3. Gộp tất cả warehouse IDs
+        $all_warehouse_ids = array_unique(array_merge($user_warehouse_ids, $branch_warehouse_ids));
+        
+        if (empty($all_warehouse_ids)) {
+            return [];
+        }
+        
+        $placeholders = implode(',', array_fill(0, count($all_warehouse_ids), '%d'));
         $table = $wpdb->prefix . 'aerp_warehouses';
-        $manager_table = $wpdb->prefix . 'aerp_warehouse_managers';
-        $sql = "SELECT w.id, w.name FROM $table w
-                INNER JOIN $manager_table m ON w.id = m.warehouse_id
-                WHERE m.user_id = %d";
-        $params = [$user_id];
+        $sql = "SELECT id, name FROM $table WHERE id IN ($placeholders)";
+        $params = $all_warehouse_ids;
+        
         if ($q) {
-            $sql .= " AND w.name LIKE %s";
+            $sql .= " AND name LIKE %s";
             $params[] = '%' . $wpdb->esc_like($q) . '%';
         }
-        $sql .= " ORDER BY w.name ASC LIMIT 30";
+        $sql .= " ORDER BY name ASC LIMIT 30";
         return $wpdb->get_results($wpdb->prepare($sql, ...$params));
     }
 }

@@ -68,6 +68,7 @@ ob_start();
         display: flex !important;
         flex-wrap: wrap !important;
         align-items: center !important;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
     }
 
     .select2-container--default .select2-selection--multiple .select2-search__field {
@@ -91,6 +92,27 @@ ob_start();
     .select2-container--default .select2-selection--multiple .select2-selection__choice,
     .select2-selection.select2-selection--multiple.select2-selection--clearable ul {
         margin: 0;
+    }
+    .select2-container--default .select2-selection--single {
+        width: 100% !important;
+        border: 1px solid #dee2e6 !important;
+        border-radius: 0.375rem !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        padding: 6px 12px !important;
+        background: #fff !important;
+        font-size: 1rem !important;
+        box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 24px !important;
+        padding-left: 0 !important;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px !important;
+        right: 0.75rem !important;
     }
 </style>
 <div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
@@ -121,16 +143,28 @@ if (function_exists('aerp_render_breadcrumb')) {
                 <input type="text" name="name" class="form-control shadow-sm" value="<?php echo esc_attr($warehouse->name ?? ''); ?>" required>
             </div>
             <div class="mb-3">
+                <label class="form-label">Loại kho</label>
+                <select name="warehouse_type" class="form-select shadow-sm warehouse-type-select" required>
+                    <option value="branch" <?php echo ($warehouse->warehouse_type ?? 'branch') === 'branch' ? 'selected' : ''; ?>>Kho chi nhánh</option>
+                    <option value="personal" <?php echo ($warehouse->warehouse_type ?? '') === 'personal' ? 'selected' : ''; ?>>Kho cá nhân</option>
+                </select>
+            </div>
+            <div class="mb-3 branch-fields" id="branch-fields">
                 <label class="form-label">Chi nhánh</label>
-                <select name="work_location_id" class="form-select shadow-sm work-location-select" required>
+                <select name="work_location_id" class="form-select shadow-sm work-location-select">
                     <?php $locations = aerp_get_work_locations();
-                    aerp_safe_select_options($locations, $warehouse->work_location_id, 'id', 'name', true);
+                    aerp_safe_select_options($locations, $warehouse->work_location_id ?? '', 'id', 'name', true);
                     ?>
                 </select>
             </div>
-            <div class="mb-3">
+            <div class="mb-3 personal-fields" id="personal-fields" style="display:none;">
+                <label class="form-label">Chủ sở hữu kho</label>
+                <select name="owner_user_id" class="owner-user-select">
+                </select>
+            </div>
+            <div class="mb-3 branch-manager-fields" id="branch-manager-fields">
                 <label class="form-label">Người quản lý kho</label>
-                <select name="user_ids[]" class="user-select" multiple required>
+                <select name="user_ids[]" class="user-select" multiple>
                     <!-- Option sẽ được load động bằng JS -->
                 </select>
             </div>
@@ -145,6 +179,78 @@ if (function_exists('aerp_render_breadcrumb')) {
         console.log('selectedWarehouseManagers:', window.selectedWarehouseManagers);
     </script>
 <?php endif; ?>
+
+<script>
+jQuery(document).ready(function($) {
+    // Toggle fields based on warehouse type
+    $('.warehouse-type-select').on('change', function() {
+        const warehouseType = $(this).val();
+        
+        if (warehouseType === 'branch') {
+            $('#branch-fields').show();
+            $('#personal-fields').hide();
+            $('#branch-manager-fields').show();
+            $('.work-location-select').prop('required', true);
+            $('.owner-user-select').prop('required', false);
+            $('.user-select').prop('required', true);
+        } else if (warehouseType === 'personal') {
+            $('#branch-fields').hide();
+            $('#personal-fields').show();
+            $('#branch-manager-fields').hide();
+            $('.work-location-select').prop('required', false);
+            $('.owner-user-select').prop('required', true);
+            $('.user-select').prop('required', false);
+        }
+    });
+    
+    // Initialize on page load
+    $('.warehouse-type-select').trigger('change');
+    
+    // Initialize owner user select
+    $('.owner-user-select').select2({
+        placeholder: "Chọn chủ sở hữu kho",
+        allowClear: true,
+        width: "100%",
+        ajax: {
+            url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+            dataType: "json",
+            delay: 250,
+            data: function(params) {
+                return {
+                    action: "aerp_order_search_employees",
+                    q: params.term,
+                };
+            },
+            processResults: function(data) {
+                return { results: data };
+            },
+            cache: true,
+        },
+        minimumInputLength: 0,
+    });
+    
+    // Set selected owner if editing
+    <?php if ($is_edit && $warehouse && $warehouse->warehouse_type === 'personal' && $warehouse->owner_user_id): ?>
+    $(document).ready(function() {
+        // Tìm employee_id từ owner_user_id
+        $.ajax({
+            url: typeof aerp_order_ajax !== "undefined" ? aerp_order_ajax.ajaxurl : ajaxurl,
+            dataType: "json",
+            data: { 
+                action: "aerp_order_search_employees",
+                employee_id: <?php echo $warehouse->owner_user_id; ?>
+            },
+        }).then(function(data) {
+            if (data && data.length) {
+                const item = data[0];
+                const option = new Option(item.text, item.id, true, true);
+                $('.owner-user-select').append(option).trigger('change');
+            }
+        });
+    });
+    <?php endif; ?>
+});
+</script>
 <?php
 $content = ob_get_clean();
 $title = $is_edit ? 'Sửa kho' : 'Thêm kho';
