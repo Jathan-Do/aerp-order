@@ -129,24 +129,24 @@ class AERP_Frontend_Order_Manager
                     ['%d', '%d', '%d', '%d', '%s']
                 );
             }
-            // Xử lý thiết bị nhận nếu là đơn nhận thiết bị
-            if ($order_type === 'device') {
-                $device_table = $wpdb->prefix . 'aerp_order_devices';
-                // Xóa thiết bị cũ
-                $wpdb->delete($device_table, ['order_id' => $order_id]);
-                if (!empty($_POST['devices']) && is_array($_POST['devices'])) {
-                    foreach ($_POST['devices'] as $device) {
-                        $device_data = [
-                            'order_id' => $order_id,
-                            'device_name' => sanitize_text_field($device['device_name'] ?? ''),
-                            'serial_number' => sanitize_text_field($device['serial_number'] ?? ''),
-                            'status' => sanitize_text_field($device['status'] ?? ''),
-                            'device_status' => 'received',
-                            'note' => sanitize_text_field($device['note'] ?? ''),
-                            'partner_id' => !empty($device['partner_id']) ? absint($device['partner_id']) : null,
-                        ];
-                        $wpdb->insert($device_table, $device_data, ['%d', '%s', '%s', '%s', '%s', '%s', '%d']);
-                    }
+            // Xử lý thiết bị nhận nếu có submit (không phụ thuộc order_type để hỗ trợ đơn tổng hợp)
+            $device_table = $wpdb->prefix . 'aerp_order_devices';
+            // Xóa thiết bị cũ
+            $wpdb->delete($device_table, ['order_id' => $order_id]);
+            if (!empty($_POST['devices']) && is_array($_POST['devices'])) {
+                foreach ($_POST['devices'] as $device) {
+                    $device_name = sanitize_text_field($device['device_name'] ?? '');
+                    if ($device_name === '') { continue; }
+                    $device_data = [
+                        'order_id' => $order_id,
+                        'device_name' => $device_name,
+                        'serial_number' => sanitize_text_field($device['serial_number'] ?? ''),
+                        'status' => sanitize_text_field($device['status'] ?? ''),
+                        'device_status' => 'received',
+                        'note' => sanitize_text_field($device['note'] ?? ''),
+                        'partner_id' => !empty($device['partner_id']) ? absint($device['partner_id']) : null,
+                    ];
+                    $wpdb->insert($device_table, $device_data, ['%d', '%s', '%s', '%s', '%s', '%s', '%d']);
                 }
             }
         } else {
@@ -179,22 +179,22 @@ class AERP_Frontend_Order_Manager
             $wpdb->insert($table, $data, $format);
             $order_id = $wpdb->insert_id;
             $msg = 'Đã thêm đơn hàng!';
-            // Xử lý thiết bị nhận nếu là đơn nhận thiết bị
-            if ($order_type === 'device') {
-                $device_table = $wpdb->prefix . 'aerp_order_devices';
-                if (!empty($_POST['devices']) && is_array($_POST['devices'])) {
-                    foreach ($_POST['devices'] as $device) {
-                        $device_data = [
-                            'order_id' => $order_id,
-                            'device_name' => sanitize_text_field($device['device_name'] ?? ''),
-                            'serial_number' => sanitize_text_field($device['serial_number'] ?? ''),
-                            'status' => sanitize_text_field($device['status'] ?? ''),
-                            'device_status' => 'received',
-                            'note' => sanitize_text_field($device['note'] ?? ''),
-                            'partner_id' => !empty($device['partner_id']) ? absint($device['partner_id']) : null,
-                        ];
-                        $wpdb->insert($device_table, $device_data, ['%d', '%s', '%s', '%s', '%s', '%s', '%d']);
-                    }
+            // Xử lý thiết bị nhận nếu có submit (không phụ thuộc order_type để hỗ trợ đơn tổng hợp)
+            $device_table = $wpdb->prefix . 'aerp_order_devices';
+            if (!empty($_POST['devices']) && is_array($_POST['devices'])) {
+                foreach ($_POST['devices'] as $device) {
+                    $device_name = sanitize_text_field($device['device_name'] ?? '');
+                    if ($device_name === '') { continue; }
+                    $device_data = [
+                        'order_id' => $order_id,
+                        'device_name' => $device_name,
+                        'serial_number' => sanitize_text_field($device['serial_number'] ?? ''),
+                        'status' => sanitize_text_field($device['status'] ?? ''),
+                        'device_status' => 'received',
+                        'note' => sanitize_text_field($device['note'] ?? ''),
+                        'partner_id' => !empty($device['partner_id']) ? absint($device['partner_id']) : null,
+                    ];
+                    $wpdb->insert($device_table, $device_data, ['%d', '%s', '%s', '%s', '%s', '%s', '%d']);
                 }
             }
         }
@@ -311,7 +311,7 @@ class AERP_Frontend_Order_Manager
                 $wpdb->query($wpdb->prepare("DELETE FROM $item_table WHERE id IN ($ids_placeholder)", $items_to_delete));
             }
 
-            // 3.5. Tự động cập nhật order_type dựa trên item_type trong order_items (cho cả thêm mới và cập nhật)
+            // 3.5. Tự động cập nhật order_type dựa trên dữ liệu thực tế (items/content/devices/returns)
             if (!empty($_POST['order_items']) && is_array($_POST['order_items'])) {
                 $count_product = 0;
                 $count_service = 0;
@@ -331,7 +331,7 @@ class AERP_Frontend_Order_Manager
                     }
                 }
                 
-                // Cập nhật order_type dựa trên loại sản phẩm/dịch vụ
+                // Cập nhật order_type dựa trên loại sản phẩm/dịch vụ trước (tạm)
                 if ($count_product > 0 && $count_service > 0) {
                     $new_order_type = 'mixed';
                 } elseif ($count_product > 0) {
@@ -343,10 +343,7 @@ class AERP_Frontend_Order_Manager
                     $new_order_type = $order_type;
                 }
                 
-                // Chỉ cập nhật nếu order_type thay đổi và không phải là device/return/content
-                if ($new_order_type !== $order_type && !in_array($order_type, ['device', 'return', 'content'])) {
-                    $wpdb->update($table, ['order_type' => $new_order_type], ['id' => $order_id], ['%s'], ['%d']);
-                }
+                // Việc update cuối cùng sẽ xét thêm content/devices/returns bên dưới
             } else {
                 // Nếu không có order_items, kiểm tra xem có phải đang chuyển từ content sang product/service không
                 if (in_array($order_type, ['product', 'service', 'mixed']) && !in_array($existing_order_type ?? '', ['device', 'return', 'content'])) {
@@ -354,6 +351,60 @@ class AERP_Frontend_Order_Manager
                     // vẫn cập nhật order_type vào database để đảm bảo tính nhất quán
                     $wpdb->update($table, ['order_type' => $order_type], ['id' => $order_id], ['%s'], ['%d']);
                 }
+            }
+
+            // 3.6. Sau khi lưu hết dữ liệu, xác định lại order_type theo các phần hiện có
+            $content_count = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d",
+                $order_id
+            ));
+            $item_counts = $wpdb->get_row($wpdb->prepare(
+                "SELECT 
+                    SUM(CASE WHEN item_type = 'product' THEN 1 ELSE 0 END) AS num_product,
+                    SUM(CASE WHEN item_type = 'service' THEN 1 ELSE 0 END) AS num_service
+                 FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d",
+                $order_id
+            ));
+            $device_count = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_devices WHERE order_id = %d",
+                $order_id
+            ));
+            $return_count = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_device_returns WHERE order_id = %d",
+                $order_id
+            ));
+
+            $has_items = (($item_counts->num_product ?? 0) > 0) || (($item_counts->num_service ?? 0) > 0);
+            $sections = 0;
+            $sections += $content_count > 0 ? 1 : 0;
+            $sections += $has_items ? 1 : 0;
+            $sections += $device_count > 0 ? 1 : 0;
+            $sections += $return_count > 0 ? 1 : 0;
+
+            $final_order_type = $order_type; // default giữ
+            // Quy ước:
+            // - mixed: chỉ khi có cả product và service (trong tab Sản phẩm/Dịch vụ)
+            // - all: khi có từ 2 phần trở lên giữa: content/devices/returns/items (bất kỳ kết hợp)
+            if ($sections > 1) {
+                $final_order_type = 'all';
+            } elseif ($return_count > 0) {
+                $final_order_type = 'return';
+            } elseif ($device_count > 0) {
+                $final_order_type = 'device';
+            } elseif ($has_items) {
+                if (($item_counts->num_product ?? 0) > 0 && ($item_counts->num_service ?? 0) > 0) {
+                    $final_order_type = 'mixed';
+                } elseif (($item_counts->num_product ?? 0) > 0) {
+                    $final_order_type = 'product';
+                } else {
+                    $final_order_type = 'service';
+                }
+            } elseif ($content_count > 0) {
+                $final_order_type = 'content';
+            }
+
+            if ($final_order_type !== $order_type) {
+                $wpdb->update($table, ['order_type' => $final_order_type], ['id' => $order_id], ['%s'], ['%d']);
             }
 
             // 4. Lưu thông tin TRẢ THIẾT BỊ

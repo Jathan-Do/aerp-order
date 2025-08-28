@@ -128,6 +128,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                         <option value="mixed">Tổng hợp</option>
                         <option value="device">Nhận thiết bị</option>
                         <option value="return">Trả thiết bị</option>
+                        <option value="all">Tổng hợp</option>
                     </select>
                 </div>
                 <div class="col-12 col-md-2 mb-2">

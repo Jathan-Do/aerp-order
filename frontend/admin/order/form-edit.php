@@ -189,41 +189,37 @@ if (function_exists('aerp_render_breadcrumb')) {
                         <li class="nav-item" role="presentation">
                             <button
                                 type="button"
-                                class="nav-link<?= $order_type === 'content' ? ' active' : '' ?>"
+                                class="nav-link <?= $order_type === 'content' || $order_type === 'all' ? ' active' : '' ?>"
                                 data-type="content"
-                                role="tab"
-                                <?= ($order_type && $order_type !== 'content') ? 'disabled' : '' ?>>Nội dung yêu cầu & Triển khai</button>
+                                role="tab">Nội dung yêu cầu & Triển khai</button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button
                                 type="button"
                                 class="nav-link<?= ($order_type === 'product' || $order_type === 'service' || $order_type === 'mixed') ? ' active' : '' ?>"
                                 data-type="product"
-                                role="tab"
-                                <?= ($order_type && !in_array($order_type, ['product', 'service', 'mixed', 'content'])) ? 'disabled' : '' ?>>Bán hàng/ Dịch vụ</button>
+                                role="tab">Bán hàng/ Dịch vụ</button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button
                                 type="button"
                                 class="nav-link<?= $order_type === 'device' ? ' active' : '' ?>"
                                 data-type="device"
-                                role="tab"
-                                <?= ($order_type && $order_type !== 'device' && $order_type !== 'content') ? 'disabled' : '' ?>>Nhận thiết bị</button>
+                                role="tab">Nhận thiết bị</button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button
                                 type="button"
                                 class="nav-link<?= $order_type === 'return' ? ' active' : '' ?>"
                                 data-type="return"
-                                role="tab"
-                                <?= ($order_type && $order_type !== 'return' && $order_type !== 'content') ? 'disabled' : '' ?>>Trả thiết bị</button>
+                                role="tab">Trả thiết bị</button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button type="button" class="nav-link" data-other-type="revenue" role="tab">Doanh thu</button>
                         </li>
                     </ul>
                 </div>
-                <div class="col-12 mb-3" id="content-section" style="display:<?= $order_type === 'content' ? 'block' : 'none' ?>">
+                <div class="col-12 mb-3" id="content-section" style="display:<?= $order_type === 'content' || $order_type === 'all' ? 'block' : 'none' ?>">
                     <!-- <label class="form-label fs-5">Nội dung yêu cầu và triển khai</label> -->
                     <div id="content-container">
                         <?php
@@ -374,8 +370,8 @@ if (function_exists('aerp_render_breadcrumb')) {
                                     if (!empty($item->product_id)) {
                                         $selected_text = !empty($item->product_name) ? $item->product_name : ('Sản phẩm #' . intval($item->product_id));
                                         echo '<option value="' . esc_attr($item->product_id) . '" selected>' . esc_html($selected_text) . '</option>';
-                                    }
-                                    echo '</select>';
+                                }
+                                echo '</select>';
                                 } else {
                                     // Ẩn hoàn toàn select2 khi không cần thiết
                                     echo '<select class="form-select shadow-sm product-select-all-warehouses" name="order_items[' . $idx . '][product_id]" style="display:none !important; width:100%"></select>';
@@ -652,25 +648,25 @@ if (function_exists('aerp_render_breadcrumb')) {
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label for="note" class="form-label">Ghi chú</label>
+                    <div class="col-md-6 mb-3">
+                        <label for="note" class="form-label">Ghi chú</label>
                     <textarea placeholder="Nội dung ghi chú" class="form-control shadow-sm" id="note" name="note" rows="2"><?php echo esc_textarea($editing->note); ?></textarea>
-                </div>
-                <div class="col-md-6 mb-3 overflow-hidden">
+                    </div>
+                    <div class="col-md-6 mb-3 overflow-hidden">
                     <label for="attachments" class="form-label">File đính kèm</label>
                     <input type="file" class="form-control shadow-sm" id="attachments" name="attachments[]" multiple>
-                    <div id="existing-attachments-container" class="mt-2">
-                        <?php
-                        $existing_attachments = function_exists('aerp_get_order_attachments') ? aerp_get_order_attachments($edit_id) : [];
-                        if (!empty($existing_attachments)) {
-                            foreach ($existing_attachments as $attachment) {
-                                echo '<div class="d-flex align-items-center mb-1">';
-                                echo '<a href="' . esc_url($attachment->file_url) . '" target="_blank" class="me-2">' . esc_html($attachment->file_name) . '</a>';
-                                echo '<button type="button" class="btn btn-sm btn-danger delete-attachment" data-attachment-id="' . esc_attr($attachment->id) . '">Xóa</button>';
-                                echo '</div>';
+                        <div id="existing-attachments-container" class="mt-2">
+                            <?php
+                            $existing_attachments = function_exists('aerp_get_order_attachments') ? aerp_get_order_attachments($edit_id) : [];
+                            if (!empty($existing_attachments)) {
+                                foreach ($existing_attachments as $attachment) {
+                                    echo '<div class="d-flex align-items-center mb-1">';
+                                    echo '<a href="' . esc_url($attachment->file_url) . '" target="_blank" class="me-2">' . esc_html($attachment->file_name) . '</a>';
+                                    echo '<button type="button" class="btn btn-sm btn-danger delete-attachment" data-attachment-id="' . esc_attr($attachment->id) . '">Xóa</button>';
+                                    echo '</div>';
+                                }
                             }
-                        }
-                        ?>
+                            ?>
                     </div>
                 </div>
                 <?php if (!empty($editing->cancel_reason)): ?>
@@ -1071,8 +1067,8 @@ if (function_exists('aerp_render_breadcrumb')) {
                         $externalFields.show();
                     } else {
                         // Nếu là từ kho, hiển thị select2
-                        $nameInput.hide();
-                        $select.show();
+                    $nameInput.hide();
+                    $select.show();
 
                         // Ẩn external fields
                         $externalFields.hide();

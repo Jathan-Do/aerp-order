@@ -348,7 +348,8 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
                 'return' => '<span class="badge bg-danger">Trả thiết bị</span>',
                 'service' => '<span class="badge bg-success">Dịch vụ</span>',
                 'product' => '<span class="badge bg-info">Bán hàng</span>',
-                'mixed' => '<span class="badge bg-warning">Tổng hợp</span>'
+                'mixed' => '<span class="badge bg-warning">Bán hàng + Dịch vụ</span>',
+                'all' => '<span class="badge bg-dark">Tổng hợp</span>'
             ];
 
             if ($order_type === 'product') {
@@ -364,13 +365,30 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
             }
         }
 
-        // Fallback: xác định dựa trên order_items nếu không có order_type
-        if (empty($items)) {
-            return '<span class="badge bg-secondary">Không xác định</span>';
-        }
+        // Fallback: xác định dựa trên order_items/device/return/content nếu không có order_type
+        // if (empty($items)) {
+        //     // Kiểm tra thêm content/devices/returns để quyết định mixed
+        //     $content_count = (int) $wpdb->get_var($wpdb->prepare(
+        //         "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d",
+        //         $item->id
+        //     ));
+        //     $device_count = (int) $wpdb->get_var($wpdb->prepare(
+        //         "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_devices WHERE order_id = %d",
+        //         $item->id
+        //     ));
+        //     $return_count = (int) $wpdb->get_var($wpdb->prepare(
+        //         "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_device_returns WHERE order_id = %d",
+        //         $item->id
+        //     ));
+        //     $sections = ($content_count>0 ? 1:0) + ($device_count>0 ? 1:0) + ($return_count>0 ? 1:0);
+        //     if ($sections > 1) {
+        //         return '<span class="badge bg-warning">Tổng hợp</span>';
+        //     }
+        //     return '<span class="badge bg-secondary">Không xác định</span>';
+        // }
 
         if ($has_product && $has_service) {
-            return '<span class="badge bg-warning">Tổng hợp</span>';
+            return '<span class="badge bg-warning">Bán hàng + Dịch vụ</span>';
         } elseif ($has_product) {
             $label = '<span class="badge bg-info">Bán hàng</span>';
             if ($has_external) {

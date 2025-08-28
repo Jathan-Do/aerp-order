@@ -46,6 +46,9 @@ if (!empty($order->order_type)) {
         case 'mixed':
             $active_tab = 'products';
             break;
+        case 'all':
+            $active_tab = 'tab-all';
+            break;
         default:
             $active_tab = 'content';
             break;
@@ -173,17 +176,18 @@ if (function_exists('aerp_render_breadcrumb')) {
                 <label class="fw-bold form-label text-muted small mb-1">Nguồn khách hàng</label>
                 <p class="mb-0">
                     <?php
-                    $source = $order->customer_source ?? '';
-                    $source_map = [
-                        'fb' => 'Facebook',
-                        'zalo' => 'Zalo',
-                        'tiktok' => 'Tiktok',
-                        'youtube' => 'Youtube',
-                        'web' => 'Website',
-                        'referral' => 'KH cũ giới thiệu',
-                        'other' => 'Khác'
-                    ];
-                    echo $source_map[$source] ?? ($source ? esc_html($source) : '<span class="text-muted">--</span>');
+                    $source = aerp_get_customer_source($order->customer_source_id);
+                    if ($source) {
+                        $color = !empty($source->color) ? $source->color : 'secondary';
+                        echo sprintf(
+                            '<span class="badge" style="background-color: %s; color: white;">%s</span>',
+                            esc_attr($color),
+                            esc_html($source->name)
+                        );
+                    }
+                    else {
+                        echo '<span class="badge bg-secondary">Không xác định</span>';
+                    }
                     ?>
                 </p>
             </div>
@@ -202,6 +206,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                 <a class="nav-link <?php echo (in_array($active_tab, ['products', 'service'])) ? 'active' : ''; ?>" id="tab-products-link" data-bs-toggle="tab" href="#tab-products" role="tab" aria-controls="tab-products" aria-selected="<?php echo (in_array($active_tab, ['products', 'service'])) ? 'true' : 'false'; ?>">Sản phẩm/Dịch vụ trong đơn</a>
                 <a class="nav-link <?php echo $active_tab === 'devices' ? 'active' : ''; ?>" id="tab-devices-link" data-bs-toggle="tab" href="#tab-devices" role="tab" aria-controls="tab-devices" aria-selected="<?php echo $active_tab === 'devices' ? 'true' : 'false'; ?>">Thiết bị nhận từ khách</a>
                 <a class="nav-link <?php echo $active_tab === 'device-returns' ? 'active' : ''; ?>" id="tab-device-returns-link" data-bs-toggle="tab" href="#tab-device-returns" role="tab" aria-controls="tab-device-returns" aria-selected="<?php echo $active_tab === 'device-returns' ? 'true' : 'false'; ?>">Thiết bị đã trả</a>
+                <a class="nav-link <?php echo $active_tab === 'tab-all' ? 'active' : ''; ?>" id="tab-all-link" data-bs-toggle="tab" href="#tab-all" role="tab" aria-controls="tab-all" aria-selected="<?php echo $active_tab === 'tab-all' ? 'true' : 'false'; ?>">Tổng hợp</a>
             </div>
         </div>
         <div class="card-body">
@@ -334,6 +339,271 @@ if (function_exists('aerp_render_breadcrumb')) {
                             <i class="fas fa-edit me-1"></i> Chỉnh sửa
                         </a>
                         <a href="#" class="btn btn-success" id="print-invoice-detail-btn"><i class="fas fa-print me-1"></i> In hóa đơn chi tiết</a>
+                    </div>
+                </div>
+                <div class="tab-pane fade <?php echo $active_tab === 'tab-all' ? 'show active' : ''; ?>" id="tab-all" role="tabpanel" aria-labelledby="tab-all-link">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <h5 class="mb-2">Nội dung yêu cầu/triển khai</h5>
+                            <?php // Reuse content table above 
+                            ?>
+                            <div class="table-responsive">
+                                <?php
+                                $total_content_amount = 0;
+                                ?>
+                                <table class="table table-bordered mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Nội dung yêu cầu </th>
+                                            <th>Nội dung triển khai</th>
+                                            <th>Đơn giá</th>
+                                            <th>Số lượng</th>
+                                            <th>Thành tiền</th>
+                                            <th>Bảo hành</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php if (!empty($content_lines)): foreach ($content_lines as $idx => $line):
+                                                $line_total = floatval($line->total_price ?? 0);
+                                                $total_content_amount += $line_total; ?>
+
+                                                <tr>
+                                                    <td><?php echo $idx + 1; ?></td>
+                                                    <td><?php echo esc_html($line->requirement) ?? '--'; ?></td>
+                                                    <td><?php echo esc_html($line->implementation) ?? '--'; ?></td>
+                                                    <td><?php echo number_format($line->unit_price ?? 0, 0, ',', '.'); ?></td>
+                                                    <td><?php echo esc_html($line->quantity) ?? '--'; ?></td>
+                                                    <td><?php echo number_format($line->total_price ?? 0, 0, ',', '.'); ?></td>
+                                                    <td><?php echo esc_html($line->warranty) ?? '--'; ?></td>
+                                                </tr>
+                                            <?php endforeach;
+                                        else: ?>
+                                            <tr>
+                                                <td colspan="7" class="text-center text-muted">Chưa có nội dung nào.</td>
+                                            </tr>
+                                        <?php endif; ?>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <th colspan="5" class="text-end">Tổng tiền</th>
+                                            <th colspan="2"><?php echo number_format($total_content_amount ?? 0, 0, ',', '.'); ?></th>
+                                        </tr>
+                                        <tr>
+                                            <th colspan="1">Ghi chú đơn hàng</th>
+                                            <td colspan="6"><?php echo esc_html($order->note) ?? '--'; ?></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <h5 class="mb-2">Sản phẩm/Dịch vụ</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Tên sản phẩm</th>
+                                            <th>Số lượng</th>
+                                            <th>Đơn vị</th>
+                                            <th>Đơn giá</th>
+                                            <th>VAT (%)</th>
+                                            <th>Thành tiền (có VAT)</th>
+                                            <th>Thành tiền</th>
+                                            <th>Nguồn mua</th>
+                                            <th>Chi phí mua ngoài</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php
+                                        // Số tiền đã thu của khách = tổng total_price của bảng content_lines
+                                        $collected_from_content = (float) $wpdb->get_var($wpdb->prepare(
+                                            "SELECT COALESCE(SUM(total_price),0) FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d",
+                                            $order_id
+                                        ));
+                                        if (!empty($order_items)) :
+                                            foreach ($order_items as $idx => $item) :
+                                                $line_total = $item->quantity * $item->unit_price;
+                                                $vat_percent = isset($item->vat_percent) ? floatval($item->vat_percent) : 0;
+                                                $vat_amount = $vat_percent > 0 ? $line_total * $vat_percent / 100 : 0;
+                                                $line_total_with_vat = $line_total + $vat_amount;
+                                                $total_amount += $line_total;
+                                                $total_amount_with_vat = ($total_amount_with_vat ?? 0) + $line_total_with_vat;
+                                                $unit_name = '';
+                                                if (!empty($item->unit_name)) {
+                                                    $unit_name = $item->unit_name;
+                                                } elseif (!empty($item->product_id)) {
+                                                    if (class_exists('AERP_Product_Manager')) {
+                                                        $unit_name = AERP_Product_Manager::get_unit_name($item->product_id);
+                                                    }
+                                                }
+
+                                                // Tính lợi nhuận cho mua ngoài
+                                                $external_cost = isset($item->external_cost) ? floatval($item->external_cost) : 0;
+                                                $profit = $line_total - $external_cost;
+                                                $profit_color = $profit >= 0 ? 'text-success' : 'text-danger';
+                                        ?>
+                                                <tr>
+                                                    <td><?php echo $idx + 1; ?></td>
+                                                    <td><?php echo esc_html($item->product_name); ?></td>
+                                                    <td><?php echo esc_html($item->quantity); ?></td>
+                                                    <td><?php echo esc_html($unit_name); ?></td>
+                                                    <td><?php echo number_format($item->unit_price, 0, ',', '.'); ?></td>
+                                                    <td><?php echo $vat_percent > 0 ? esc_html($vat_percent) : '--'; ?></td>
+                                                    <td><?php echo number_format($line_total_with_vat, 0, ',', '.'); ?></td>
+                                                    <td><?php echo number_format($line_total, 0, ',', '.'); ?></td>
+                                                    <td>
+                                                        <?php
+                                                        $purchase_type = isset($item->purchase_type) ? $item->purchase_type : 'warehouse';
+                                                        if ($purchase_type === 'external') {
+                                                            echo '<span class="badge bg-warning">Mua ngoài</span>';
+                                                            if (!empty($item->external_supplier_name)) {
+                                                                echo '<br><small class="text-muted">' . esc_html($item->external_supplier_name) . '</small>';
+                                                            }
+                                                        } else {
+                                                            echo '<span class="badge bg-info">Từ kho</span>';
+                                                        }
+                                                        ?>
+                                                    </td>
+                                                    <td>
+                                                        <?php
+                                                        if ($purchase_type === 'external' && $external_cost > 0) {
+                                                            echo number_format($external_cost, 0, ',', '.');
+                                                        } else {
+                                                            echo '--';
+                                                        }
+                                                        ?>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach;
+                                        else: ?>
+                                            <tr>
+                                                <td colspan="10" class="text-center text-muted">Chưa có sản phẩm nào.</td>
+                                            </tr>
+                                        <?php endif; ?>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <th colspan="6" class="text-end">Tổng cộng (có VAT)</th>
+                                            <th><?php echo number_format($total_amount_with_vat ?? 0, 0, ',', '.'); ?></th>
+                                            <th><?php echo number_format($total_amount, 0, ',', '.'); ?></th>
+                                            <th colspan="2"></th>
+                                        </tr>
+                                        <?php
+                                        // Tính lợi nhuận theo công thức chuẩn
+                                        $content_total_for_profit_tbl = (float) $wpdb->get_var($wpdb->prepare(
+                                            "SELECT COALESCE(SUM(total_price),0) FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d",
+                                            $order_id
+                                        ));
+                                        $items_total_for_profit_tbl = (float) $wpdb->get_var($wpdb->prepare(
+                                            "SELECT COALESCE(SUM(quantity * unit_price),0) FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d",
+                                            $order_id
+                                        ));
+                                        $external_cost_total_tbl = (float) $wpdb->get_var($wpdb->prepare(
+                                            "SELECT COALESCE(SUM(external_cost),0) FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d AND purchase_type = 'external'",
+                                            $order_id
+                                        ));
+                                        $order_cost_tbl = (float) ($order->cost ?? 0);
+                                        $profit_tbl = $content_total_for_profit_tbl - $order_cost_tbl - $items_total_for_profit_tbl - $external_cost_total_tbl;
+                                        ?>
+                                        <tr>
+                                            <th colspan="8" class="text-end">Đã thu (nội dung)</th>
+                                            <th colspan="2"><?php echo number_format($collected_from_content, 0, ',', '.'); ?></th>
+                                        </tr>
+                                        <tr>
+                                            <th colspan="8" class="text-end">Lợi nhuận</th>
+                                            <th colspan="2" class="<?php echo ($profit_tbl >= 0 ? 'text-success' : 'text-danger'); ?>"><?php echo number_format($profit_tbl, 0, ',', '.'); ?> đ</th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <h5 class="mb-2">Thiết bị nhận/đã trả</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Thiết bị nhận</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Tên thiết bị</th>
+                                                    <th>Serial/IMEI</th>
+                                                    <th>Tình trạng</th>
+                                                    <th>Ghi chú</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php if (!empty($device_list)): foreach ($device_list as $idx => $device): ?>
+                                                        <tr>
+                                                            <td><?php echo $idx + 1; ?></td>
+                                                            <td><?php echo esc_html($device->device_name); ?></td>
+                                                            <td><?php echo esc_html($device->serial_number); ?></td>
+                                                            <td><?php echo esc_html($device->status); ?></td>
+                                                            <td><?php echo esc_html($device->note); ?></td>
+                                                        </tr>
+                                                    <?php endforeach;
+                                                else: ?>
+                                                    <tr>
+                                                        <td colspan="5" class="text-center text-muted">Chưa có thiết bị nào.</td>
+                                                    </tr>
+                                                <?php endif; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Thiết bị đã trả</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Tên thiết bị</th>
+                                                    <th>Serial/IMEI</th>
+                                                    <th>Ngày trả</th>
+                                                    <th>Ghi chú</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php
+                                                $device_returns = $wpdb->get_results($wpdb->prepare(
+                                                    "SELECT r.*, d.device_name, d.serial_number FROM {$wpdb->prefix}aerp_order_device_returns r 
+                                     LEFT JOIN {$wpdb->prefix}aerp_order_devices d ON d.id = r.device_id WHERE r.order_id = %d ORDER BY r.id ASC",
+                                                    $order_id
+                                                ));
+                                                if (!empty($device_returns)) : foreach ($device_returns as $idx => $ret) : ?>
+                                                        <tr>
+                                                            <td><?php echo $idx + 1; ?></td>
+                                                            <td><?php echo esc_html($ret->device_name ?? ''); ?></td>
+                                                            <td><?php echo esc_html($ret->serial_number ?? ''); ?></td>
+                                                            <td><?php echo esc_html($ret->return_date ?? ''); ?></td>
+                                                            <td><?php echo esc_html($ret->note ?? ''); ?></td>
+                                                        </tr>
+                                                    <?php endforeach;
+                                                else: ?>
+                                                    <tr>
+                                                        <td colspan="5" class="text-center text-muted">Chưa có thiết bị trả.</td>
+                                                    </tr>
+                                                <?php endif; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-start align-items-center mt-3 gap-2">
+                        <a href="<?php echo home_url('/aerp-order-orders'); ?>" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Quay lại danh sách
+                        </a>
+                        <a href="<?php echo home_url('/aerp-order-orders?action=edit&id=' . $order_id); ?>" class="btn btn-primary">
+                            <i class="fas fa-edit me-1"></i> Chỉnh sửa
+                        </a>
+                        <a href="#" class="btn btn-success" id="print-invoice-all-btn"><i class="fas fa-print me-1"></i> In tổng hợp</a>
                     </div>
                 </div>
                 <div class="tab-pane fade <?php echo $active_tab === 'devices' ? 'show active' : ''; ?>" id="tab-devices" role="tabpanel" aria-labelledby="tab-devices-link">
@@ -472,68 +742,6 @@ if (function_exists('aerp_render_breadcrumb')) {
                             </tfoot>
                         </table>
                     </div>
-                    <!-- <div class="row mb-2">
-                        <div class="col-md-12 mb-3">
-                            <label class="fw-bold form-label text-muted small mb-1">Nội dung yêu cầu và triển khai</label>
-                            <?php
-                            $content_lines = $wpdb->get_results($wpdb->prepare(
-                                "SELECT * FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d ORDER BY sort_order ASC",
-                                $order_id
-                            ));
-
-                            if (!empty($content_lines)) {
-                                foreach ($content_lines as $idx => $line) {
-                                    echo '<div class="row mb-3">';
-                                    echo '<div class="col-md-6">';
-                                    echo '<div class="p-3 border rounded bg-light" style="white-space:pre-line;">';
-                                    echo '<strong>Nội dung ' . ($idx + 1) . ' - Yêu cầu:</strong><br>';
-                                    echo nl2br(esc_html($line->requirement ?? '--'));
-                                    echo '</div>';
-                                    echo '</div>';
-                                    echo '<div class="col-md-6">';
-                                    echo '<div class="p-3 border rounded bg-light" style="white-space:pre-line;">';
-                                    echo '<strong>Nội dung ' . ($idx + 1) . ' - Triển khai:</strong><br>';
-                                    echo nl2br(esc_html($line->implementation ?? '--'));
-                                    echo '</div>';
-                                    echo '</div>';
-                                    echo '</div>';
-
-                                    // Hiển thị thông tin chi tiết (đơn giá, số lượng, thành tiền, bảo hành)
-                                    echo '<div class="row mb-3">';
-                                    echo '<div class="col-md-3">';
-                                    echo '<div class="p-2 border rounded bg-white">';
-                                    echo '<strong class="text-muted small">Đơn giá:</strong><br>';
-                                    echo '<span class="fw-bold">' . number_format($line->unit_price ?? 0, 0, ',', '.') . ' đ</span>';
-                                    echo '</div>';
-                                    echo '</div>';
-                                    echo '<div class="col-md-3">';
-                                    echo '<div class="p-2 border rounded bg-white">';
-                                    echo '<strong class="text-muted small">Số lượng:</strong><br>';
-                                    echo '<span class="fw-bold">' . esc_html($line->quantity ?? 1) . '</span>';
-                                    echo '</div>';
-                                    echo '</div>';
-                                    echo '<div class="col-md-3">';
-                                    echo '<div class="p-2 border rounded bg-white">';
-                                    echo '<strong class="text-muted small">Thành tiền:</strong><br>';
-                                    echo '<span class="fw-bold">' . number_format($line->total_price ?? 0, 0, ',', '.') . ' đ</span>';
-                                    echo '</div>';
-                                    echo '</div>';
-                                    echo '<div class="col-md-3">';
-                                    echo '<div class="p-2 border rounded bg-white">';
-                                    echo '<strong class="text-muted small">Bảo hành:</strong><br>';
-                                    echo '<span class="fw-bold">' . esc_html($line->warranty ?? '--') . '</span>';
-                                    echo '</div>';
-                                    echo '</div>';
-                                    echo '</div>';
-                                }
-                            } else {
-                                echo '<div class="p-3 border rounded bg-light" style="white-space:pre-line;">';
-                                echo '<span class="text-muted">--</span>';
-                                echo '</div>';
-                            }
-                            ?>
-                        </div>
-                    </div> -->
                     <div class="d-flex justify-content-start align-items-center mt-3 gap-2">
                         <a href="<?php echo home_url('/aerp-order-orders'); ?>" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Quay lại danh sách
@@ -750,6 +958,257 @@ if (function_exists('aerp_render_breadcrumb')) {
                 __________________
             </div>
         </div>
+    </div>
+</div>
+<!-- Template in tổng hợp -->
+<div id="aerp-invoice-all-print-area" style="display:none; font-family: Arial, sans-serif;">
+    <style>
+        @media print {
+            body {
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+                color: #000;
+            }
+        }
+
+        .sheet {
+            width: 100%;
+        }
+
+        .inv-header {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .inv-meta {
+            margin-bottom: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 16px;
+        }
+
+        table.inv {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .inv th,
+        .inv td {
+            border: 1px solid #000;
+            padding: 6px;
+        }
+
+        .inv thead th {
+            background: #f1f1f1;
+            text-align: center;
+        }
+
+        .section-title {
+            margin: 10px 0 6px;
+            font-weight: bold;
+        }
+
+        .sign {
+            margin-top: 16px;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+    <div class="sheet">
+        <h3 class="inv-header">CHỨNG TỪ TỔNG HỢP</h3>
+        <div class="inv-meta">
+            <div><strong>Mã đơn hàng:</strong> <?php echo esc_html($order->order_code); ?></div>
+            <div><strong>Ngày lập:</strong> <?php echo esc_html($order->order_date); ?></div>
+            <div><strong>Khách hàng:</strong> <?php echo $customer ? esc_html($customer->full_name) : '--'; ?></div>
+            <div><strong>Nhân viên phụ trách:</strong> <?php echo $employee ? esc_html($employee) : '--'; ?></div>
+        </div>
+        <div class="section-title">I. Nội dung yêu cầu/triển khai</div>
+        <?php
+        $total_content_amount = 0;
+        ?>
+        <table class="inv">
+            <thead>
+                <tr>
+                    <th style="width:32px;">#</th>
+                    <th>Nội dung yêu cầu</th>
+                    <th>Nội dung triển khai</th>
+                    <th style="width:30px;">SL</th>
+                    <th style="width:100px;">Đơn giá</th>
+                    <th style="width:100px;">Thành tiền</th>
+                    <th style="width:60px;">Bảo hành</th>
+
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($content_lines)) : ?>
+                    <?php foreach ($content_lines as $idx => $line) :
+                        $line_total = floatval($line->total_price ?? 0);
+                        $total_content_amount += $line_total;
+                    ?>
+                        <tr>
+                            <td class="text-center"><?php echo $idx + 1; ?></td>
+                            <td><?php echo nl2br(esc_html($line->requirement ?? '--')); ?></td>
+                            <td><?php echo nl2br(esc_html($line->implementation ?? '--')); ?></td>
+                            <td class="text-center"><?php echo esc_html($line->quantity ?? 1); ?></td>
+                            <td class="text-end"><?php echo number_format($line->unit_price ?? 0, 0, ',', '.'); ?></td>
+                            <td class="text-end"><?php echo number_format($line_total, 0, ',', '.'); ?></td>
+                            <td><?php echo nl2br(esc_html($line->warranty ?? '--')); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="7" class="text-center">Chưa có nội dung triển khai.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th colspan="5" class="text-end">Tổng tiền</th>
+                    <th colspan="2"><?php echo number_format($total_content_amount, 0, ',', '.'); ?> VNĐ</th>
+                </tr>
+                <tr>
+                    <th colspan="2">Ghi chú đơn hàng</th>
+                    <td colspan="5"><?php echo esc_html($order->note) ?? '--'; ?></td>
+                </tr>
+            </tfoot>
+        </table>
+        <?php if (!empty($order_items)): ?>
+            <div class="section-title">II. Sản phẩm/Dịch vụ</div>
+            <?php
+            $total_amount = 0;
+            $total_amount_with_vat = 0;
+            ?>
+            <table class="inv">
+                <thead>
+                    <tr>
+                        <th style="width:32px;">#</th>
+                        <th>Tên sản phẩm/dịch vụ</th>
+                        <th style="width:70px;">Số lượng</th>
+                        <th style="width:70px;">Đơn vị</th>
+                        <th style="width:100px;">Đơn giá</th>
+                        <th style="width:70px;">VAT %</th>
+                        <th style="width:130px;">Thành tiền (có VAT)</th>
+                        <th style="width:120px;">Thành tiền</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (!empty($order_items)) : ?>
+                        <?php foreach ($order_items as $idx => $item) :
+                            $line_total = $item->quantity * $item->unit_price;
+                            $vat_percent = isset($item->vat_percent) ? floatval($item->vat_percent) : 0;
+                            $vat_amount = $vat_percent > 0 ? $line_total * $vat_percent / 100 : 0;
+                            $line_total_with_vat = $line_total + $vat_amount;
+                            $total_amount += $line_total;
+                            $total_amount_with_vat += $line_total_with_vat;
+
+                            $unit_name = '';
+                            if (!empty($item->unit_name)) {
+                                $unit_name = $item->unit_name;
+                            } elseif (!empty($item->product_id)) {
+                                if (class_exists('AERP_Product_Manager')) {
+                                    $unit_name = AERP_Product_Manager::get_unit_name($item->product_id);
+                                }
+                            }
+                        ?>
+                            <tr>
+                                <td class="text-center"><?php echo $idx + 1; ?></td>
+                                <td><?php echo esc_html($item->product_name); ?></td>
+                                <td class="text-center"><?php echo esc_html($item->quantity); ?></td>
+                                <td class="text-center"><?php echo esc_html($unit_name); ?></td>
+                                <td class="text-end"><?php echo number_format($item->unit_price, 0, ',', '.'); ?></td>
+                                <td class="text-center"><?php echo $vat_percent > 0 ? esc_html($vat_percent) : '--'; ?></td>
+                                <td class="text-end"><?php echo number_format($line_total_with_vat, 0, ',', '.'); ?></td>
+                                <td class="text-end"><?php echo number_format($line_total, 0, ',', '.'); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="8" class="text-center">Chưa có sản phẩm/dịch vụ.</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="6" class="text-end">Tổng cộng (có VAT)</th>
+                        <th class="text-end"><?php echo number_format($total_amount_with_vat, 0, ',', '.'); ?></th>
+                        <th class="text-end"><?php echo number_format($total_amount, 0, ',', '.'); ?></th>
+                    </tr>
+                </tfoot>
+            </table>
+        <?php endif; ?>
+        <?php if (!empty($device_list) || !empty($device_returns)): ?>
+            <div class="section-title">III. Thiết bị</div>
+            <?php if (!empty($device_list)): ?>
+                <div>
+                    <strong>Thiết bị nhận</strong>
+                    <table class="inv">
+                        <thead>
+                            <tr>
+                                <th style="width:32px;">#</th>
+                                <th>Tên thiết bị</th>
+                                <th style="width:120px;">Serial/IMEI</th>
+                                <th>Tình trạng</th>
+                                <th>Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($device_list)) : ?>
+                                <?php foreach ($device_list as $idx => $device) : ?>
+                                    <tr>
+                                        <td class="text-center"><?php echo $idx + 1; ?></td>
+                                        <td><?php echo esc_html($device->device_name); ?></td>
+                                        <td><?php echo esc_html($device->serial_number); ?></td>
+                                        <td><?php echo esc_html($device->status); ?></td>
+                                        <td><?php echo esc_html($device->note); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="5" class="text-center">Chưa có thiết bị nào.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($device_returns)): ?>
+                <div style="margin-top:8px;">
+                    <strong>Thiết bị đã trả</strong>
+                    <table class="inv">
+                        <thead>
+                            <tr>
+                                <th style="width:32px;">#</th>
+                                <th>Tên thiết bị</th>
+                                <th style="width:120px;">Serial/IMEI</th>
+                                <th>Ngày trả</th>
+                                <th>Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($device_returns)) : ?>
+                                <?php foreach ($device_returns as $idx => $device) : ?>
+                                    <tr>
+                                        <td class="text-center"><?php echo $idx + 1; ?></td>
+                                        <td><?php echo esc_html($device->device_name); ?></td>
+                                        <td><?php echo esc_html($device->serial_number); ?></td>
+                                        <td><?php echo esc_html($device->return_date); ?></td>
+                                        <td><?php echo esc_html($device->note); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="5" class="text-center">Chưa có thiết bị trả nào.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+            <div class="sign">
+                <div style="text-align:center;"><strong>Khách hàng</strong><br><br><br>__________________</div>
+                <div style="text-align:center;"><strong>Người lập chứng từ</strong><br><br><br>__________________</div>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 <!-- Template hóa đơn nội dung yêu cầu/triển khai -->
@@ -1127,6 +1586,15 @@ if (function_exists('aerp_render_breadcrumb')) {
 
         $('#print-invoice-device-return-btn').on('click', function() {
             var printContents = document.getElementById('aerp-invoice-print-area-device-return').innerHTML;
+            var originalContents = document.body.innerHTML;
+            document.body.innerHTML = printContents;
+            window.print();
+            document.body.innerHTML = originalContents;
+            location.reload();
+        });
+
+        $('#print-invoice-all-btn').on('click', function() {
+            var printContents = document.getElementById('aerp-invoice-all-print-area').innerHTML;
             var originalContents = document.body.innerHTML;
             document.body.innerHTML = printContents;
             window.print();

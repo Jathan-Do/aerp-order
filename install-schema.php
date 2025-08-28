@@ -46,7 +46,7 @@ function aerp_order_install_schema()
         customer_source_id BIGINT DEFAULT NULL,
         status_id BIGINT,
         status ENUM('new','assigned','rejected','completed','paid','cancelled') DEFAULT 'new',
-        order_type ENUM('product','device','return','content','service','mixed') DEFAULT 'content',
+        order_type ENUM('product','device','return','content','service','mixed','all') DEFAULT 'content',
         cancel_reason TEXT DEFAULT NULL,
         reject_reason TEXT DEFAULT NULL,
         note TEXT,
