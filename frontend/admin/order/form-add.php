@@ -91,7 +91,7 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <label for="customer_id" class="form-label">Khách hàng</label>
-                    <select class="form-select shadow-sm customer-select shadow-sm" id="customer_id" name="customer_id" required>
+                    <select class="form-select customer-select shadow-sm" id="customer_id" name="customer_id" required>
                         <?php
                         // Check if customer_id is passed via GET parameter (from customer detail page)
                         $customer_id_from_url = isset($_GET['customer_id']) ? intval($_GET['customer_id']) : 0;
@@ -122,7 +122,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                 </div>
                 <div class="col-md-4 mb-3">
                     <label for="customer_source_id" class="form-label">Nguồn khách hàng</label>
-                    <select class="form-select shadow-sm shadow-sm" id="customer_source_id" name="customer_source_id">
+                    <select class="form-select shadow-sm" id="customer_source_id" name="customer_source_id">
                         <option value="">-- Chọn nguồn --</option>
                         <?php
                         $customer_sources = function_exists('aerp_get_customer_sources') ? aerp_get_customer_sources() : [];
@@ -140,20 +140,20 @@ if (function_exists('aerp_render_breadcrumb')) {
                 </div>
                 <div class="col-md-4 mb-3">
                     <label for="order_date" class="form-label">Ngày tạo đơn hàng</label>
-                    <input type="date" class="form-control shadow-sm bg-body shadow-sm" id="order_date" name="order_date" required value="<?php echo esc_attr($date_now); ?>">
+                    <input type="date" class="form-control bg-body shadow-sm" id="order_date" name="order_date" required value="<?php echo esc_attr($date_now); ?>">
                 </div>
                 <div class="col-md-4 mb-3">
                     <label for="employee_id" class="form-label">Nhân viên phụ trách</label>
-                    <select class="form-select shadow-sm <?php echo aerp_user_has_role($user_id, 'admin') ? 'employee-select-all' : 'employee-select'; ?> shadow-sm" id="employee_id" name="employee_id">
+                    <select class="form-select shadow-sm <?php echo aerp_user_has_role($user_id, 'admin') ? 'employee-select-all' : 'employee-select'; ?>" id="employee_id" name="employee_id">
                     </select>
                 </div>
                 <div class="col-md-4 mb-3">
                     <label for="cost" class="form-label">Chi phí đơn hàng</label>
-                    <input type="number" class="form-control shadow-sm shadow-sm" id="cost" name="cost" min="0" step="0.01" value="0">
+                    <input type="number" class="form-control shadow-sm" id="cost" name="cost" min="0" step="0.01" value="0">
                 </div>
                 <div class="col-md-4 mb-3">
                     <label for="status_id" class="form-label">Trạng thái</label>
-                    <select class="form-select shadow-sm shadow-sm" id="status_id" name="status_id">
+                    <select class="form-select shadow-sm" id="status_id" name="status_id">
                         <?php
                         $statuses = aerp_get_order_statuses();
                         aerp_safe_select_options($statuses, '', 'id', 'name', true);
@@ -188,33 +188,33 @@ if (function_exists('aerp_render_breadcrumb')) {
                         <div class="row mb-2 content-row">
                             <div class="col-md-4 mb-2">
                                 <label class="form-label">Template</label>
-                                <select class="form-select shadow-sm implementation-template-select shadow-sm" name="content_lines[0][template_id]" style="width:100%">
+                                <select class="form-select implementation-template-select shadow-sm" name="content_lines[0][template_id]" style="width:100%">
                                     <option value="">-- Chọn template nội dung triển khai --</option>
                                 </select>
                             </div>
                             <div class="col-md-4 mb-2">
                                 <label class="form-label">Nội dung yêu cầu</label>
-                                <textarea class="form-control shadow-sm shadow-sm" name="content_lines[0][requirement]" rows="2" placeholder="Mô tả yêu cầu của khách hàng..."></textarea>
+                                <textarea class="form-control shadow-sm" name="content_lines[0][requirement]" rows="2" placeholder="Mô tả yêu cầu của khách hàng..."></textarea>
                             </div>
                             <div class="col-md-4 mb-2">
                                 <label class="form-label">Nội dung triển khai</label>
-                                <textarea class="form-control shadow-sm shadow-sm" name="content_lines[0][implementation]" rows="2" placeholder="Nội dung triển khai chi tiết..."></textarea>
+                                <textarea class="form-control shadow-sm" name="content_lines[0][implementation]" rows="2" placeholder="Nội dung triển khai chi tiết..."></textarea>
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Đơn giá</label>
-                                <input type="number" class="form-control shadow-sm content-unit-price shadow-sm" name="content_lines[0][unit_price]" placeholder="0" min="0" step="0.01" value="0">
+                                <input type="number" class="form-control content-unit-price shadow-sm" name="content_lines[0][unit_price]" placeholder="0" min="0" step="0.01" value="0">
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Số lượng</label>
-                                <input type="number" class="form-control shadow-sm content-quantity shadow-sm" name="content_lines[0][quantity]" placeholder="1" min="0" step="0.01" value="1">
+                                <input type="number" class="form-control content-quantity shadow-sm" name="content_lines[0][quantity]" placeholder="1" min="0" step="0.01" value="1">
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Thành tiền</label>
-                                <input type="text" class="form-control shadow-sm content-total-price shadow-sm" name="content_lines[0][total_price]" placeholder="0" readonly>
+                                <input type="text" class="form-control  content-total-price shadow-sm" name="content_lines[0][total_price]" placeholder="0" readonly>
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Bảo hành</label>
-                                <input type="text" class="form-control shadow-sm shadow-sm" name="content_lines[0][warranty]" placeholder="VD: 12 tháng" value="1 tháng">
+                                <input type="text" class="form-control  shadow-sm" name="content_lines[0][warranty]" placeholder="VD: 12 tháng" value="1 tháng">
                             </div>
                             <div class="col-md-2 mt-2 d-flex align-items-end">
                                 <button type="button" class="btn btn-outline-danger remove-content">Xóa dòng</button>
@@ -231,19 +231,19 @@ if (function_exists('aerp_render_breadcrumb')) {
                         <div class="row mb-2 device-row">
                             <div class="col-md-3">
                                 <label class="form-label">Tên thiết bị</label>
-                                <input type="text" class="form-control shadow-sm shadow-sm" name="devices[0][device_name]" placeholder="Tên thiết bị">
+                                <input type="text" class="form-control shadow-sm" name="devices[0][device_name]" placeholder="Tên thiết bị">
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Serial/IMEI</label>
-                                <input type="text" class="form-control shadow-sm shadow-sm" name="devices[0][serial_number]" placeholder="Serial/IMEI">
+                                <input type="text" class="form-control shadow-sm" name="devices[0][serial_number]" placeholder="Serial/IMEI">
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Tình trạng</label>
-                                <textarea type="text" class="form-control shadow-sm shadow-sm" name="devices[0][status]" placeholder="Tình trạng" rows="1"></textarea>
+                                <textarea type="text" class="form-control shadow-sm" name="devices[0][status]" placeholder="Tình trạng" rows="1"></textarea>
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Ghi chú</label>
-                                <textarea type="text" class="form-control shadow-sm shadow-sm" name="devices[0][note]" placeholder="Ghi chú" rows="1"></textarea>
+                                <textarea type="text" class="form-control shadow-sm" name="devices[0][note]" placeholder="Ghi chú" rows="1"></textarea>
                             </div>
                             <!-- <div class="col-md-2">
                                 <label class="form-label">Đối tác sửa</label>
@@ -263,15 +263,15 @@ if (function_exists('aerp_render_breadcrumb')) {
                         <div class="row mb-2 device-return-row">
                             <div class="col-md-4">
                                 <label class="form-label">Thiết bị nhận</label>
-                                <select class="form-select shadow-sm received-device-select shadow-sm" style="width:100%" name="device_returns[0][device_id]"></select>
+                                <select class="form-select received-device-select shadow-sm" style="width:100%" name="device_returns[0][device_id]"></select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Ngày trả</label>
-                                <input type="date" class="form-control shadow-sm shadow-sm" name="device_returns[0][return_date]" value="<?php echo esc_attr(date('Y-m-d')); ?>">
+                                <input type="date" class="form-control shadow-sm" name="device_returns[0][return_date]" value="<?php echo esc_attr(date('Y-m-d')); ?>">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Ghi chú</label>
-                                <textarea type="text" class="form-control shadow-sm shadow-sm" name="device_returns[0][note]" placeholder="Ghi chú" rows="1"></textarea>
+                                <textarea type="text" class="form-control shadow-sm" name="device_returns[0][note]" placeholder="Ghi chú" rows="1"></textarea>
                             </div>
                             <div class="col-md-1 mt-2 d-flex align-items-end">
                                 <button type="button" class="btn btn-outline-danger remove-device-return-row">Xóa</button>
@@ -355,8 +355,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                         <div class="row mb-2 revenue-row">
                             <div class="col-md-4 mb-2">
                                 <label class="form-label">Nhân viên</label>
-                                <select class="form-select shadow-sm <?php echo aerp_user_has_role($user_id, 'admin') ? 'employee-select-all' : 'employee-select'; ?>
-                                 shadow-sm" style="width:100%" name=""></select>
+                                <select class="form-select shadow-sm <?php echo aerp_user_has_role($user_id, 'admin') ? 'employee-select-all' : 'employee-select'; ?>" style="width:100%" name=""></select>
                             </div>
                             <div class="col-md-4 mb-2">
                                 <label class="form-label">Hoa hồng</label>
@@ -368,11 +367,11 @@ if (function_exists('aerp_render_breadcrumb')) {
 
                 <div class="col-md-6 mb-3">
                     <label for="note" class="form-label">Ghi chú</label>
-                    <textarea class="form-control shadow-sm shadow-sm" id="note" name="note" rows="2" placeholder="Nội dung ghi chú"></textarea>
+                    <textarea class="form-control shadow-sm" id="note" name="note" rows="2" placeholder="Nội dung ghi chú"></textarea>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="attachments" class="form-label">File đính kèm</label>
-                    <input type="file" class="form-control shadow-sm shadow-sm" id="attachments" name="attachments[]" multiple>
+                    <input type="file" class="form-control shadow-sm" id="attachments" name="attachments[]" multiple>
                 </div>
             </div>
             <div class="row flex-column-reverse flex-md-row gap-md-0 gap-2">
@@ -414,10 +413,10 @@ include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
         let deviceIndex = 1;
         $('#add-device-row').on('click', function() {
             let row = `<div class="row mb-2 device-row">
-            <div class="col-md-3 mb-2"><label class="form-label">Tên thiết bị</label><input type="text" class="form-control shadow-sm shadow-sm" name="devices[${deviceIndex}][device_name]" placeholder="Tên thiết bị"></div>
-            <div class="col-md-2 mb-2"><label class="form-label">Serial/IMEI</label><input type="text" class="form-control shadow-sm shadow-sm" name="devices[${deviceIndex}][serial_number]" placeholder="Serial/IMEI"></div>
-            <div class="col-md-2 mb-2"><label class="form-label">Tình trạng</label><textarea type="text" class="form-control shadow-sm shadow-sm" name="devices[${deviceIndex}][status]" placeholder="Tình trạng" rows="1"></textarea></div>
-            <div class="col-md-2 mb-2"><label class="form-label">Ghi chú</label><textarea type="text" class="form-control shadow-sm shadow-sm" name="devices[${deviceIndex}][note]" placeholder="Ghi chú" rows="1"></textarea></div>
+            <div class="col-md-3 mb-2"><label class="form-label">Tên thiết bị</label><input type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][device_name]" placeholder="Tên thiết bị"></div>
+            <div class="col-md-2 mb-2"><label class="form-label">Serial/IMEI</label><input type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][serial_number]" placeholder="Serial/IMEI"></div>
+            <div class="col-md-2 mb-2"><label class="form-label">Tình trạng</label><textarea type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][status]" placeholder="Tình trạng" rows="1"></textarea></div>
+            <div class="col-md-2 mb-2"><label class="form-label">Ghi chú</label><textarea type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][note]" placeholder="Ghi chú" rows="1"></textarea></div>
             <div class="col-md-1 mb-2 d-flex align-items-end">
                 <button type="button" class="btn btn-outline-danger remove-device-row">Xóa</button>
             </div>
@@ -485,33 +484,33 @@ include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
             let row = `<div class="row mb-2 content-row">
                 <div class="col-md-4 mb-2">
                     <label class="form-label">Template</label>
-                    <select class="form-select shadow-sm implementation-template-select shadow-sm" name="content_lines[${contentIndex}][template_id]" style="width:100%">
+                    <select class="form-select implementation-template-select shadow-sm" name="content_lines[${contentIndex}][template_id]" style="width:100%">
                         <option value="">-- Chọn template nội dung triển khai --</option>
                     </select>
                 </div>
                 <div class="col-md-4 mb-2">
                     <label class="form-label">Nội dung yêu cầu</label>
-                    <textarea class="form-control shadow-sm shadow-sm" name="content_lines[${contentIndex}][requirement]" rows="2" placeholder="Mô tả yêu cầu của khách hàng..."></textarea>
+                    <textarea class="form-control shadow-smm" name="content_lines[${contentIndex}][requirement]" rows="2" placeholder="Mô tả yêu cầu của khách hàng..."></textarea>
                 </div>
                 <div class="col-md-4 mb-2">
                     <label class="form-label">Nội dung triển khai</label>
-                    <textarea class="form-control shadow-sm shadow-sm" name="content_lines[${contentIndex}][implementation]" rows="2" placeholder="Nội dung triển khai chi tiết..."></textarea>
+                    <textarea class="form-control shadow-sm" name="content_lines[${contentIndex}][implementation]" rows="2" placeholder="Nội dung triển khai chi tiết..."></textarea>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Đơn giá</label>
-                    <input type="number" class="form-control shadow-sm shadow-sm content-unit-price" name="content_lines[${contentIndex}][unit_price]" placeholder="0" min="0" step="0.01" value="0">
+                    <input type="number" class="form-control shadow-sm content-unit-price" name="content_lines[${contentIndex}][unit_price]" placeholder="0" min="0" step="0.01" value="0">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Số lượng</label>
-                    <input type="number" class="form-control shadow-sm shadow-sm content-quantity" name="content_lines[${contentIndex}][quantity]" placeholder="1" min="0" step="0.01" value="1">
+                    <input type="number" class="form-control shadow-sm content-quantity" name="content_lines[${contentIndex}][quantity]" placeholder="1" min="0" step="0.01" value="1">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Thành tiền</label>
-                    <input type="text" class="form-control shadow-sm shadow-sm content-total-price" name="content_lines[${contentIndex}][total_price]" placeholder="0" readonly>
+                    <input type="text" class="form-control shadow-sm content-total-price" name="content_lines[${contentIndex}][total_price]" placeholder="0" readonly>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Bảo hành</label>
-                    <input type="text" class="form-control shadow-sm shadow-sm" name="content_lines[${contentIndex}][warranty]" placeholder="VD: 12 tháng" value="1 tháng">
+                    <input type="text" class="form-control shadow-sm" name="content_lines[${contentIndex}][warranty]" placeholder="VD: 12 tháng" value="1 tháng">
                 </div>
                 <div class="col-md-2 mt-2 d-flex align-items-end">
                     <button type="button" class="btn btn-outline-danger remove-content">Xóa dòng</button>
@@ -605,52 +604,6 @@ include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
             // Cập nhật tổng thành tiền nội dung và lợi nhuận dự kiến
             // updateExpectedStats();
         });
-
-        // // Cập nhật chi phí
-        // $(document).on('input', '#cost', function() {
-        //     updateExpectedStats();
-        // });
-
-        // // Hàm cập nhật thống kê dự kiến
-        // function updateExpectedStats() {
-        //     // Tính tổng thành tiền nội dung triển khai
-        //     let contentTotal = 0;
-        //     $('.content-total-price').each(function() {
-        //         let value = $(this).val();
-        //         if (value) {
-        //             // Chuyển đổi từ định dạng "1.000.000" về số
-        //             let numericValue = parseFloat(value.replace(/\./g, '')) || 0;
-        //             contentTotal += numericValue;
-        //         }
-        //     });
-
-        //     // Tính tổng thành tiền sản phẩm/dịch vụ
-        //     let productTotal = 0;
-        //     $('.total-price-field').each(function() {
-        //         let value = $(this).val();
-        //         if (value) {
-        //             let numericValue = parseFloat(value.replace(/\./g, '')) || 0;
-        //             productTotal += numericValue;
-        //         }
-        //     });
-
-        //     // Lấy chi phí
-        //     let cost = parseFloat($('#cost').val()) || 0;
-
-        //     // Tính lợi nhuận dự kiến
-        //     let expectedProfit = contentTotal - cost - productTotal;
-
-        //     // Cập nhật hiển thị
-        //     $('#content-total-amount').val(contentTotal.toLocaleString('vi-VN') + ' đ');
-        //     $('#expected-profit').val(expectedProfit.toLocaleString('vi-VN') + ' đ');
-
-        //     // Thay đổi màu sắc cho lợi nhuận
-        //     if (expectedProfit >= 0) {
-        //         $('#expected-profit').removeClass('text-danger').addClass('text-success');
-        //     } else {
-        //         $('#expected-profit').removeClass('text-success').addClass('text-danger');
-        //     }
-        // }
 
         // Khởi tạo thống kê khi trang load
         $(document).ready(function() {

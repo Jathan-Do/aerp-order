@@ -603,6 +603,12 @@ if (function_exists('aerp_render_breadcrumb')) {
                         <a href="<?php echo home_url('/aerp-order-orders?action=edit&id=' . $order_id); ?>" class="btn btn-primary">
                             <i class="fas fa-edit me-1"></i> Chỉnh sửa
                         </a>
+                        <!-- <a href="<?php echo esc_url( home_url('/aerp-acc-receipts?action=add&order_id=' . $order_id) ); ?>" class="btn btn-outline-success">
+                            <i class="fas fa-receipt me-1"></i> Tạo phiếu thu
+                        </a>
+                        <a href="<?php echo esc_url( home_url('/aerp-acc-payments?action=add&order_id=' . $order_id) ); ?>" class="btn btn-outline-danger">
+                            <i class="fas fa-file-invoice-dollar me-1"></i> Tạo phiếu chi
+                        </a> -->
                         <a href="#" class="btn btn-success" id="print-invoice-all-btn"><i class="fas fa-print me-1"></i> In tổng hợp</a>
                     </div>
                 </div>

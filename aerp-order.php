@@ -58,6 +58,9 @@ function aerp_order_init()
     require_once AERP_ORDER_PATH . 'includes/table/class-table-device-return.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-device-progress.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-implementation-template.php';
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-acc-category.php';
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-acc-receipt.php';
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-acc-payment.php';
     // Load các class cần thiết manager
     $includes = [
         'class-frontend-order-manager.php',
@@ -75,6 +78,9 @@ function aerp_order_init()
         'class-device-return-manager.php',
         'class-device-progress-manager.php',
         'class-implementation-template-manager.php',
+        'class-acc-category-manager.php',
+        'class-acc-receipt-manager.php',
+        'class-acc-payment-manager.php',
     ];
     foreach ($includes as $file) {
         require_once AERP_ORDER_PATH . 'includes/managers/' . $file;
@@ -97,6 +103,9 @@ function aerp_order_init()
         'AERP_Device_Return_Manager',
         'AERP_Device_Progress_Manager',
         'AERP_Implementation_Template_Manager',
+        'AERP_Acc_Category_Manager',
+        'AERP_Acc_Receipt_Manager',
+        'AERP_Acc_Payment_Manager',
         ];
     foreach ($managers as $manager) {
         if (method_exists($manager, 'handle_submit')) {

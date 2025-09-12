@@ -22,6 +22,11 @@ add_action('init', function () {
     add_rewrite_rule('^aerp-device-progresses/?$', 'index.php?aerp_device_progress_page=device_progresses', 'top');
     add_rewrite_rule('^aerp-implementation-templates/?$', 'index.php?aerp_impl_template_page=impl_templates', 'top');
     add_rewrite_rule('^aerp-report-order/?$', 'index.php?aerp_report_dashboard_page=1', 'top');
+    // Accounting routes (within aerp-order)
+    add_rewrite_rule('^aerp-acc-receipts/?$', 'index.php?aerp_acc_page=receipts', 'top');
+    add_rewrite_rule('^aerp-acc-payments/?$', 'index.php?aerp_acc_page=payments', 'top');
+    add_rewrite_rule('^aerp-acc-categories/?$', 'index.php?aerp_acc_page=categories', 'top');
+    add_rewrite_rule('^aerp-acc-reports/?$', 'index.php?aerp_acc_page=reports', 'top');
     $rules = get_option('rewrite_rules');
     if ($rules && !isset($rules['^aerp-order-orders/?$'])) {
         flush_rewrite_rules();
@@ -77,6 +82,10 @@ add_action('init', function () {
     if ($rules && !isset($rules['^aerp-report-order/?$'])) {
         flush_rewrite_rules();
     }
+    if ($rules && !isset($rules['^aerp-acc-receipts/?$'])) { flush_rewrite_rules(); }
+    if ($rules && !isset($rules['^aerp-acc-payments/?$'])) { flush_rewrite_rules(); }
+    if ($rules && !isset($rules['^aerp-acc-categories/?$'])) { flush_rewrite_rules(); }
+    if ($rules && !isset($rules['^aerp-acc-reports/?$'])) { flush_rewrite_rules(); }
 });
 
 add_action('template_redirect', function () {
@@ -111,6 +120,7 @@ add_filter('query_vars', function ($vars) {
     $vars[] = 'aerp_report_page';
     $vars[] = 'aerp_report_template_name';
     $vars[] = 'aerp_report_dashboard_page';
+    $vars[] = 'aerp_acc_page';
     
     return $vars;
 });
@@ -428,6 +438,69 @@ add_action('template_redirect', function () {
                 return;
             default:
                 $template_name = 'implementation-template/list.php';
+                break;
+        }
+        if ($template_name) {
+            include AERP_ORDER_PATH . 'frontend/admin/' . $template_name;
+            exit;
+        }
+    }
+
+    // Accounting pages inside aerp-order
+    $aerp_acc_page = get_query_var('aerp_acc_page');
+    if ($aerp_acc_page) {
+        $template_name = '';
+        switch ($aerp_acc_page) {
+            case 'receipts':
+                switch ($action_from_get) {
+                    case 'add':
+                        $template_name = 'accounting/receipt-form.php';
+                        break;
+                    case 'edit':
+                        $template_name = 'accounting/receipt-form.php';
+                        break;
+                        case 'delete':
+                            AERP_Acc_Receipt_Manager::handle_single_delete();
+                            return;
+                    default:
+                        $template_name = 'accounting/receipt-list.php';
+                        break;
+                }
+                break;
+            case 'payments':
+                switch ($action_from_get) {
+                    case 'add':
+                        $template_name = 'accounting/payment-form.php';
+                        break;
+                    case 'edit':
+                        $template_name = 'accounting/payment-form.php';
+                        break;
+                    case 'delete':
+                        AERP_Acc_Payment_Manager::handle_single_delete();
+                        return;
+                    default:
+                        $template_name = 'accounting/payment-list.php';
+                        break;
+                }
+                break;
+            case 'categories':
+                switch ($action_from_get) {
+                    case 'add':
+                        $template_name = 'accounting/category-form.php';
+                        break;
+                    case 'edit':
+                        $template_name = 'accounting/category-form.php';
+                        break;
+                    case 'delete':
+                        AERP_Acc_Category_Manager::handle_single_delete();
+                        return;
+                    default:
+                        $template_name = 'accounting/category-list.php';
+                        break;
+                }
+                break;
+            case 'reports':
+                $template_name = 'accounting/report-summary.php';
                 break;
         }
         if ($template_name) {

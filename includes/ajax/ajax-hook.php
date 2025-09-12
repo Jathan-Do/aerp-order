@@ -916,3 +916,128 @@ function aerp_implementation_template_filter_callback()
     $html = ob_get_clean();
     wp_send_json_success(['html' => $html]);
 }
+
+add_action('wp_ajax_aerp_acc_receipt_filter_receipts', 'aerp_acc_receipt_filter_receipts_callback');
+add_action('wp_ajax_nopriv_aerp_acc_receipt_filter_receipts', 'aerp_acc_receipt_filter_receipts_callback');
+function aerp_acc_receipt_filter_receipts_callback()
+{
+    $filters = [
+        'search_term' => sanitize_text_field($_POST['s'] ?? ''),
+        'paged' => intval($_POST['paged'] ?? 1),
+        'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
+        'order' => sanitize_text_field($_POST['order'] ?? ''),
+        'status' => sanitize_text_field($_POST['status'] ?? ''),
+        'date_from' => sanitize_text_field($_POST['date_from'] ?? ''),
+        'date_to' => sanitize_text_field($_POST['date_to'] ?? ''),
+    ];
+    $table = new AERP_Acc_Receipt_Table();
+    $table->set_filters($filters);
+    ob_start();
+    $table->render();
+    $html = ob_get_clean();
+    wp_send_json_success(['html' => $html]);
+}
+
+add_action('wp_ajax_aerp_acc_payment_filter_payments', 'aerp_acc_payment_filter_payments_callback');
+add_action('wp_ajax_nopriv_aerp_acc_payment_filter_payments', 'aerp_acc_payment_filter_payments_callback');
+function aerp_acc_payment_filter_payments_callback()
+{
+    $filters = [
+        'search_term' => sanitize_text_field($_POST['s'] ?? ''),
+        'paged' => intval($_POST['paged'] ?? 1),
+        'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
+        'order' => sanitize_text_field($_POST['order'] ?? ''),
+        'status' => sanitize_text_field($_POST['status'] ?? ''),
+        'date_from' => sanitize_text_field($_POST['date_from'] ?? ''),
+        'date_to' => sanitize_text_field($_POST['date_to'] ?? ''),
+        'employee_id' => intval($_POST['employee_id'] ?? 0),
+    ];
+    $table = new AERP_Acc_Payment_Table();
+    $table->set_filters($filters);
+    ob_start();
+    $table->render();
+    $html = ob_get_clean();
+    wp_send_json_success(['html' => $html]);
+}
+// Select2: tìm danh mục chi (payments categories)
+add_action('wp_ajax_aerp_acc_search_categories', function(){
+    global $wpdb;
+    $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
+    $id = isset($_GET['id']) ? absint($_GET['id']) : 0;
+
+    // Preselect by id
+    if ($id) {
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, name, is_accounted FROM {$wpdb->prefix}aerp_acc_categories WHERE id = %d",
+            $id
+        ));
+        if ($row) {
+            $label = $row->name;
+            if (!empty($row->is_accounted)) {
+                $label .= ' (Có hạch toán)';
+            }
+            wp_send_json([
+                'id' => intval($row->id),
+                'text' => $label,
+                'is_accounted' => intval($row->is_accounted)
+            ]);
+        }
+        wp_send_json([]);
+    }
+
+    $sql = "SELECT id, name, is_accounted FROM {$wpdb->prefix}aerp_acc_categories WHERE active = 1";
+    $params = [];
+    if ($q !== '') {
+        $sql .= " AND (name LIKE %s OR code LIKE %s)";
+        $params[] = '%' . $wpdb->esc_like($q) . '%';
+        $params[] = '%' . $wpdb->esc_like($q) . '%';
+    }
+    $sql .= " ORDER BY name ASC LIMIT 30";
+    $rows = $wpdb->get_results($params ? $wpdb->prepare($sql, ...$params) : $sql);
+
+    $results = [];
+    foreach ($rows as $r) {
+        $label = $r->name;
+        if (!empty($r->is_accounted)) {
+            $label .= ' (Có hạch toán)';
+        }
+        $results[] = [
+            'id' => intval($r->id),
+            'text' => $label,
+            'is_accounted' => intval($r->is_accounted),
+        ];
+    }
+    wp_send_json($results);
+});
+
+// Select2: tìm đơn hàng cho phiếu thu và trả về số tiền đã thu từ nội dung (content_lines)
+add_action('wp_ajax_aerp_acc_search_orders_for_receipt', function () {
+    global $wpdb;
+    $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
+    $results = [];
+
+    // Lấy tối đa 30 đơn, filter theo mã hoặc ghi chú
+    $sql = "SELECT id, order_code, customer_id FROM {$wpdb->prefix}aerp_order_orders WHERE 1=1";
+    $params = [];
+    if ($q !== '') {
+        $sql .= " AND (order_code LIKE %s OR note LIKE %s)";
+        $params[] = '%' . $wpdb->esc_like($q) . '%';
+        $params[] = '%' . $wpdb->esc_like($q) . '%';
+    }
+    $sql .= " ORDER BY id DESC LIMIT 30";
+    $orders = $wpdb->get_results($params ? $wpdb->prepare($sql, ...$params) : $sql);
+
+    foreach ($orders as $o) {
+        $collected = (float) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(total_price),0) FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d",
+            $o->id
+        ));
+        $label = $o->order_code ? ( '#' . $o->order_code ) : ('Đơn #' . $o->id);
+        $results[] = [
+            'id' => $o->id,
+            'text' => $label,
+            'collected_amount' => $collected,
+        ];
+    }
+    wp_send_json($results);
+});

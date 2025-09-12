@@ -24,6 +24,12 @@ function aerp_order_get_table_names()
         $wpdb->prefix . 'aerp_suppliers',
         $wpdb->prefix . 'aerp_warehouse_managers',
         $wpdb->prefix . 'aerp_order_device_progresses',
+        // Accounting tables
+        $wpdb->prefix . 'aerp_acc_categories',
+        $wpdb->prefix . 'aerp_acc_receipts',
+        $wpdb->prefix . 'aerp_acc_receipt_lines',
+        $wpdb->prefix . 'aerp_acc_payments',
+        $wpdb->prefix . 'aerp_acc_payment_lines',
     ];
 }
 
@@ -326,6 +332,105 @@ function aerp_order_install_schema()
         INDEX idx_user_id (user_id),
         INDEX idx_warehouse_id (warehouse_id),
         INDEX idx_manager_type (manager_type)
+    ) $charset_collate;";
+
+    // 9. Accounting - Categories
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_acc_categories (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        code VARCHAR(50) DEFAULT NULL,
+        is_accounted BOOLEAN DEFAULT TRUE,
+        active BOOLEAN DEFAULT TRUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_name (name),
+        INDEX idx_code (code),
+        INDEX idx_is_accounted (is_accounted),
+        INDEX idx_active (active)
+    ) $charset_collate;";
+
+    // 10. Accounting - Receipts (phiếu thu)
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_acc_receipts (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        code VARCHAR(50) DEFAULT NULL,
+        created_by BIGINT DEFAULT NULL,
+        status ENUM('draft','submitted','approved','rejected','cancelled') DEFAULT 'draft',
+        receipt_date DATE DEFAULT NULL,
+        total_amount FLOAT DEFAULT 0,
+        note TEXT DEFAULT NULL,
+        approved_by BIGINT DEFAULT NULL,
+        approved_at DATETIME DEFAULT NULL,
+        attachments TEXT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_code (code),
+        INDEX idx_status (status),
+        INDEX idx_receipt_date (receipt_date),
+        INDEX idx_created_by (created_by)
+    ) $charset_collate;";
+
+    // 10b. Accounting - Receipt lines
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_acc_receipt_lines (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        receipt_id BIGINT NOT NULL,
+        order_id BIGINT DEFAULT NULL,
+        amount FLOAT NOT NULL,
+        note TEXT DEFAULT NULL,
+        INDEX idx_receipt_id (receipt_id),
+        INDEX idx_order_id (order_id)
+    ) $charset_collate;";
+
+    // 11. Accounting - Payments (phiếu chi)
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_acc_payments (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        code VARCHAR(50) DEFAULT NULL,
+        created_by BIGINT DEFAULT NULL,
+        status ENUM('draft','confirmed','paid') DEFAULT 'draft',
+        payment_date DATE DEFAULT NULL,
+        -- Loại phiếu (lấy từ danh mục phiếu chi)
+        voucher_type_id BIGINT DEFAULT NULL,
+        -- Người chi (nhân sự)
+        payer_employee_id BIGINT DEFAULT NULL,
+        -- Loại chi: employee (NV), supplier (NCC), customer (KH), other
+        payee_type ENUM('employee','supplier','customer','other') DEFAULT 'employee',
+        -- Người nhận theo loại
+        payee_employee_id BIGINT DEFAULT NULL,
+        supplier_id BIGINT DEFAULT NULL,
+        customer_id BIGINT DEFAULT NULL,
+        payee_text VARCHAR(255) DEFAULT NULL,
+        -- Phương thức thanh toán và số tài khoản
+        payment_method ENUM('cash','bank_transfer','card','other') DEFAULT 'cash',
+        bank_account VARCHAR(100) DEFAULT NULL,
+        -- Tổng tiền & ghi chú
+        total_amount FLOAT DEFAULT 0,
+        note TEXT DEFAULT NULL,
+        -- Xác nhận đã chi
+        confirmed_by BIGINT DEFAULT NULL,
+        confirmed_at DATETIME DEFAULT NULL,
+        attachments TEXT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_code (code),
+        INDEX idx_status (status),
+        INDEX idx_payment_date (payment_date),
+        INDEX idx_voucher_type (voucher_type_id),
+        INDEX idx_payer_employee (payer_employee_id),
+        INDEX idx_payee_employee (payee_employee_id),
+        INDEX idx_supplier_id (supplier_id),
+        INDEX idx_customer_id (customer_id)
+    ) $charset_collate;";
+
+    // 11b. Accounting - Payment lines
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_acc_payment_lines (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        payment_id BIGINT NOT NULL,
+        order_id BIGINT DEFAULT NULL,
+        description TEXT DEFAULT NULL,
+        amount FLOAT NOT NULL,
+        vat_percent FLOAT DEFAULT NULL,
+        is_accounted_override BOOLEAN DEFAULT NULL,
+        note TEXT DEFAULT NULL,
+        category_id BIGINT DEFAULT NULL,
+        INDEX idx_payment_id (payment_id),
+        INDEX idx_order_id (order_id),
+        INDEX idx_category_id (category_id)
     ) $charset_collate;";
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
