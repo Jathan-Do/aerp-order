@@ -13,9 +13,9 @@ class AERP_Acc_Receipt_Manager
         $data = [
             'receipt_date' => sanitize_text_field($_POST['receipt_date'] ?? date('Y-m-d')),
             'note' => sanitize_text_field($_POST['note'] ?? ''),
-            'total_amount' => floatval($_POST['total_amount'] ?? 0),
+            'total_amount' => isset($_POST['total_amount']) ? (string)round((float)str_replace([','], [''], $_POST['total_amount']), 2) : '0.00',
         ];
-        $format = ['%s','%s','%f'];
+        $format = ['%s','%s','%s'];
         if ($id) {
             $wpdb->update($table, $data, ['id' => $id], $format, ['%d']);
             $msg = 'Đã cập nhật phiếu thu!';
@@ -44,8 +44,8 @@ class AERP_Acc_Receipt_Manager
         $prepared_lines = [];
         $sum = 0;
         foreach ($lines as $line) {
-            $amount = isset($line['amount']) ? floatval($line['amount']) : 0;
-            if ($amount <= 0) {
+            $amount = isset($line['amount']) ? (string)round((float)str_replace([','], [''], $line['amount']), 2) : '0.00';
+            if ((float)$amount <= 0) {
                 continue;
             }
             $prepared_lines[] = [
@@ -54,20 +54,20 @@ class AERP_Acc_Receipt_Manager
                 'amount' => $amount,
                 'note' => sanitize_text_field($line['note'] ?? ''),
             ];
-            $sum += $amount;
+            $sum += (float)$amount;
         }
 
         // Chỉ xoá và ghi lại khi có dữ liệu dòng gửi lên; nếu không, giữ nguyên các dòng cũ
         if ($id && count($prepared_lines) > 0) {
             $wpdb->delete($line_table, ['receipt_id' => $id]);
             foreach ($prepared_lines as $pl) {
-                // Columns: receipt_id (int), order_id (int or null), amount (float), note (text)
-                $wpdb->insert($line_table, $pl, ['%d','%d','%f','%s']);
+                // Columns: receipt_id (int), order_id (int or null), amount (decimal string), note (text)
+                $wpdb->insert($line_table, $pl, ['%d','%d','%s','%s']);
             }
         }
         // Cập nhật tổng nếu cần
         if ($sum > 0) {
-            $wpdb->update($table, ['total_amount' => $sum], ['id' => $id], ['%f'], ['%d']);
+            $wpdb->update($table, ['total_amount' => (string)round($sum, 2)], ['id' => $id], ['%s'], ['%d']);
         }
 
         // Trạng thái submit/approve

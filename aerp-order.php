@@ -61,6 +61,7 @@ function aerp_order_init()
     require_once AERP_ORDER_PATH . 'includes/table/class-table-acc-category.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-acc-receipt.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-acc-payment.php';
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-acc-deposit.php';
     // Load các class cần thiết manager
     $includes = [
         'class-frontend-order-manager.php',
@@ -81,6 +82,7 @@ function aerp_order_init()
         'class-acc-category-manager.php',
         'class-acc-receipt-manager.php',
         'class-acc-payment-manager.php',
+        'class-acc-deposit-manager.php',
     ];
     foreach ($includes as $file) {
         require_once AERP_ORDER_PATH . 'includes/managers/' . $file;
@@ -106,6 +108,7 @@ function aerp_order_init()
         'AERP_Acc_Category_Manager',
         'AERP_Acc_Receipt_Manager',
         'AERP_Acc_Payment_Manager',
+        'AERP_Acc_Deposit_Manager',
         ];
     foreach ($managers as $manager) {
         if (method_exists($manager, 'handle_submit')) {

@@ -1010,15 +1010,111 @@ add_action('wp_ajax_aerp_acc_search_categories', function(){
     wp_send_json($results);
 });
 
+// AJAX filter deposits table
+add_action('wp_ajax_aerp_acc_deposit_filter_deposits', function(){
+    $filters = [
+        'search_term' => sanitize_text_field($_POST['s'] ?? ''),
+        'paged' => intval($_POST['paged'] ?? 1),
+        'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
+        'order' => sanitize_text_field($_POST['order'] ?? ''),
+        'status' => sanitize_text_field($_POST['status'] ?? ''),
+        'date_from' => sanitize_text_field($_POST['date_from'] ?? ''),
+        'date_to' => sanitize_text_field($_POST['date_to'] ?? ''),
+    ];
+    $table = new AERP_Acc_Deposit_Table();
+    $table->set_filters($filters);
+    ob_start();
+    $table->render();
+    $html = ob_get_clean();
+    wp_send_json_success(['html' => $html]);
+});
+
+// Select2: tìm phiếu chi để gán làm tạm ứng cho dòng nộp (giới hạn theo quyền)
+add_action('wp_ajax_aerp_acc_search_payments_for_advance', function(){
+    global $wpdb;
+    $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
+    $results = [];
+
+    $sql = "SELECT id, code, total_amount, note FROM {$wpdb->prefix}aerp_acc_payments WHERE status IN ('confirmed','paid')";
+    $params = [];
+
+    // Quyền: admin/accountant thấy tất; người khác có thể giới hạn sau này nếu cần
+    // $current_user_id = get_current_user_id();
+    // $is_admin = function_exists('aerp_user_has_role') && (aerp_user_has_role($current_user_id, 'admin') || aerp_user_has_role($current_user_id, 'accountant'));
+    // if (!$is_admin) {
+    //     // Mặc định: chỉ thấy các phiếu chi do mình tạo (created_by theo employee_id)
+    //     $employee_id = $wpdb->get_var($wpdb->prepare(
+    //         "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+    //         $current_user_id
+    //     ));
+    //     if ($employee_id) {
+    //         $sql .= " AND created_by = %d";
+    //         $params[] = (int)$employee_id;
+    //     }
+    // }
+
+    if ($q !== '') {
+        $sql += 0; // no-op to keep structure
+        $sql .= " AND (code LIKE %s OR note LIKE %s)";
+        $params[] = '%' . $wpdb->esc_like($q) . '%';
+        $params[] = '%' . $wpdb->esc_like($q) . '%';
+    }
+    $sql .= " ORDER BY id DESC LIMIT 30";
+    $rows = $wpdb->get_results($params ? $wpdb->prepare($sql, ...$params) : $sql);
+    foreach ($rows as $r) {
+        $label = ($r->code ?: ('#'.$r->id)) . ' - ' . number_format((float)$r->total_amount, 0, ',', '.') . ' đ';
+        if (!empty($r->note)) { $label .= ' (' . $r->note . ')'; }
+        $results[] = [
+            'id' => intval($r->id),
+            'text' => $label,
+            'total_amount' => (float)$r->total_amount,
+        ];
+    }
+    wp_send_json($results);
+});
+
 // Select2: tìm đơn hàng cho phiếu thu và trả về số tiền đã thu từ nội dung (content_lines)
 add_action('wp_ajax_aerp_acc_search_orders_for_receipt', function () {
     global $wpdb;
     $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
     $results = [];
 
-    // Lấy tối đa 30 đơn, filter theo mã hoặc ghi chú
+    // Lấy tối đa 30 đơn, filter theo mã hoặc ghi chú + áp quyền như table order
     $sql = "SELECT id, order_code, customer_id FROM {$wpdb->prefix}aerp_order_orders WHERE 1=1";
     $params = [];
+
+    $current_user_id = get_current_user_id();
+    $is_admin = function_exists('aerp_user_has_role') && aerp_user_has_role($current_user_id, 'admin')||aerp_user_has_role($current_user_id, 'accountant');
+    if (!$is_admin) {
+        $current_employee = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+            $current_user_id
+        ));
+        $employee_id = $current_employee ? (int)$current_employee->id : 0;
+        if (function_exists('aerp_user_has_permission') && aerp_user_has_permission($current_user_id, 'order_view_full')) {
+            if ($current_employee && $current_employee->work_location_id) {
+                $branch_employee_ids = $wpdb->get_col($wpdb->prepare(
+                    "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE work_location_id = %d",
+                    $current_employee->work_location_id
+                ));
+                if (!empty($branch_employee_ids)) {
+                    $placeholders = implode(',', array_fill(0, count($branch_employee_ids), '%d'));
+                    $sql .= " AND (employee_id IN ($placeholders) OR created_by = %d)";
+                    $params = array_merge($params, array_map('intval', $branch_employee_ids), [$employee_id]);
+                } else {
+                    $sql .= " AND created_by = %d";
+                    $params[] = $employee_id;
+                }
+            } else {
+                $sql .= " AND created_by = %d";
+                $params[] = $employee_id;
+            }
+        } else {
+            $sql .= " AND (employee_id = %d OR created_by = %d)";
+            $params[] = $employee_id;
+            $params[] = $employee_id;
+        }
+    }
     if ($q !== '') {
         $sql .= " AND (order_code LIKE %s OR note LIKE %s)";
         $params[] = '%' . $wpdb->esc_like($q) . '%';
@@ -1038,6 +1134,117 @@ add_action('wp_ajax_aerp_acc_search_orders_for_receipt', function () {
             'text' => $label,
             'collected_amount' => $collected,
         ];
+    }
+    wp_send_json($results);
+});
+
+// Select2: tìm phiếu thu để gắn vào phiếu nộp tiền
+add_action('wp_ajax_aerp_acc_search_receipts', function(){
+    global $wpdb;
+    $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
+    $sql = "SELECT id, code FROM {$wpdb->prefix}aerp_acc_receipts WHERE 1=1";
+    $params = [];
+
+    // Áp dụng quyền giống bảng phiếu thu: admin & accountant thấy tất cả; người khác thấy phiếu mình tạo hoặc theo chi nhánh nếu là department_lead
+    $current_user_id = get_current_user_id();
+    $is_admin = (function_exists('aerp_user_has_role') && (aerp_user_has_role($current_user_id, 'admin') || aerp_user_has_role($current_user_id, 'accountant')));
+    if (!$is_admin) {
+        $current_employee = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+            $current_user_id
+        ));
+        $employee_id = $current_employee ? (int)$current_employee->id : 0;
+        $is_department_lead = function_exists('aerp_user_has_role') && aerp_user_has_role($current_user_id, 'department_lead');
+        if ($is_department_lead && $current_employee && !empty($current_employee->work_location_id)) {
+            $branch_employee_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE work_location_id = %d",
+                $current_employee->work_location_id
+            ));
+            if (!empty($branch_employee_ids)) {
+                $placeholders = implode(',', array_fill(0, count($branch_employee_ids), '%d'));
+                $sql .= " AND created_by IN ($placeholders)";
+                $params = array_merge($params, array_map('intval', $branch_employee_ids));
+            } else {
+                $sql .= " AND created_by = %d";
+                $params[] = $employee_id;
+            }
+        } else {
+            $sql .= " AND created_by = %d";
+            $params[] = $employee_id;
+        }
+    }
+    if ($q !== '') {
+        $sql .= " AND (code LIKE %s OR note LIKE %s)";
+        $params[] = '%' . $wpdb->esc_like($q) . '%';
+        $params[] = '%' . $wpdb->esc_like($q) . '%';
+    }
+    $sql .= " ORDER BY id DESC LIMIT 30";
+    $rows = $wpdb->get_results($params ? $wpdb->prepare($sql, ...$params) : $sql);
+    $results = [];
+    foreach ($rows as $r) {
+        $results[] = [ 'id' => intval($r->id), 'text' => $r->code ? $r->code : ('#'.$r->id) ];
+    }
+    wp_send_json($results);
+});
+
+// Select2: tìm đơn trong 1 phiếu thu (giới hạn theo các dòng phiếu thu)
+add_action('wp_ajax_aerp_acc_search_orders_in_receipt', function(){
+    global $wpdb;
+    $receipt_id = isset($_GET['receipt_id']) ? absint($_GET['receipt_id']) : 0;
+    $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
+    $results = [];
+    if ($receipt_id <= 0) { wp_send_json($results); }
+
+    // Lấy danh sách order_id từ dòng phiếu thu
+    $order_ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT DISTINCT order_id FROM {$wpdb->prefix}aerp_acc_receipt_lines WHERE receipt_id = %d AND order_id IS NOT NULL",
+        $receipt_id
+    ));
+    if (empty($order_ids)) { wp_send_json($results); }
+
+    $order_ids = array_map('intval', $order_ids);
+    $ids_str = implode(',', $order_ids);
+    $sql = "SELECT id, order_code FROM {$wpdb->prefix}aerp_order_orders WHERE id IN ($ids_str)";
+    // Áp dụng quyền giống table order
+    $current_user_id = get_current_user_id();
+    $is_admin = function_exists('aerp_user_has_role') && aerp_user_has_role($current_user_id, 'admin')||aerp_user_has_role($current_user_id, 'accountant');
+    if (!$is_admin) {
+        $current_employee = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, work_location_id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+            $current_user_id
+        ));
+        $employee_id = $current_employee ? (int)$current_employee->id : 0;
+        if (function_exists('aerp_user_has_permission') && aerp_user_has_permission($current_user_id, 'order_view_full')) {
+            if ($current_employee && $current_employee->work_location_id) {
+                $branch_employee_ids = $wpdb->get_col($wpdb->prepare(
+                    "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE work_location_id = %d",
+                    $current_employee->work_location_id
+                ));
+                if (!empty($branch_employee_ids)) {
+                    $placeholders = implode(',', array_fill(0, count($branch_employee_ids), '%d'));
+                    $sql .= $wpdb->prepare(" AND (employee_id IN ($placeholders) OR created_by = %d)", ...array_merge(array_map('intval', $branch_employee_ids), [$employee_id]));
+                } else {
+                    $sql .= $wpdb->prepare(" AND created_by = %d", $employee_id);
+                }
+            } else {
+                $sql .= $wpdb->prepare(" AND created_by = %d", $employee_id);
+            }
+        } else {
+            $sql .= $wpdb->prepare(" AND (employee_id = %d OR created_by = %d)", $employee_id, $employee_id);
+        }
+    }
+    if ($q !== '') {
+        $sql .= $wpdb->prepare(" AND (order_code LIKE %s OR note LIKE %s)", '%' . $wpdb->esc_like($q) . '%', '%' . $wpdb->esc_like($q) . '%');
+    }
+    $sql .= " ORDER BY id DESC LIMIT 30";
+    $orders = $wpdb->get_results($sql);
+    foreach ($orders as $o) {
+        $collected = (float) $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(total_price),0) FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d",
+            $o->id
+        ));
+        $label = $o->order_code ? ( '#' . $o->order_code ) : ('Đơn #' . $o->id);
+        $results[] = [ 'id' => $o->id, 'text' => $label, 'collected_amount' => $collected ];
     }
     wp_send_json($results);
 });

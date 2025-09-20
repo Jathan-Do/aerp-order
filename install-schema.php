@@ -28,6 +28,8 @@ function aerp_order_get_table_names()
         $wpdb->prefix . 'aerp_acc_categories',
         $wpdb->prefix . 'aerp_acc_receipts',
         $wpdb->prefix . 'aerp_acc_receipt_lines',
+        $wpdb->prefix . 'aerp_acc_deposits',
+        $wpdb->prefix . 'aerp_acc_deposit_lines',
         $wpdb->prefix . 'aerp_acc_payments',
         $wpdb->prefix . 'aerp_acc_payment_lines',
     ];
@@ -355,7 +357,7 @@ function aerp_order_install_schema()
         created_by BIGINT DEFAULT NULL,
         status ENUM('draft','submitted','approved','rejected','cancelled') DEFAULT 'draft',
         receipt_date DATE DEFAULT NULL,
-        total_amount FLOAT DEFAULT 0,
+        total_amount DECIMAL(18,2) DEFAULT 0,
         note TEXT DEFAULT NULL,
         approved_by BIGINT DEFAULT NULL,
         approved_at DATETIME DEFAULT NULL,
@@ -372,10 +374,47 @@ function aerp_order_install_schema()
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         receipt_id BIGINT NOT NULL,
         order_id BIGINT DEFAULT NULL,
-        amount FLOAT NOT NULL,
+        amount DECIMAL(18,2) NOT NULL,
         note TEXT DEFAULT NULL,
         INDEX idx_receipt_id (receipt_id),
         INDEX idx_order_id (order_id)
+    ) $charset_collate;";
+
+    // 10c. Accounting - Deposits (phiếu nộp tiền)
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_acc_deposits (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        code VARCHAR(50) DEFAULT NULL,
+        receipt_id BIGINT NOT NULL,
+        created_by BIGINT DEFAULT NULL,
+        status ENUM('draft','submitted','approved','rejected','cancelled') DEFAULT 'draft',
+        deposit_date DATE DEFAULT NULL,
+        total_amount DECIMAL(18,2) NOT NULL,
+        note TEXT DEFAULT NULL,
+        approved_by BIGINT DEFAULT NULL,
+        approved_at DATETIME DEFAULT NULL,
+        attachments TEXT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_code (code),
+        INDEX idx_status (status),
+        INDEX idx_deposit_date (deposit_date),
+        INDEX idx_receipt_id (receipt_id),
+        INDEX idx_created_by (created_by)
+    ) $charset_collate;";
+
+    // 10d. Accounting - Deposit lines
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_acc_deposit_lines (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        deposit_id BIGINT NOT NULL,
+        order_id BIGINT NOT NULL,
+        revenue_amount DECIMAL(18,2) NOT NULL,
+        advance_amount DECIMAL(18,2) NOT NULL,
+        advance_payment_id BIGINT DEFAULT NULL,
+        external_amount DECIMAL(18,2) NOT NULL,
+        amount DECIMAL(18,2) NOT NULL,
+        note TEXT DEFAULT NULL,
+        INDEX idx_deposit_id (deposit_id),
+        INDEX idx_order_id (order_id),
+        INDEX idx_advance_payment_id (advance_payment_id)
     ) $charset_collate;";
 
     // 11. Accounting - Payments (phiếu chi)
@@ -400,7 +439,7 @@ function aerp_order_install_schema()
         payment_method ENUM('cash','bank_transfer','card','other') DEFAULT 'cash',
         bank_account VARCHAR(100) DEFAULT NULL,
         -- Tổng tiền & ghi chú
-        total_amount FLOAT DEFAULT 0,
+        total_amount DECIMAL(18,2) NOT NULL,
         note TEXT DEFAULT NULL,
         -- Xác nhận đã chi
         confirmed_by BIGINT DEFAULT NULL,
@@ -423,7 +462,7 @@ function aerp_order_install_schema()
         payment_id BIGINT NOT NULL,
         order_id BIGINT DEFAULT NULL,
         description TEXT DEFAULT NULL,
-        amount FLOAT NOT NULL,
+        amount DECIMAL(18,2) NOT NULL,
         vat_percent FLOAT DEFAULT NULL,
         is_accounted_override BOOLEAN DEFAULT NULL,
         note TEXT DEFAULT NULL,
