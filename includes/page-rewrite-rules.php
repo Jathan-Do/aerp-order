@@ -27,6 +27,7 @@ add_action('init', function () {
     add_rewrite_rule('^aerp-acc-payments/?$', 'index.php?aerp_acc_page=payments', 'top');
     add_rewrite_rule('^aerp-acc-categories/?$', 'index.php?aerp_acc_page=categories', 'top');
     add_rewrite_rule('^aerp-acc-reports/?$', 'index.php?aerp_acc_page=reports', 'top');
+    add_rewrite_rule('^aerp-acc-deposits/?$', 'index.php?aerp_acc_page=deposits', 'top');
     $rules = get_option('rewrite_rules');
     if ($rules && !isset($rules['^aerp-order-orders/?$'])) {
         flush_rewrite_rules();
@@ -86,6 +87,7 @@ add_action('init', function () {
     if ($rules && !isset($rules['^aerp-acc-payments/?$'])) { flush_rewrite_rules(); }
     if ($rules && !isset($rules['^aerp-acc-categories/?$'])) { flush_rewrite_rules(); }
     if ($rules && !isset($rules['^aerp-acc-reports/?$'])) { flush_rewrite_rules(); }
+    if ($rules && !isset($rules['^aerp-acc-deposits/?$'])) { flush_rewrite_rules(); }
 });
 
 add_action('template_redirect', function () {
@@ -464,6 +466,22 @@ add_action('template_redirect', function () {
                             return;
                     default:
                         $template_name = 'accounting/receipt-list.php';
+                        break;
+                }
+                break;
+            case 'deposits':
+                switch ($action_from_get) {
+                    case 'add':
+                        $template_name = 'accounting/deposit-form.php';
+                        break;
+                    case 'edit':
+                        $template_name = 'accounting/deposit-form.php';
+                        break;
+                    case 'delete':
+                        AERP_Acc_Deposit_Manager::handle_single_delete();
+                        return;
+                    default:
+                        $template_name = 'accounting/deposit-list.php';
                         break;
                 }
                 break;
