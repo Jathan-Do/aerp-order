@@ -2,7 +2,15 @@
 if (!defined('ABSPATH')) exit;
 global $wpdb;
 $current_user = wp_get_current_user();
-
+$user_id = $current_user->ID;
+// Quyền xem phiếu thu: admin, department_lead, or permission acc_receipt_view
+$access_conditions = [
+    aerp_user_has_role($user_id, 'admin'),
+    aerp_user_has_role($user_id, 'accountant'),
+];
+if (!in_array(true, $access_conditions, true)) {
+    wp_die(__('You do not have sufficient permissions to access this page.'));
+}
 // Filters: day/week/month/quarter/year or custom range
 $period = isset($_GET['period']) ? sanitize_text_field($_GET['period']) : 'month';
 $month = isset($_GET['month']) ? sanitize_text_field($_GET['month']) : '';
@@ -174,11 +182,11 @@ ob_start();
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Từ ngày</label>
-                    <input type="date" name="start_date" class="form-control shadow-sm" value="<?php echo esc_attr($start_date); ?>">
+                    <input type="date" name="start_date" class="form-control shadow-sm bg-body" value="<?php echo esc_attr($start_date); ?>">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Đến ngày</label>
-                    <input type="date" name="end_date" class="form-control shadow-sm" value="<?php echo esc_attr($end_date); ?>">
+                    <input type="date" name="end_date" class="form-control shadow-sm bg-body" value="<?php echo esc_attr($end_date); ?>">
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button class="btn btn-primary me-2" type="submit">Lọc</button>

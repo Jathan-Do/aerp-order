@@ -80,7 +80,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                 <?php endif; ?>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Ngày thu</label>
-                    <input type="date" name="receipt_date" value="<?php echo $is_edit ? esc_attr($receipt->receipt_date) : date('Y-m-d'); ?>" class="form-control shadow-sm" required>
+                    <input type="date" name="receipt_date" value="<?php echo $is_edit ? esc_attr($receipt->receipt_date) : date('Y-m-d'); ?>" class="form-control shadow-sm bg-body" required>
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Ghi chú</label>

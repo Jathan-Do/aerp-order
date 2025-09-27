@@ -151,11 +151,11 @@ if (function_exists('aerp_render_breadcrumb')) {
                 </div>
                 <div class="col-12 col-md-2 mb-2">
                     <label for="filter-date-from" class="form-label mb-1">Từ ngày</label>
-                    <input type="date" id="filter-date-from" name="date_from" class="form-control shadow-sm">
+                    <input type="date" id="filter-date-from" name="date_from" class="form-control shadow-sm bg-body">
                 </div>
                 <div class="col-12 col-md-2 mb-2">
                     <label for="filter-date-to" class="form-label mb-1">Đến ngày</label>
-                    <input type="date" id="filter-date-to" name="date_to" class="form-control shadow-sm">
+                    <input type="date" id="filter-date-to" name="date_to" class="form-control shadow-sm bg-body">
                 </div>
                 <div class="col-12 col-md-1 d-flex align-items-end mb-2">
                     <button type="submit" class="btn btn-primary w-100">Lọc</button>

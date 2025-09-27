@@ -598,7 +598,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                                 echo '</div>';
                                 echo '<div class="col-md-3">';
                                 echo '<label class="form-label">Ngày trả</label>';
-                                echo '<input type="date" class="form-control shadow-sm" name="device_returns[' . $rIdx . '][return_date]" value="' . esc_attr($ret->return_date ?? date('Y-m-d')) . '">';
+                                echo '<input type="date" class="form-control shadow-sm bg-body" name="device_returns[' . $rIdx . '][return_date]" value="' . esc_attr($ret->return_date ?? date('Y-m-d')) . '">';
                                 echo '</div>';
                                 echo '<div class="col-md-4">';
                                 echo '<label class="form-label">Ghi chú</label>';
@@ -617,7 +617,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                             echo '</div>';
                             echo '<div class="col-md-3">';
                             echo '<label class="form-label">Ngày trả</label>';
-                            echo '<input type="date" class="form-control shadow-sm" name="device_returns[0][return_date]" value="' . esc_attr(date('Y-m-d')) . '">';
+                            echo '<input type="date" class="form-control shadow-sm bg-body" name="device_returns[0][return_date]" value="' . esc_attr(date('Y-m-d')) . '">';
                             echo '</div>';
                             echo '<div class="col-md-4">';
                             echo '<label class="form-label">Ghi chú</label>';

@@ -71,7 +71,7 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Ngày nộp</label>
-                    <input type="date" name="deposit_date" value="<?php echo $is_edit ? esc_attr($deposit->deposit_date) : date('Y-m-d'); ?>" class="form-control shadow-sm" required>
+                    <input type="date" name="deposit_date" value="<?php echo $is_edit ? esc_attr($deposit->deposit_date) : date('Y-m-d'); ?>" class="form-control shadow-sm bg-body" required>
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Phiếu thu (bắt buộc)</label>

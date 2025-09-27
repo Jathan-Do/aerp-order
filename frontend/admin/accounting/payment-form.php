@@ -75,7 +75,7 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Ngày chi</label>
-                    <input type="date" name="payment_date" value="<?php echo $is_edit ? esc_attr($payment->payment_date) : date('Y-m-d'); ?>" class="form-control shadow-sm" required>
+                    <input type="date" name="payment_date" value="<?php echo $is_edit ? esc_attr($payment->payment_date) : date('Y-m-d'); ?>" class="form-control shadow-sm bg-body" required>
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Phương thức thanh toán</label>

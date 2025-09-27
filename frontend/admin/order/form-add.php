@@ -267,7 +267,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Ngày trả</label>
-                                <input type="date" class="form-control shadow-sm" name="device_returns[0][return_date]" value="<?php echo esc_attr(date('Y-m-d')); ?>">
+                                <input type="date" class="form-control shadow-sm bg-body" name="device_returns[0][return_date]" value="<?php echo esc_attr(date('Y-m-d')); ?>">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Ghi chú</label>

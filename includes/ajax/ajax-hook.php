@@ -172,7 +172,6 @@ add_action('wp_ajax_aerp_order_search_customers', function () {
             'id' => $customer->id,
             'text' => $customer->full_name . (!empty($customer->customer_code) ? ' (' . $customer->customer_code . ')' : ''),
         ];
-        // if (!$q && ++$count >= 20) break;
     }
     wp_send_json($results);
 });
