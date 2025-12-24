@@ -80,9 +80,11 @@ add_action('wp_ajax_aerp_order_search_products', function () {
     $results = [];
     $count = 0;
     foreach ($products as $product) {
+        $display_text = $product->name . (!empty($product->sku) ? ' (' . $product->sku . ')' : '');
         $results[] = [
             'id' => $product->id,
-            'text' => $product->name . (!empty($product->sku) ? ' (' . $product->sku . ')' : ''),
+            'text' => $display_text, // Hiển thị đầy đủ trong Select2
+            'name' => $product->name, // Tên gốc để lưu vào database
             'price' => $product->price,
             'unit_name' => $product->unit_name ?? '',
         ];
@@ -96,9 +98,11 @@ add_action('wp_ajax_aerp_order_search_all_products', function () {
     $results = [];
     $count = 0;
     foreach ($products as $product) {
+        $display_text = $product->name . (!empty($product->sku) ? ' (' . $product->sku . ')' : '');
         $results[] = [
             'id' => $product->id,
-            'text' => $product->name . (!empty($product->sku) ? ' (' . $product->sku . ')' : ''),
+            'text' => $display_text, // Hiển thị đầy đủ trong Select2
+            'name' => $product->name, // Tên gốc để lưu vào database
             'price' => $product->price,
             'unit_name' => $product->unit_name ?? '',
         ];
@@ -545,7 +549,8 @@ add_action('wp_ajax_aerp_order_search_products_in_warehouse_in_worklocation', fu
 
         $results[] = [
             'id' => $product->id,
-            'text' => $display_name,
+            'text' => $display_name, // Hiển thị đầy đủ trong Select2
+            'name' => $product->name, // Tên gốc để lưu vào database
             'price' => $product->price,
             'unit_name' => $product->unit_name ?? '',
         ];
@@ -715,7 +720,8 @@ add_action('wp_ajax_aerp_order_search_products_in_warehouse', function () {
 
         $results[] = [
             'id' => $product->id,
-            'text' => $display_name,
+            'text' => $display_name, // Hiển thị đầy đủ trong Select2
+            'name' => $product->name, // Tên gốc để lưu vào database
             'price' => $product->price,
             'unit_name' => $product->unit_name ?? '',
         ];
@@ -841,6 +847,8 @@ function aerp_device_filter_devices_callback()
         'paged' => intval($_POST['paged'] ?? 1),
         'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
         'order' => sanitize_text_field($_POST['order'] ?? ''),
+        'date_from' => sanitize_text_field($_POST['date_from'] ?? ''),
+        'date_to' => sanitize_text_field($_POST['date_to'] ?? ''),
         'partner_id' => intval($_POST['partner_id'] ?? 0),
         'progress_id' => intval($_POST['progress_id'] ?? 0),
         'device_status' => sanitize_text_field($_POST['device_status'] ?? ''),

@@ -12,7 +12,7 @@ if (!is_user_logged_in()) {
 $access_conditions = [
     aerp_user_has_role($user_id, 'admin'),
     aerp_user_has_role($user_id, 'department_lead'),
-    aerp_user_has_permission($user_id,'device_view'),
+    aerp_user_has_permission($user_id, 'device_view'),
 
 ];
 if (!in_array(true, $access_conditions, true)) {
@@ -76,37 +76,50 @@ if (function_exists('aerp_render_breadcrumb')) {
     <div class="card-body">
         <!-- Filter Form -->
         <form id="aerp-device-filter-form" class="row g-2 mb-3 aerp-table-ajax-form" data-table-wrapper="#aerp-device-table-wrapper" data-ajax-action="aerp_device_filter_devices">
-            <div class="col-12 col-md-3 mb-2">
-                <label for="filter-partner" class="form-label mb-1">Đối tác</label>
-                <select id="filter-partner" name="partner_id" class="form-select shadow-sm supplier-select" style="width:100%">
-                    <option value="">-- Tất cả --</option>
-                    <?php foreach (AERP_Supplier_Manager::get_all() as $s): ?>
-                        <option value="<?php echo esc_attr($s->id); ?>"><?php echo esc_html($s->name); ?></option>
-                    <?php endforeach; ?>
-                </select>
+            <div class="row">
+                <div class="col-12 col-md-3 mb-2">
+                    <label for="filter-partner" class="form-label mb-1">Đối tác</label>
+                    <select id="filter-partner" name="partner_id" class="form-select shadow-sm supplier-select" style="width:100%">
+                        <option value="">-- Tất cả --</option>
+                        <?php foreach (AERP_Supplier_Manager::get_all() as $s): ?>
+                            <option value="<?php echo esc_attr($s->id); ?>"><?php echo esc_html($s->name); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2 mb-2">
+                    <label for="filter-progress" class="form-label mb-1">Tiến độ</label>
+                    <select id="filter-progress" name="progress_id" class="form-select shadow-sm">
+                        <option value="">-- Tất cả --</option>
+                        <?php
+                        $progresses = AERP_Device_Progress_Manager::get_active();
+                        foreach ($progresses as $progress): ?>
+                            <option value="<?php echo esc_attr($progress->id); ?>"><?php echo esc_html($progress->name); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2 mb-2">
+                    <label for="filter-device-status" class="form-label mb-1">Trạng thái</label>
+                    <select id="filter-device-status" name="device_status" class="form-select shadow-sm">
+                        <option value="">Tất cả</option>
+                        <option value="disposed">Nhận thiết bị</option>
+                        <option value="received">Trả thiết bị</option>
+                    </select>
+                </div>
             </div>
-            <div class="col-12 col-md-3 mb-2">
-                <label for="filter-progress" class="form-label mb-1">Tiến độ</label>
-                <select id="filter-progress" name="progress_id" class="form-select shadow-sm">
-                    <option value="">-- Tất cả --</option>
-                    <?php 
-                    $progresses = AERP_Device_Progress_Manager::get_active();
-                    foreach ($progresses as $progress): ?>
-                        <option value="<?php echo esc_attr($progress->id); ?>"><?php echo esc_html($progress->name); ?></option>
-                    <?php endforeach; ?>
-                </select>
+            <div class="row">
+                <div class="col-12 col-md-3 mb-2">
+                    <label for="filter-date-from" class="form-label mb-1">Từ ngày</label>
+                    <input type="date" id="filter-date-from" name="date_from" class="form-control shadow-sm">
+                </div>
+                <div class="col-12 col-md-3 mb-2">
+                    <label for="filter-date-to" class="form-label mb-1">Đến ngày</label>
+                    <input type="date" id="filter-date-to" name="date_to" class="form-control shadow-sm">
+                </div>
+                <div class="col-12 col-md-1 d-flex align-items-end mb-2">
+                    <button type="submit" class="btn btn-primary w-100">Lọc</button>
+                </div>
             </div>
-            <div class="col-12 col-md-2 mb-2">
-                <label for="filter-device-status" class="form-label mb-1">Trạng thái</label>
-                <select id="filter-device-status" name="device_status" class="form-select shadow-sm">
-                    <option value="">Tất cả</option>
-                    <option value="disposed">Nhận thiết bị</option>
-                    <option value="received">Trả thiết bị</option>
-                </select>
-            </div>
-            <div class="col-12 col-md-1 d-flex align-items-end mb-2">
-                <button type="submit" class="btn btn-primary w-100">Lọc</button>
-            </div>
+
         </form>
         <?php $message = get_transient('aerp_device_message');
         if ($message) {
@@ -126,4 +139,4 @@ if (function_exists('aerp_render_breadcrumb')) {
 <?php
 $content = ob_get_clean();
 $title = 'Quản lý thiết bị';
-include(AERP_HRM_PATH . 'frontend/dashboard/layout.php'); 
+include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');

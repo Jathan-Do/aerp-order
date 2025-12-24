@@ -142,6 +142,7 @@ class AERP_Frontend_Order_Manager
                         'device_name' => $device_name,
                         'serial_number' => sanitize_text_field($device['serial_number'] ?? ''),
                         'status' => sanitize_text_field($device['status'] ?? ''),
+                        'device_date' => sanitize_text_field($device['device_date'] ?? ''),
                         'device_status' => 'received',
                         'note' => sanitize_text_field($device['note'] ?? ''),
                         'partner_id' => !empty($device['partner_id']) ? absint($device['partner_id']) : null,
@@ -160,6 +161,7 @@ class AERP_Frontend_Order_Manager
                 "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
                 $user_id
             ));
+            // Sinh mã đơn hàng ngẫu nhiên 8 ký tự, đảm bảo không trùng
             $data = [
                 'order_code'    => self::generate_order_code(),
                 'customer_id'   => absint($_POST['customer_id']),
@@ -178,6 +180,7 @@ class AERP_Frontend_Order_Manager
             $format = ['%s', '%d', '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%f', '%d', '%d', '%s'];
             $wpdb->insert($table, $data, $format);
             $order_id = $wpdb->insert_id;
+
             $msg = 'Đã thêm đơn hàng!';
             // Xử lý thiết bị nhận nếu có submit (không phụ thuộc order_type để hỗ trợ đơn tổng hợp)
             $device_table = $wpdb->prefix . 'aerp_order_devices';
@@ -190,11 +193,12 @@ class AERP_Frontend_Order_Manager
                         'device_name' => $device_name,
                         'serial_number' => sanitize_text_field($device['serial_number'] ?? ''),
                         'status' => sanitize_text_field($device['status'] ?? ''),
+                        'device_date' => sanitize_text_field($device['device_date'] ?? ''),
                         'device_status' => 'received',
                         'note' => sanitize_text_field($device['note'] ?? ''),
                         'partner_id' => !empty($device['partner_id']) ? absint($device['partner_id']) : null,
                     ];
-                    $wpdb->insert($device_table, $device_data, ['%d', '%s', '%s', '%s', '%s', '%s', '%d']);
+                    $wpdb->insert($device_table, $device_data, ['%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d']);
                 }
             }
         }
@@ -480,16 +484,39 @@ class AERP_Frontend_Order_Manager
         $table = $wpdb->prefix . 'aerp_order_orders';
         return $wpdb->get_row($wpdb->prepare("SELECT * FROM $table WHERE id = %d", $id));
     }
+
+    /**
+     * Sinh mã đơn hàng dạng DH-XXXXXXXX-ddmmyyyy
+     * - XXXXXXXX: 8 ký tự chữ + số ngẫu nhiên
+     * - ddmmyyyy: ngày hiện tại
+     * Đảm bảo không trùng trong CSDL.
+     */
     private static function generate_order_code()
     {
         global $wpdb;
-        $max_code = $wpdb->get_var("SELECT order_code FROM {$wpdb->prefix}aerp_order_orders WHERE order_code LIKE 'DH-%' ORDER BY id DESC LIMIT 1");
-        if (preg_match('/DH-(\\d+)/', $max_code, $matches)) {
-            $next_number = intval($matches[1]) + 1;
-        } else {
-            $next_number = 1;
-        }
-        return 'DH-' . $next_number;
+        $table = $wpdb->prefix . 'aerp_order_orders';
+
+        $characters = 'acdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        $length = 8;
+
+        do {
+            $random = '';
+            for ($i = 0; $i < $length; $i++) {
+                $random .= $characters[random_int(0, strlen($characters) - 1)];
+            }
+
+            $now = new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh'));
+            $date_str = $now->format('dmY'); // ddmmyyyy
+            $code = 'DH-' . $random . '-' . $date_str;
+
+            // Kiểm tra trùng trong DB
+            $exists = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM $table WHERE order_code = %s",
+                $code
+            ));
+        } while ($exists > 0);
+
+        return $code;
     }
 
     public static function handle_attachment_upload($order_id)

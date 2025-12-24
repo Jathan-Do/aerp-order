@@ -906,7 +906,9 @@ jQuery(document).ready(function ($) {
     $(document).on("select2:select", ".product-select-all-warehouses", function (e) {
         let data = e.params.data;
         let row = $(this).closest(".order-item-row");
-        row.find('input[name*="[product_name]"]').val(data.text);
+        // Lưu tên gốc (không có SKU và kho) vào database
+        // Select2 vẫn hiển thị text đầy đủ để người dùng dễ phân biệt
+        row.find('input[name*="[product_name]"]').val(data.name || data.text);
         row.find('input[name*="[unit_price]"]').val(data.price);
         row.find(".unit-label").text(data.unit_name || "");
         row.find(".unit-name-input").val(data.unit_name || "");

@@ -48,7 +48,7 @@ function aerp_order_install_schema()
         order_code VARCHAR(50),
         customer_id BIGINT,
         employee_id BIGINT,
-        order_date DATE,
+        order_date DATETIME,
         total_amount FLOAT,
         cost FLOAT DEFAULT 0,
         customer_source_id BIGINT DEFAULT NULL,
@@ -91,13 +91,15 @@ function aerp_order_install_schema()
         progress_id BIGINT DEFAULT NULL,
         note TEXT DEFAULT NULL,
         partner_id BIGINT DEFAULT NULL,
+        device_date DATETIME DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_order_id (order_id),
         INDEX idx_device_name (device_name),
         INDEX idx_serial_number (serial_number),
         INDEX idx_device_status (device_status),
         INDEX idx_progress_id (progress_id),
-        INDEX idx_partner_id (partner_id)
+        INDEX idx_partner_id (partner_id),
+        INDEX idx_device_date (device_date)
     ) $charset_collate;";
 
     // 1c-b. Thiết bị trả lại cho khách (gắn với đơn hàng và thiết bị nhận)
@@ -105,7 +107,7 @@ function aerp_order_install_schema()
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         order_id BIGINT NOT NULL,
         device_id BIGINT NOT NULL,
-        return_date DATE DEFAULT NULL,
+        return_date DATETIME DEFAULT NULL,
         status ENUM('draft','confirmed') DEFAULT 'draft',
         note TEXT DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

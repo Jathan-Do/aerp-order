@@ -50,14 +50,27 @@ class AERP_Acc_Payment_Manager
                 $data['created_by'] = intval($employee_id);
                 $format[] = '%d';
             }
-            // Sinh mã phiếu chi tự động PC-<number>
-            $data['code'] = self::generate_payment_code();
+            // Sinh mã phiếu chi tự động (tạm thời, sẽ update sau)
+            $data['code'] = 'TEMP';
             $format[] = '%s';
             // Mặc định ở trạng thái nháp cho đến khi xác nhận
             $data['status'] = 'draft';
             $format[] = '%s';
             $wpdb->insert($table, $data, $format);
             $id = $wpdb->insert_id;
+            
+            // Tạo mã phiếu chi theo format: PC-id-ddmmyyyy sau khi insert
+            if ($id) {
+                $payment_code = self::generate_payment_code($id);
+                $wpdb->update(
+                    $table,
+                    ['code' => $payment_code],
+                    ['id' => $id],
+                    ['%s'],
+                    ['%d']
+                );
+            }
+            
             $msg = 'Đã thêm phiếu chi!';
         }
         // Lưu dòng
@@ -136,16 +149,16 @@ class AERP_Acc_Payment_Manager
         wp_redirect(home_url('/aerp-acc-payments'));
         exit;
     }
-    private static function generate_payment_code()
+    private static function generate_payment_code($payment_id = null)
     {
-        global $wpdb;
-        $max_code = $wpdb->get_var("SELECT code FROM {$wpdb->prefix}aerp_acc_payments WHERE code LIKE 'PC-%' ORDER BY id DESC LIMIT 1");
-        if (preg_match('/PC-(\\d+)/', (string)$max_code, $matches)) {
-            $next_number = intval($matches[1]) + 1;
-        } else {
-            $next_number = 1;
+        // Nếu đã có payment_id, tạo mã theo format: PC-id-ddmmyyyy
+        if ($payment_id) {
+            $now = new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh'));
+            $date_str = $now->format('dmy'); // ddmmYYYY format
+            return 'PC-' . $payment_id . '-' . $date_str;
         }
-        return 'PC-' . $next_number;
+        // Nếu chưa có payment_id, trả về giá trị tạm thời (sẽ được update sau khi insert)
+        return 'TEMP';
     }
     public static function handle_single_delete()
     {

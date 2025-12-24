@@ -17,20 +17,20 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
                 'status_id' => 'Trạng thái',
                 'note' => 'Ghi chú',
                 'employee_id' => 'Người triển khai',
-                'created_by' => 'Người tạo đơn',
-                'created_at' => 'Ngày tạo',
-                'reject_reason' => 'Lý do từ chối',
-                'cancel_reason' => 'Lý do hủy',
+                'created_by' => 'Người tạo đơn',      
                 'order_date' => 'Ngày lập hóa đơn',
+                'created_at' => 'Ngày tạo',
                 'total_amount' => 'Doanh thu',
                 'cost' => 'Chi phí',
                 'profit' => 'Lợi nhuận',
                 'customer_source' => 'Nguồn KH',
                 'order_type' => 'Loại đơn',
+                'reject_reason' => 'Lý do từ chối',
+                'cancel_reason' => 'Lý do hủy',
                 'status' => 'Tình trạng',
                 'action' => 'Thao tác',
             ],
-            'sortable_columns' => ['id', 'order_code', 'order_date', 'status', 'total_amount', 'created_at', 'cost', 'customer_id', 'created_by'],
+            'sortable_columns' => ['id', 'order_code', 'order_date', 'status', 'total_amount', 'created_at', 'cost', 'customer_id', 'created_by', 'profit'],
             'searchable_columns' => ['order_code'],
             'primary_key' => 'id',
             'per_page' => 10,
@@ -211,24 +211,42 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
     protected function column_profit($item)
     {
         global $wpdb;
-        $orderId = (int) $item->id;
+        // Nếu đã có profit_value từ query (phục vụ sort), dùng lại để đồng bộ hiển thị
+        if (isset($item->profit_value)) {
+            $profit = (float) $item->profit_value;
+        } else {
+            $orderId = (int) $item->id;
+            $orderType = $item->order_type ?? '';
+            $status = $item->status ?? '';
 
-        // Lợi nhuận = Tổng tiền nội dung triển khai - Chi phí đơn hàng - Tổng tiền SP/DV - Tổng chi phí mua ngoài
-        $contentTotal = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(total_price),0) FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d",
-            $orderId
-        ));
-        $itemsTotal = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(quantity * unit_price),0) FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d",
-            $orderId
-        ));
-        $externalCostTotal = (float) $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(external_cost),0) FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d AND purchase_type = 'external'",
-            $orderId
-        ));
+            // Tính các thành phần
+            $contentTotal = (float) $wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(total_price),0) FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d",
+                $orderId
+            ));
+            $itemsTotal = (float) $wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(quantity * unit_price),0) FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d",
+                $orderId
+            ));
+            $externalCostTotal = (float) $wpdb->get_var($wpdb->prepare(
+                "SELECT COALESCE(SUM(external_cost),0) FROM {$wpdb->prefix}aerp_order_items WHERE order_id = %d AND purchase_type = 'external'",
+                $orderId
+            ));
 
-        $orderCost = (float) ($item->cost ?? 0);
-        $profit = $contentTotal - $orderCost - $itemsTotal - $externalCostTotal;
+            $orderCost = (float) ($item->cost ?? 0);
+
+            // Áp dụng công thức theo điều kiện
+            if ($orderType === 'all') {
+                // Nếu order_type là 'all': Lợi nhuận = Tổng tiền nội dung triển khai - Chi phí đơn hàng - Tổng tiền SP/DV - Tổng chi phí mua ngoài
+                $profit = $contentTotal - $orderCost - $itemsTotal - $externalCostTotal;
+            } elseif ($orderType !== 'all' && $status === 'paid') {
+                // Nếu order_type khác 'all' và status là 'paid': Lợi nhuận = Chi phí đơn hàng + Tổng tiền SP/DV - Tổng chi phí mua ngoài
+                $profit = $orderCost + $itemsTotal - $externalCostTotal;
+            } else {
+                // Trường hợp khác: giữ công thức cũ
+                $profit = $contentTotal - $orderCost - $itemsTotal - $externalCostTotal;
+            }
+        }
 
         $color_class = $profit >= 0 ? 'text-success' : 'text-danger';
         return sprintf('<span class="%s fw-bold">%s %s</span>', $color_class, number_format($profit, 0), 'đ');
@@ -495,6 +513,98 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
             ],
             [$like, $like]
         ];
+    }
+
+    /**
+     * Ghi đè get_items để hỗ trợ sort theo lợi nhuận (profit) - cột không có trong DB.
+     */
+    public function get_items()
+    {
+        global $wpdb;
+        $where = [];
+        $params = [];
+
+        // Search
+        if ($this->search_term && !empty($this->searchable_columns)) {
+            $search_conditions = [];
+            foreach ($this->searchable_columns as $column) {
+                $search_conditions[] = "$column LIKE %s";
+                $params[] = '%' . $wpdb->esc_like($this->search_term) . '%';
+            }
+            // Thêm điều kiện search mở rộng (số điện thoại, tên KH)
+            list($extra_search, $extra_params) = $this->get_extra_search_conditions($this->search_term);
+            $search_conditions = array_merge($search_conditions, $extra_search);
+            $params = array_merge($params, $extra_params);
+            $where[] = '(' . implode(' OR ', $search_conditions) . ')';
+        }
+
+        // Filter mở rộng
+        list($extra_filters, $extra_filter_params) = $this->get_extra_filters();
+        $where = array_merge($where, $extra_filters);
+        $params = array_merge($params, $extra_filter_params);
+
+        $where_clause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+        $offset = ($this->current_page - 1) * $this->per_page;
+
+        // Sort mapping (profit dùng alias profit_value)
+        $allowed_sort = [
+            'id'            => 'o.id',
+            'order_code'    => 'o.order_code',
+            'order_date'    => 'o.order_date',
+            'status'        => 'o.status',
+            'total_amount'  => 'o.total_amount',
+            'created_at'    => 'o.created_at',
+            'cost'          => 'o.cost',
+            'customer_id'   => 'o.customer_id',
+            'created_by'    => 'o.created_by',
+            'profit'        => 'profit_value',
+        ];
+        $order_by = isset($allowed_sort[$this->sort_column]) ? $allowed_sort[$this->sort_column] : 'o.id';
+        $order_dir = strtolower($this->sort_order) === 'asc' ? 'ASC' : 'DESC';
+
+        // Count
+        $total_query = "SELECT COUNT(*) FROM {$this->table_name} o $where_clause";
+        if (!empty($params)) {
+            $total_query = $wpdb->prepare($total_query, $params);
+        }
+        $this->total_items = (int) $wpdb->get_var($total_query);
+
+        // Data query with computed profit
+        $table_items = $wpdb->prefix . 'aerp_order_items';
+        $table_contents = $wpdb->prefix . 'aerp_order_content_lines';
+
+        $query = "
+            SELECT 
+                o.*,
+                -- profit_value tính theo cùng công thức ở column_profit
+                (
+                    CASE 
+                        WHEN o.order_type = 'all' THEN
+                            (COALESCE((SELECT SUM(total_price) FROM {$table_contents} c WHERE c.order_id = o.id), 0)
+                             - COALESCE(o.cost, 0)
+                             - COALESCE((SELECT SUM(quantity * unit_price) FROM {$table_items} i WHERE i.order_id = o.id), 0)
+                             - COALESCE((SELECT SUM(external_cost) FROM {$table_items} i2 WHERE i2.order_id = o.id AND i2.purchase_type = 'external'), 0))
+                        WHEN o.order_type <> 'all' AND o.status = 'paid' THEN
+                            (COALESCE(o.cost, 0)
+                             + COALESCE((SELECT SUM(quantity * unit_price) FROM {$table_items} i3 WHERE i3.order_id = o.id), 0)
+                             - COALESCE((SELECT SUM(external_cost) FROM {$table_items} i4 WHERE i4.order_id = o.id AND i4.purchase_type = 'external'), 0))
+                        ELSE
+                            (COALESCE((SELECT SUM(total_price) FROM {$table_contents} c2 WHERE c2.order_id = o.id), 0)
+                             - COALESCE(o.cost, 0)
+                             - COALESCE((SELECT SUM(quantity * unit_price) FROM {$table_items} i5 WHERE i5.order_id = o.id), 0)
+                             - COALESCE((SELECT SUM(external_cost) FROM {$table_items} i6 WHERE i6.order_id = o.id AND i6.purchase_type = 'external'), 0))
+                    END
+                ) AS profit_value
+            FROM {$this->table_name} o
+            $where_clause
+            ORDER BY $order_by $order_dir
+            LIMIT %d OFFSET %d
+        ";
+
+        $params2 = array_merge($params, [$this->per_page, $offset]);
+        $this->items = $wpdb->get_results($wpdb->prepare($query, $params2));
+
+        return $this->items;
     }
     protected function column_note($item)
     {

@@ -68,10 +68,13 @@ class AERP_Frontend_Order_Status_Log_Table extends AERP_Frontend_Table
         $table = $wpdb->prefix . 'aerp_order_statuses';
         $status = $wpdb->get_row($wpdb->prepare("SELECT name, color FROM $table WHERE id = %d", $status_id));
         if ($status) {
-            $color = $status->color ? 'bg-' . esc_attr($status->color) : 'bg-secondary';
-            return '<span class="badge ' . $color . '">' . esc_html($status->name) . '</span>';
+            return sprintf(
+                '<span class="badge" style="background-color: %s; color: white;">%s</span>',
+                esc_attr($status->color),
+                esc_html($status->name)
+            );
         }
-        return '<span class="badge bg-secondary">Không rõ</span>';
+        return '<span class="text-muted">--</span>';
     }
 
     protected function get_extra_filters()

@@ -30,11 +30,24 @@ class AERP_Acc_Receipt_Manager
                 $data['created_by'] = intval($employee_id);
                 $format[] = '%d';
             }
-            // Sinh mã phiếu thu tự động
-            $data['code'] = self::generate_receipt_code();
+            // Sinh mã phiếu thu tự động (tạm thời, sẽ update sau)
+            $data['code'] = 'TEMP';
             $format[] = '%s';
             $wpdb->insert($table, $data, $format);
             $id = $wpdb->insert_id;
+            
+            // Tạo mã phiếu thu theo format: PT-id-ddmmyyyy sau khi insert
+            if ($id) {
+                $receipt_code = self::generate_receipt_code($id);
+                $wpdb->update(
+                    $table,
+                    ['code' => $receipt_code],
+                    ['id' => $id],
+                    ['%s'],
+                    ['%d']
+                );
+            }
+            
             $msg = 'Đã thêm phiếu thu!';
         }
 
@@ -96,16 +109,16 @@ class AERP_Acc_Receipt_Manager
         wp_redirect(home_url('/aerp-acc-receipts'));
         exit;
     }
-    private static function generate_receipt_code()
+    private static function generate_receipt_code($receipt_id = null)
     {
-        global $wpdb;
-        $max_code = $wpdb->get_var("SELECT code FROM {$wpdb->prefix}aerp_acc_receipts WHERE code LIKE 'PT-%' ORDER BY id DESC LIMIT 1");
-        if (preg_match('/PT-(\\d+)/', (string)$max_code, $matches)) {
-            $next_number = intval($matches[1]) + 1;
-        } else {
-            $next_number = 1;
+        // Nếu đã có receipt_id, tạo mã theo format: PT-id-ddmmyyyy
+        if ($receipt_id) {
+            $now = new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh'));
+            $date_str = $now->format('dmy'); // ddmmYYYY format
+            return 'PT-' . $receipt_id . '-' . $date_str;
         }
-        return 'PT-' . $next_number;
+        // Nếu chưa có receipt_id, trả về giá trị tạm thời (sẽ được update sau khi insert)
+        return 'TEMP';
     }
     public static function handle_single_delete()
     {

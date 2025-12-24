@@ -153,6 +153,8 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div class="col-md-6 mb-2">
                 <label class="fw-bold form-label text-muted small mb-1">Lợi nhuận</label>
                 <?php
+                $order_type = $order->order_type ?? '';
+                $status = $order->status ?? '';
                 // Lợi nhuận = Tổng tiền nội dung triển khai - Chi phí đơn hàng - Tổng tiền SP/DV - Tổng chi phí mua ngoài
                 $content_total_for_profit = (float) $wpdb->get_var($wpdb->prepare(
                     "SELECT COALESCE(SUM(total_price),0) FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d",
@@ -167,7 +169,17 @@ if (function_exists('aerp_render_breadcrumb')) {
                     $order_id
                 ));
                 $order_cost = (float) ($order->cost ?? 0);
-                $profit = $content_total_for_profit - $order_cost - $items_total_for_profit - $external_cost_total;
+                // Áp dụng công thức theo điều kiện
+                if ($orderType === 'all') {
+                    // Nếu order_type là 'all': Lợi nhuận = Tổng tiền nội dung triển khai - Chi phí đơn hàng - Tổng tiền SP/DV - Tổng chi phí mua ngoài
+                    $profit = $content_total_for_profit - $orderCost - $items_total_for_profit - $external_cost_total;
+                } elseif ($orderType !== 'all' && $status === 'paid') {
+                    // Nếu order_type khác 'all' và status là 'paid': Lợi nhuận = Chi phí đơn hàng - Tổng tiền SP/DV - Tổng chi phí mua ngoài
+                    $profit = $orderCost + $items_total_for_profit - $external_cost_total;
+                } else {
+                    // Trường hợp khác: giữ công thức cũ (hoặc có thể để 0)
+                    $profit = $content_total_for_profit - $orderCost - $items_total_for_profit - $external_cost_total;
+                }
                 $profit_color = $profit >= 0 ? 'text-success' : 'text-danger';
                 ?>
                 <p class="mb-0 fw-bold <?php echo $profit_color; ?>"><?php echo number_format($profit, 0, ',', '.'); ?> đ</p>
@@ -184,8 +196,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                             esc_attr($color),
                             esc_html($source->name)
                         );
-                    }
-                    else {
+                    } else {
                         echo '<span class="badge bg-secondary">Không xác định</span>';
                     }
                     ?>
@@ -304,6 +315,8 @@ if (function_exists('aerp_render_breadcrumb')) {
                                     <th colspan="2"></th>
                                 </tr>
                                 <?php
+                                $order_type_tbl = $order->order_type ?? '';
+                                $status_tbl = $order->status ?? '';
                                 // Tính lợi nhuận theo công thức chuẩn
                                 $content_total_for_profit_tbl = (float) $wpdb->get_var($wpdb->prepare(
                                     "SELECT COALESCE(SUM(total_price),0) FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d",
@@ -318,7 +331,17 @@ if (function_exists('aerp_render_breadcrumb')) {
                                     $order_id
                                 ));
                                 $order_cost_tbl = (float) ($order->cost ?? 0);
-                                $profit_tbl = $content_total_for_profit_tbl - $order_cost_tbl - $items_total_for_profit_tbl - $external_cost_total_tbl;
+                                // Áp dụng công thức theo điều kiện
+                                if ($order_type_tbl === 'all') {
+                                    // Nếu order_type là 'all': Lợi nhuận = Tổng tiền nội dung triển khai - Chi phí đơn hàng - Tổng tiền SP/DV - Tổng chi phí mua ngoài
+                                    $profit_tbl = $content_total_for_profit_tbl - $order_cost_tbl - $items_total_for_profit_tbl - $external_cost_total_tbl;
+                                } elseif ($order_type_tbl !== 'all' && $status === 'paid') {
+                                    // Nếu order_type khác 'all' và status là 'paid': Lợi nhuận = Chi phí đơn hàng - Tổng tiền SP/DV - Tổng chi phí mua ngoài
+                                    $profit_tbl = $order_cost_tbl + $items_total_for_profit_tbl - $external_cost_total_tbl;
+                                } else {
+                                    // Trường hợp khác: giữ công thức cũ (hoặc có thể để 0)
+                                    $profit_tbl = $content_total_for_profit_tbl - $order_cost_tbl - $items_total_for_profit - $external_cost_total_tbl;
+                                }
                                 ?>
                                 <tr>
                                     <th colspan="8" class="text-end">Đã thu (nội dung)</th>
@@ -491,6 +514,8 @@ if (function_exists('aerp_render_breadcrumb')) {
                                             <th colspan="2"></th>
                                         </tr>
                                         <?php
+                                        $orderType_tbl = $order->order_type ?? '';
+                                        $status_tbl = $order->status ?? '';
                                         // Tính lợi nhuận theo công thức chuẩn
                                         $content_total_for_profit_tbl = (float) $wpdb->get_var($wpdb->prepare(
                                             "SELECT COALESCE(SUM(total_price),0) FROM {$wpdb->prefix}aerp_order_content_lines WHERE order_id = %d",
@@ -505,7 +530,17 @@ if (function_exists('aerp_render_breadcrumb')) {
                                             $order_id
                                         ));
                                         $order_cost_tbl = (float) ($order->cost ?? 0);
-                                        $profit_tbl = $content_total_for_profit_tbl - $order_cost_tbl - $items_total_for_profit_tbl - $external_cost_total_tbl;
+                                        // Áp dụng công thức theo điều kiện
+                                        if ($order_type_tbl === 'all') {
+                                            // Nếu order_type là 'all': Lợi nhuận = Tổng tiền nội dung triển khai - Chi phí đơn hàng - Tổng tiền SP/DV - Tổng chi phí mua ngoài
+                                            $profit_tbl = $content_total_for_profit_tbl - $order_cost_tbl - $items_total_for_profit_tbl - $external_cost_total_tbl;
+                                        } elseif ($order_type_tbl !== 'all' && $status === 'paid') {
+                                            // Nếu order_type khác 'all' và status là 'paid': Lợi nhuận = Chi phí đơn hàng - Tổng tiền SP/DV - Tổng chi phí mua ngoài
+                                            $profit_tbl = $order_cost_tbl + $items_total_for_profit_tbl - $external_cost_total_tbl;
+                                        } else {
+                                            // Trường hợp khác: giữ công thức cũ (hoặc có thể để 0)
+                                            $profit_tbl = $content_total_for_profit_tbl - $order_cost_tbl - $items_total_for_profit - $external_cost_total_tbl;
+                                        }
                                         ?>
                                         <tr>
                                             <th colspan="8" class="text-end">Đã thu (nội dung)</th>
@@ -532,6 +567,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                                                     <th>Tên thiết bị</th>
                                                     <th>Serial/IMEI</th>
                                                     <th>Tình trạng</th>
+                                                    <th>Ngày nhận</th>
                                                     <th>Ghi chú</th>
                                                 </tr>
                                             </thead>
@@ -542,12 +578,13 @@ if (function_exists('aerp_render_breadcrumb')) {
                                                             <td><?php echo esc_html($device->device_name); ?></td>
                                                             <td><?php echo esc_html($device->serial_number); ?></td>
                                                             <td><?php echo esc_html($device->status); ?></td>
+                                                            <td><?php echo esc_html($device->device_date); ?></td>
                                                             <td><?php echo esc_html($device->note); ?></td>
                                                         </tr>
                                                     <?php endforeach;
                                                 else: ?>
                                                     <tr>
-                                                        <td colspan="5" class="text-center text-muted">Chưa có thiết bị nào.</td>
+                                                        <td colspan="6" class="text-center text-muted">Chưa có thiết bị nào.</td>
                                                     </tr>
                                                 <?php endif; ?>
                                             </tbody>
@@ -603,10 +640,10 @@ if (function_exists('aerp_render_breadcrumb')) {
                         <a href="<?php echo home_url('/aerp-order-orders?action=edit&id=' . $order_id); ?>" class="btn btn-primary">
                             <i class="fas fa-edit me-1"></i> Chỉnh sửa
                         </a>
-                        <!-- <a href="<?php echo esc_url( home_url('/aerp-acc-receipts?action=add&order_id=' . $order_id) ); ?>" class="btn btn-outline-success">
+                        <!-- <a href="<?php echo esc_url(home_url('/aerp-acc-receipts?action=add&order_id=' . $order_id)); ?>" class="btn btn-outline-success">
                             <i class="fas fa-receipt me-1"></i> Tạo phiếu thu
                         </a>
-                        <a href="<?php echo esc_url( home_url('/aerp-acc-payments?action=add&order_id=' . $order_id) ); ?>" class="btn btn-outline-danger">
+                        <a href="<?php echo esc_url(home_url('/aerp-acc-payments?action=add&order_id=' . $order_id)); ?>" class="btn btn-outline-danger">
                             <i class="fas fa-file-invoice-dollar me-1"></i> Tạo phiếu chi
                         </a> -->
                         <a href="#" class="btn btn-success" id="print-invoice-all-btn"><i class="fas fa-print me-1"></i> In tổng hợp</a>
@@ -621,6 +658,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                                     <th>Tên thiết bị</th>
                                     <th>Serial/IMEI</th>
                                     <th>Tình trạng</th>
+                                    <th>Ngày nhận</th>
                                     <th>Ghi chú</th>
                                 </tr>
                             </thead>
@@ -631,12 +669,13 @@ if (function_exists('aerp_render_breadcrumb')) {
                                             <td><?php echo esc_html($device->device_name); ?></td>
                                             <td><?php echo esc_html($device->serial_number); ?></td>
                                             <td><?php echo esc_html($device->status); ?></td>
+                                            <td><?php echo esc_html($device->device_date); ?></td>
                                             <td><?php echo esc_html($device->note); ?></td>
                                         </tr>
                                     <?php endforeach;
                                 else: ?>
                                     <tr>
-                                        <td colspan="5" class="text-center text-muted">Chưa có thiết bị nào.</td>
+                                        <td colspan="6" class="text-center text-muted">Chưa có thiết bị nào.</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
@@ -857,10 +896,10 @@ if (function_exists('aerp_render_breadcrumb')) {
             padding: 6px;
         }
 
-        .inv thead th {
+        /* .inv thead th {
             background: #f1f1f1;
             text-align: center;
-        }
+        } */
 
         .text-end {
             text-align: right;
@@ -872,6 +911,8 @@ if (function_exists('aerp_render_breadcrumb')) {
 
         .sign {
             margin-top: 16px;
+            margin-right: 50px;
+            margin-left: 50px;
             display: flex;
             justify-content: space-between;
         }
@@ -927,7 +968,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                         }
                     ?>
                         <tr>
-                            <td class="text-center"><?php echo $idx + 1; ?></td>
+                            <td><?php echo $idx + 1; ?></td>
                             <td><?php echo esc_html($item->product_name); ?></td>
                             <td class="text-center"><?php echo esc_html($item->quantity); ?></td>
                             <td class="text-center"><?php echo esc_html($unit_name); ?></td>
@@ -955,13 +996,13 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div class="note">Hiển thị tối đa 7 dòng. Còn <?php echo (int) $extra_items_count; ?> dòng khác không hiển thị.</div>
         <?php endif; ?>
         <div class="sign">
-            <div style="text-align:center;">
-                <strong>Khách hàng</strong><br><br><br>
-                __________________
+            <div class="text-center">
+                <strong>Khách hàng</strong><br>
+                <em>(Kí và ghi rõ họ tên)</em>
             </div>
-            <div style="text-align:center;">
-                <strong>Người lập hóa đơn</strong><br><br><br>
-                __________________
+            <div class="text-center">
+                <strong>Người lập hóa đơn</strong><br>
+                <em>(Kí và ghi rõ họ tên)</em>
             </div>
         </div>
     </div>
@@ -1004,10 +1045,10 @@ if (function_exists('aerp_render_breadcrumb')) {
             padding: 6px;
         }
 
-        .inv thead th {
+        /* .inv thead th {
             background: #f1f1f1;
             text-align: center;
-        }
+        } */
 
         .section-title {
             margin: 10px 0 6px;
@@ -1016,6 +1057,8 @@ if (function_exists('aerp_render_breadcrumb')) {
 
         .sign {
             margin-top: 16px;
+            margin-right: 50px;
+            margin-left: 50px;
             display: flex;
             justify-content: space-between;
         }
@@ -1154,6 +1197,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                                 <th>Tên thiết bị</th>
                                 <th style="width:120px;">Serial/IMEI</th>
                                 <th>Tình trạng</th>
+                                <th>Ngày nhận</th>
                                 <th>Ghi chú</th>
                             </tr>
                         </thead>
@@ -1161,16 +1205,17 @@ if (function_exists('aerp_render_breadcrumb')) {
                             <?php if (!empty($device_list)) : ?>
                                 <?php foreach ($device_list as $idx => $device) : ?>
                                     <tr>
-                                        <td class="text-center"><?php echo $idx + 1; ?></td>
+                                        <td><?php echo $idx + 1; ?></td>
                                         <td><?php echo esc_html($device->device_name); ?></td>
                                         <td><?php echo esc_html($device->serial_number); ?></td>
                                         <td><?php echo esc_html($device->status); ?></td>
+                                        <td><?php echo esc_html($device->device_date); ?></td>
                                         <td><?php echo esc_html($device->note); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="5" class="text-center">Chưa có thiết bị nào.</td>
+                                    <td colspan="6" class="text-center">Chưa có thiết bị nào.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -1194,7 +1239,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                             <?php if (!empty($device_returns)) : ?>
                                 <?php foreach ($device_returns as $idx => $device) : ?>
                                     <tr>
-                                        <td class="text-center"><?php echo $idx + 1; ?></td>
+                                        <td><?php echo $idx + 1; ?></td>
                                         <td><?php echo esc_html($device->device_name); ?></td>
                                         <td><?php echo esc_html($device->serial_number); ?></td>
                                         <td><?php echo esc_html($device->return_date); ?></td>
@@ -1210,12 +1255,19 @@ if (function_exists('aerp_render_breadcrumb')) {
                     </table>
                 </div>
             <?php endif; ?>
-            <div class="sign">
-                <div style="text-align:center;"><strong>Khách hàng</strong><br><br><br>__________________</div>
-                <div style="text-align:center;"><strong>Người lập chứng từ</strong><br><br><br>__________________</div>
-            </div>
         <?php endif; ?>
     </div>
+    <div class="sign">
+        <div class="text-center">
+            <strong>Khách hàng</strong><br>
+            <em>(Kí và ghi rõ họ tên)</em>
+        </div>
+        <div class="text-center">
+            <strong>Người lập hóa đơn</strong><br>
+            <em>(Kí và ghi rõ họ tên)</em>
+        </div>
+    </div>
+</div>
 </div>
 <!-- Template hóa đơn nội dung yêu cầu/triển khai -->
 <div id="aerp-invoice-content-print-area" style="display:none; font-family: Arial, sans-serif;">
@@ -1256,10 +1308,10 @@ if (function_exists('aerp_render_breadcrumb')) {
             vertical-align: top;
         }
 
-        .inv thead th {
+        /* .inv thead th {
             background: #f1f1f1;
             text-align: center;
-        }
+        } */
 
         .text-end {
             text-align: right;
@@ -1271,6 +1323,8 @@ if (function_exists('aerp_render_breadcrumb')) {
 
         .sign {
             margin-top: 16px;
+            margin-right: 50px;
+            margin-left: 50px;
             display: flex;
             justify-content: space-between;
         }
@@ -1312,7 +1366,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                         $total_content_amount += $line_total;
                     ?>
                         <tr>
-                            <td class="text-center"><?php echo $idx + 1; ?></td>
+                            <td><?php echo $idx + 1; ?></td>
                             <td><?php echo nl2br(esc_html($line->requirement ?? '--')); ?></td>
                             <td><?php echo nl2br(esc_html($line->implementation ?? '--')); ?></td>
                             <td class="text-center"><?php echo esc_html($line->quantity ?? 1); ?></td>
@@ -1339,13 +1393,13 @@ if (function_exists('aerp_render_breadcrumb')) {
             </tfoot>
         </table>
         <div class="sign">
-            <div style="text-align:center;">
-                <strong>Khách hàng</strong><br><br><br>
-                __________________
+            <div class="text-center">
+                <strong>Khách hàng</strong><br>
+                <div>(Kí và ghi rõ họ tên)</div>
             </div>
-            <div style="text-align:center;">
-                <strong>Người lập chứng từ</strong><br><br><br>
-                __________________
+            <div class="text-center">
+                <strong>Người lập hóa đơn</strong><br>
+                <div>(Kí và ghi rõ họ tên)</div>
             </div>
         </div>
     </div>
@@ -1387,10 +1441,10 @@ if (function_exists('aerp_render_breadcrumb')) {
             padding: 6px;
         }
 
-        .inv thead th {
+        /* .inv thead th {
             background: #f1f1f1;
             text-align: center;
-        }
+        } */
 
         .text-center {
             text-align: center;
@@ -1399,6 +1453,8 @@ if (function_exists('aerp_render_breadcrumb')) {
         .sign {
             margin-top: 16px;
             display: flex;
+            margin-right: 50px;
+            margin-left: 50px;
             justify-content: space-between;
         }
 
@@ -1423,6 +1479,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                     <th>Tên thiết bị</th>
                     <th style="width:120px;">Serial/IMEI</th>
                     <th>Tình trạng</th>
+                    <th>Ngày nhận</th>
                     <th>Ghi chú</th>
                 </tr>
             </thead>
@@ -1430,10 +1487,11 @@ if (function_exists('aerp_render_breadcrumb')) {
                 <?php if (!empty($device_list)) : ?>
                     <?php foreach ($device_list as $idx => $device) : ?>
                         <tr>
-                            <td class="text-center"><?php echo $idx + 1; ?></td>
+                            <td><?php echo $idx + 1; ?></td>
                             <td><?php echo esc_html($device->device_name); ?></td>
                             <td><?php echo esc_html($device->serial_number); ?></td>
                             <td><?php echo esc_html($device->status); ?></td>
+                            <td><?php echo esc_html($device->device_date); ?></td>
                             <td><?php echo esc_html($device->note); ?></td>
                         </tr>
                     <?php endforeach; ?>
@@ -1445,13 +1503,13 @@ if (function_exists('aerp_render_breadcrumb')) {
             </tbody>
         </table>
         <div class="sign">
-            <div style="text-align:center;">
-                <strong>Khách hàng</strong><br><br><br>
-                __________________
+            <div class="text-center">
+                <strong>Khách hàng</strong><br>
+                <em>(Kí và ghi rõ họ tên)</em>
             </div>
-            <div style="text-align:center;">
-                <strong>Người nhận thiết bị</strong><br><br><br>
-                __________________
+            <div class="text-center">
+                <strong>Người lập hóa đơn</strong><br>
+                <em>(Kí và ghi rõ họ tên)</em>
             </div>
         </div>
     </div>
@@ -1493,10 +1551,10 @@ if (function_exists('aerp_render_breadcrumb')) {
             padding: 6px;
         }
 
-        .inv thead th {
+        /* .inv thead th {
             background: #f1f1f1;
             text-align: center;
-        }
+        } */
 
         .text-center {
             text-align: center;
@@ -1504,6 +1562,8 @@ if (function_exists('aerp_render_breadcrumb')) {
 
         .sign {
             margin-top: 16px;
+            margin-right: 50px;
+            margin-left: 50px;
             display: flex;
             justify-content: space-between;
         }
@@ -1536,7 +1596,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                 <?php if (!empty($device_returns)) : ?>
                     <?php foreach ($device_returns as $idx => $device) : ?>
                         <tr>
-                            <td class="text-center"><?php echo $idx + 1; ?></td>
+                            <td><?php echo $idx + 1; ?></td>
                             <td><?php echo esc_html($device->device_name); ?></td>
                             <td><?php echo esc_html($device->serial_number); ?></td>
                             <td><?php echo esc_html($device->return_date); ?></td>
@@ -1551,13 +1611,13 @@ if (function_exists('aerp_render_breadcrumb')) {
             </tbody>
         </table>
         <div class="sign">
-            <div style="text-align:center;">
-                <strong>Khách hàng</strong><br><br><br>
-                __________________
+            <div class="text-center">
+                <strong>Khách hàng</strong><br>
+                <em>(Kí và ghi rõ họ tên)</em>
             </div>
-            <div style="text-align:center;">
-                <strong>Người trả thiết bị</strong><br><br><br>
-                __________________
+            <div class="text-center">
+                <strong>Người lập hóa đơn</strong><br>
+                <em>(Kí và ghi rõ họ tên)</em>
             </div>
         </div>
     </div>

@@ -40,11 +40,24 @@ class AERP_Acc_Deposit_Manager
                 $data['created_by'] = intval($employee_id);
                 $format[] = '%d';
             }
-            // Sinh mã PN-<number>
-            $data['code'] = self::generate_deposit_code();
+            // Sinh mã PN-<number> (tạm thời, sẽ update sau)
+            $data['code'] = 'TEMP';
             $format[] = '%s';
             $wpdb->insert($table, $data, $format);
             $id = $wpdb->insert_id;
+            
+            // Tạo mã phiếu nộp tiền theo format: PN-id-ddmmyyyy sau khi insert
+            if ($id) {
+                $deposit_code = self::generate_deposit_code($id);
+                $wpdb->update(
+                    $table,
+                    ['code' => $deposit_code],
+                    ['id' => $id],
+                    ['%s'],
+                    ['%d']
+                );
+            }
+            
             $msg = 'Đã thêm phiếu nộp tiền!';
         }
 
@@ -104,16 +117,16 @@ class AERP_Acc_Deposit_Manager
         exit;
     }
 
-    private static function generate_deposit_code()
+    private static function generate_deposit_code($deposit_id = null)
     {
-        global $wpdb;
-        $max_code = $wpdb->get_var("SELECT code FROM {$wpdb->prefix}aerp_acc_deposits WHERE code LIKE 'PN-%' ORDER BY id DESC LIMIT 1");
-        if (preg_match('/PN-(\\d+)/', (string)$max_code, $matches)) {
-            $next_number = intval($matches[1]) + 1;
-        } else {
-            $next_number = 1;
+        // Nếu đã có deposit_id, tạo mã theo format: PN-id-ddmmyyyy
+        if ($deposit_id) {
+            $now = new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh'));
+            $date_str = $now->format('dmy'); // ddmmYYYY format
+            return 'PN-' . $deposit_id . '-' . $date_str;
         }
-        return 'PN-' . $next_number;
+        // Nếu chưa có deposit_id, trả về giá trị tạm thời (sẽ được update sau khi insert)
+        return 'TEMP';
     }
 
     public static function handle_single_delete()

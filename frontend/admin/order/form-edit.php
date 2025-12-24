@@ -144,7 +144,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                 </div>
                 <div class="col-md-4 mb-3">
                     <label for="order_date" class="form-label">Ngày tạo đơn hàng</label>
-                    <input type="date" class="form-control shadow-sm bg-body" id="order_date" name="order_date" value="<?php echo esc_attr($editing->order_date); ?>">
+                    <input type="datetime-local" class="form-control shadow-sm bg-body" id="order_date" name="order_date" value="<?php echo esc_attr($editing->order_date); ?>">
                 </div>
                 <div class="col-md-4 mb-3">
                     <label for="employee_id" class="form-label">Nhân viên phụ trách</label>
@@ -513,11 +513,15 @@ if (function_exists('aerp_render_breadcrumb')) {
                                     </div>
                                     <div class="col-md-2">
                                         <label class="form-label">Tình trạng</label>
-                                        <textarea type="text" class="form-control shadow-sm" name="devices[<?= $idx ?>][status]" value="<?= esc_attr($device->status) ?>" placeholder="Tình trạng" rows="1"></textarea>
+                                        <textarea type="text" class="form-control shadow-sm" name="devices[<?= $idx ?>][status]" placeholder="Tình trạng" rows="1"><?= esc_textarea($device->status) ?></textarea>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Ngày nhận</label>
+                                        <input type="datetime-local" class="form-control shadow-sm" name="devices[<?= $idx ?>][device_date]" value="<?= esc_attr($device->device_date) ?>" placeholder="Ngày nhận">
                                     </div>
                                     <div class="col-md-2">
                                         <label class="form-label">Ghi chú</label>
-                                        <textarea type="text" class="form-control shadow-sm" name="devices[<?= $idx ?>][note]" value="<?= esc_attr($device->note) ?>" placeholder="Ghi chú" rows="1"></textarea>
+                                        <textarea type="text" class="form-control shadow-sm" name="devices[<?= $idx ?>][note]" placeholder="Ghi chú" rows="1"><?= esc_textarea($device->note) ?></textarea>
                                     </div>
                                     <!-- <div class="col-md-2">
                                         <label class="form-label">Đối tác sửa</label>
@@ -548,6 +552,10 @@ if (function_exists('aerp_render_breadcrumb')) {
                                 <div class="col-md-2">
                                     <label class="form-label">Tình trạng</label>
                                     <textarea type="text" class="form-control shadow-sm" name="devices[0][status]" placeholder="Tình trạng" rows="1"></textarea>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Ngày nhận</label>
+                                    <input type="datetime-local" class="form-control shadow-sm" name="devices[0][device_date]" placeholder="Ngày nhận">
                                 </div>
                                 <div class="col-md-2">
                                     <label class="form-label">Ghi chú</label>
@@ -598,11 +606,11 @@ if (function_exists('aerp_render_breadcrumb')) {
                                 echo '</div>';
                                 echo '<div class="col-md-3">';
                                 echo '<label class="form-label">Ngày trả</label>';
-                                echo '<input type="date" class="form-control shadow-sm bg-body" name="device_returns[' . $rIdx . '][return_date]" value="' . esc_attr($ret->return_date ?? date('Y-m-d')) . '">';
+                                echo '<input type="datetime-local" class="form-control shadow-sm bg-body" name="device_returns[' . $rIdx . '][return_date]" value="' . esc_attr($ret->return_date ?? date('Y-m-d H:i:s')) . '">';
                                 echo '</div>';
                                 echo '<div class="col-md-4">';
                                 echo '<label class="form-label">Ghi chú</label>';
-                                echo '<textarea type="text" class="form-control shadow-sm" name="device_returns[' . $rIdx . '][note]" value="' . esc_attr($ret->note ?? '') . '" placeholder="Ghi chú" rows="1"></textarea>';
+                                echo '<textarea type="text" class="form-control shadow-sm" name="device_returns[' . $rIdx . '][note]" placeholder="Ghi chú" rows="1">' . esc_textarea($ret->note ?? '') . '</textarea>';
                                 echo '</div>';
                                 echo '<div class="col-md-1 mt-2 d-flex align-items-end">';
                                 echo '<button type="button" class="btn btn-outline-danger remove-device-return-row">Xóa</button>';
@@ -617,7 +625,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                             echo '</div>';
                             echo '<div class="col-md-3">';
                             echo '<label class="form-label">Ngày trả</label>';
-                            echo '<input type="date" class="form-control shadow-sm bg-body" name="device_returns[0][return_date]" value="' . esc_attr(date('Y-m-d')) . '">';
+                            echo '<input type="datetime-local" class="form-control shadow-sm bg-body" name="device_returns[0][return_date]" value="' . esc_attr(date('Y-m-d H:i:s')) . '">';
                             echo '</div>';
                             echo '<div class="col-md-4">';
                             echo '<label class="form-label">Ghi chú</label>';
@@ -715,6 +723,7 @@ if (function_exists('aerp_render_breadcrumb')) {
             <div class="col-md-3 mb-2"><label class="form-label">Tên thiết bị</label><input type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][device_name]" placeholder="Tên thiết bị"></div>
             <div class="col-md-2 mb-2"><label class="form-label">Serial/IMEI</label><input type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][serial_number]" placeholder="Serial/IMEI"></div>
             <div class="col-md-2 mb-2"><label class="form-label">Tình trạng</label><textarea type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][status]" placeholder="Tình trạng" rows="1"></textarea></div>
+            <div class="col-md-2 mb-2"><label class="form-label">Ngày nhận</label><input type="datetime-local" class="form-control shadow-sm" name="devices[${deviceIndex}][device_date]" placeholder="Ngày nhận"></div>
             <div class="col-md-2 mb-2"><label class="form-label">Ghi chú</label><textarea type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][note]" placeholder="Ghi chú" rows="1"></textarea></div>
             <div class="col-md-1 mb-2 d-flex align-items-end">
                 <button type="button" class="btn btn-outline-danger remove-device-row">Xóa</button>

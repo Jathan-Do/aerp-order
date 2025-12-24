@@ -19,7 +19,7 @@ if (!in_array(true, $access_conditions, true)) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
 
-$date_now = date('Y-m-d');
+$date_now = (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d H:i:s');
 ob_start();
 ?>
 <style>
@@ -140,7 +140,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                 </div>
                 <div class="col-md-4 mb-3">
                     <label for="order_date" class="form-label">Ngày tạo đơn hàng</label>
-                    <input type="date" class="form-control bg-body shadow-sm" id="order_date" name="order_date" required value="<?php echo esc_attr($date_now); ?>">
+                    <input type="datetime-local" class="form-control bg-body shadow-sm" id="order_date" name="order_date" required value="<?php echo esc_attr($date_now); ?>">
                 </div>
                 <div class="col-md-4 mb-3">
                     <label for="employee_id" class="form-label">Nhân viên phụ trách</label>
@@ -242,6 +242,10 @@ if (function_exists('aerp_render_breadcrumb')) {
                                 <textarea type="text" class="form-control shadow-sm" name="devices[0][status]" placeholder="Tình trạng" rows="1"></textarea>
                             </div>
                             <div class="col-md-2">
+                                <label class="form-label">Ngày nhận</label>
+                                <input type="datetime-local" class="form-control shadow-sm" name="devices[0][device_date]" placeholder="Ngày nhận">
+                            </div>
+                            <div class="col-md-2">
                                 <label class="form-label">Ghi chú</label>
                                 <textarea type="text" class="form-control shadow-sm" name="devices[0][note]" placeholder="Ghi chú" rows="1"></textarea>
                             </div>
@@ -267,7 +271,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Ngày trả</label>
-                                <input type="date" class="form-control shadow-sm bg-body" name="device_returns[0][return_date]" value="<?php echo esc_attr(date('Y-m-d')); ?>">
+                                <input type="datetime-local" class="form-control shadow-sm bg-body" name="device_returns[0][return_date]" value="<?php echo esc_attr($date_now); ?>">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Ghi chú</label>
@@ -416,6 +420,7 @@ include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
             <div class="col-md-3 mb-2"><label class="form-label">Tên thiết bị</label><input type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][device_name]" placeholder="Tên thiết bị"></div>
             <div class="col-md-2 mb-2"><label class="form-label">Serial/IMEI</label><input type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][serial_number]" placeholder="Serial/IMEI"></div>
             <div class="col-md-2 mb-2"><label class="form-label">Tình trạng</label><textarea type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][status]" placeholder="Tình trạng" rows="1"></textarea></div>
+            <div class="col-md-2 mb-2"><label class="form-label">Ngày nhận</label><input type="datetime-local" class="form-control shadow-sm" name="devices[${deviceIndex}][device_date]" placeholder="Ngày nhận"></div>
             <div class="col-md-2 mb-2"><label class="form-label">Ghi chú</label><textarea type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][note]" placeholder="Ghi chú" rows="1"></textarea></div>
             <div class="col-md-1 mb-2 d-flex align-items-end">
                 <button type="button" class="btn btn-outline-danger remove-device-row">Xóa</button>

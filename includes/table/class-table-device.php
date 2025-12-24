@@ -13,14 +13,15 @@ class AERP_Device_Table extends AERP_Frontend_Table
                 'device_name' => 'Tên thiết bị',
                 'serial_number' => 'Serial/IMEI',
                 'status' => 'Tình trạng',
+                'device_date' => 'Ngày nhận',
                 'progress_id' => 'Tiến độ',
                 'note' => 'Ghi chú',
                 'partner_id' => 'Nhà cung cấp',
                 'device_status' => 'Trạng thái',
                 'action' => 'Thao tác'
             ],
-            'sortable_columns' => ['id', 'order_id', 'device_name', 'serial_number', 'status', 'partner_id'],
-            'searchable_columns' => ['device_name', 'serial_number', 'status', 'note', 'partner_id'],
+            'sortable_columns' => ['id', 'order_id', 'device_name', 'device_date', 'serial_number', 'status', 'partner_id'],
+            'searchable_columns' => ['device_name', 'serial_number', 'device_date', 'status', 'note', 'partner_id'],
             'primary_key' => 'id',
             'per_page' => 10,
             'actions' => [],
@@ -204,6 +205,14 @@ class AERP_Device_Table extends AERP_Frontend_Table
         if (!empty($this->filters['device_status'])) {
             $filters[] = "device_status = %s";
             $params[] = $this->filters['device_status'];
+        }
+        if (!empty($this->filters['date_from'])) {
+            $filters[] = "device_date >= %s";
+            $params[] = $this->filters['date_from'];
+        }
+        if (!empty($this->filters['date_to'])) {
+            $filters[] = "device_date <= %s";
+            $params[] = $this->filters['date_to'];
         }
         return [$filters, $params];
     }
