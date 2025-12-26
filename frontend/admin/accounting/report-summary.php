@@ -279,7 +279,15 @@ ob_start();
         max-width: 100% !important;
         max-height: 250px !important;
     }
-
+    .summary-card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 16px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: 1px solidrgb(205, 206, 207);
+    }
     .summary-content {
         text-align: center;
     }
