@@ -3,6 +3,8 @@ if (!defined('ABSPATH')) exit;
 // Get current user
 $current_user = wp_get_current_user();
 $user_id = $current_user->ID;
+$employee = aerp_get_employee_by_user_id($user_id);
+$user_fullname = $employee ? $employee->full_name : '';
 
 if (!is_user_logged_in()) {
     wp_die(__('You must be logged in to access this page.'));
@@ -30,8 +32,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aerp_save_stocktake']
         $error = 'Không có thay đổi tồn kho nào.';
     }
 }
-$system_qty = aerp_get_stock_qty($log->product_id, $log->warehouse_id);
-$actual_qty = $system_qty + ($log->quantity ?? 0);
+
+$system_qty = $log ? aerp_get_stock_qty($log->product_id, $log->warehouse_id) : 0;
+$actual_qty = $log ? $system_qty + ($log->quantity ?? 0) : 0;
 ob_start();
 ?>
 <style>
@@ -57,12 +60,12 @@ ob_start();
     }
 </style>
 
-<div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
+<div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-5">
     <h2><?php echo $id ? 'Xác nhận phiếu kiểm kho' : 'Tạo phiếu kiểm kho'; ?></h2>
     <div class="user-info text-end">
-        Xin chào, <?php echo esc_html($current_user->display_name); ?>
+        Hi, <?php echo esc_html($user_fullname); ?>
         <a href="<?php echo wp_logout_url(home_url()); ?>" class="btn btn-sm btn-outline-danger ms-2">
-            <i class="fas fa-sign-out-alt"></i> Thoát
+            <i class="fas fa-sign-out-alt"></i> Đăng xuất
         </a>
     </div>
 </div>

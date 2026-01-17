@@ -3,6 +3,8 @@ if (!defined('ABSPATH')) exit;
 // Get current user
 $current_user = wp_get_current_user();
 $user_id = $current_user->ID;
+$employee = aerp_get_employee_by_user_id($user_id);
+$user_fullname = $employee ? $employee->full_name : '';
 
 if (!is_user_logged_in()) {
     wp_die(__('You must be logged in to access this page.'));
@@ -22,6 +24,7 @@ $order_id = get_query_var('aerp_order_id');
 $order = function_exists('aerp_get_order') ? aerp_get_order($order_id) : null;
 if (!$order) wp_die('Đơn hàng không tồn tại!');
 $customer = function_exists('aerp_get_customer') ? aerp_get_customer($order->customer_id) : null;
+$customer_phone = function_exists('aerp_get_customer_primary_phone') ? aerp_get_customer_primary_phone($order->customer_id) : '';
 $employee = function_exists('aerp_get_customer_assigned_name') ? aerp_get_customer_assigned_name($order->employee_id) : '';
 $order_items = function_exists('aerp_get_order_items') ? aerp_get_order_items($order_id) : [];
 $total_amount = 0;
@@ -100,12 +103,12 @@ ob_start();
         scrollbar-width: none;
     }
 </style>
-<div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
+<div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-5">
     <h2>Chi tiết đơn hàng #<?php echo esc_html($order->order_code); ?></h2>
     <div class="user-info text-end">
-        Welcome, <?php echo esc_html($current_user->display_name); ?>
+        Hi, <?php echo esc_html($user_fullname); ?>
         <a href="<?php echo wp_logout_url(site_url('/aerp-dang-nhap')); ?>" class="btn btn-sm btn-outline-danger ms-2">
-            <i class="fas fa-sign-out-alt"></i> Logout
+            <i class="fas fa-sign-out-alt"></i> Đăng xuất
         </a>
     </div>
 </div>
@@ -123,7 +126,18 @@ if (function_exists('aerp_render_breadcrumb')) {
         <div class="row mb-2">
             <div class="col-md-6 mb-2">
                 <label class="fw-bold form-label text-muted small mb-1">Khách hàng</label>
-                <p class="mb-0"><?php echo $customer ? esc_html($customer->full_name) : '<span class="text-muted">--</span>'; ?></p>
+                <p class="mb-0">
+                    <?php if ($customer): ?>
+                        <a href="<?php echo esc_url(home_url('/aerp-crm-customers/' . $customer->id)); ?>" class="text-decoration-none fw-bold">
+                            <?php echo esc_html($customer->full_name); ?>
+                        </a>
+                        <?php if (!empty($customer->customer_code)): ?>
+                            <br><small class="text-muted">Mã: <a href="<?php echo esc_url(home_url('/aerp-crm-customers/' . $customer->id)); ?>" class="text-decoration-none"><?php echo esc_html($customer->customer_code); ?></a></small>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <span class="text-muted">--</span>
+                    <?php endif; ?>
+                </p>
             </div>
             <div class="col-md-6 mb-2">
                 <label class="fw-bold form-label text-muted small mb-1">Nhân viên phụ trách</label>
@@ -170,15 +184,15 @@ if (function_exists('aerp_render_breadcrumb')) {
                 ));
                 $order_cost = (float) ($order->cost ?? 0);
                 // Áp dụng công thức theo điều kiện
-                if ($orderType === 'all') {
+                if ($order_type === 'all') {
                     // Nếu order_type là 'all': Lợi nhuận = Tổng tiền nội dung triển khai - Chi phí đơn hàng - Tổng tiền SP/DV - Tổng chi phí mua ngoài
-                    $profit = $content_total_for_profit - $orderCost - $items_total_for_profit - $external_cost_total;
-                } elseif ($orderType !== 'all' && $status === 'paid') {
+                    $profit = $content_total_for_profit - $order_cost - $items_total_for_profit - $external_cost_total;
+                } elseif ($order_type !== 'all' && $status === 'paid') {
                     // Nếu order_type khác 'all' và status là 'paid': Lợi nhuận = Chi phí đơn hàng - Tổng tiền SP/DV - Tổng chi phí mua ngoài
-                    $profit = $orderCost + $items_total_for_profit - $external_cost_total;
+                    $profit = $order_cost + $items_total_for_profit - $external_cost_total;
                 } else {
                     // Trường hợp khác: giữ công thức cũ (hoặc có thể để 0)
-                    $profit = $content_total_for_profit - $orderCost - $items_total_for_profit - $external_cost_total;
+                    $profit = $content_total_for_profit - $order_cost - $items_total_for_profit - $external_cost_total;
                 }
                 $profit_color = $profit >= 0 ? 'text-success' : 'text-danger';
                 ?>
@@ -280,11 +294,13 @@ if (function_exists('aerp_render_breadcrumb')) {
                                             <td>
                                                 <?php
                                                 $purchase_type = isset($item->purchase_type) ? $item->purchase_type : 'warehouse';
-                                                if ($purchase_type === 'external') {
+                                                if ($purchase_type === 'external' && $item->item_type === 'product') {
                                                     echo '<span class="badge bg-warning">Mua ngoài</span>';
                                                     if (!empty($item->external_supplier_name)) {
                                                         echo '<br><small class="text-muted">' . esc_html($item->external_supplier_name) . '</small>';
                                                     }
+                                                } else if ($purchase_type === 'warehouse' && $item->item_type === 'service') {
+                                                    echo '<span class="badge bg-warning">Dịch vụ</span>';
                                                 } else {
                                                     echo '<span class="badge bg-info">Từ kho</span>';
                                                 }
@@ -412,10 +428,10 @@ if (function_exists('aerp_render_breadcrumb')) {
                                             <th colspan="5" class="text-end">Tổng tiền</th>
                                             <th colspan="2"><?php echo number_format($total_content_amount ?? 0, 0, ',', '.'); ?></th>
                                         </tr>
-                                        <tr>
+                                        <!-- <tr>
                                             <th colspan="1">Ghi chú đơn hàng</th>
                                             <td colspan="6"><?php echo esc_html($order->note) ?? '--'; ?></td>
-                                        </tr>
+                                        </tr> -->
                                     </tfoot>
                                 </table>
                             </div>
@@ -479,11 +495,13 @@ if (function_exists('aerp_render_breadcrumb')) {
                                                     <td>
                                                         <?php
                                                         $purchase_type = isset($item->purchase_type) ? $item->purchase_type : 'warehouse';
-                                                        if ($purchase_type === 'external') {
+                                                        if ($purchase_type === 'external' && $item->item_type === 'product') {
                                                             echo '<span class="badge bg-warning">Mua ngoài</span>';
                                                             if (!empty($item->external_supplier_name)) {
                                                                 echo '<br><small class="text-muted">' . esc_html($item->external_supplier_name) . '</small>';
                                                             }
+                                                        } else if ($purchase_type === 'warehouse' && $item->item_type === 'service') {
+                                                            echo '<span class="badge bg-warning">Dịch vụ</span>';
                                                         } else {
                                                             echo '<span class="badge bg-info">Từ kho</span>';
                                                         }
@@ -780,10 +798,10 @@ if (function_exists('aerp_render_breadcrumb')) {
                                     <th colspan="5" class="text-end">Tổng tiền</th>
                                     <th colspan="2"><?php echo number_format($total_content_amount ?? 0, 0, ',', '.'); ?></th>
                                 </tr>
-                                <tr>
+                                <!-- <tr>
                                     <th colspan="1">Ghi chú đơn hàng</th>
                                     <td colspan="6"><?php echo esc_html($order->note) ?? '--'; ?></td>
-                                </tr>
+                                </tr> -->
                             </tfoot>
                         </table>
                     </div>
@@ -924,11 +942,11 @@ if (function_exists('aerp_render_breadcrumb')) {
         }
     </style>
     <div class="sheet">
-        <h3 class="inv-header">HÓA ĐƠN BÁN HÀNG</h3>
+        <h3 class="inv-header">ĐƠN HÀNG TRIỂN KHAI</h3>
         <div class="inv-meta">
             <div><strong>Mã đơn hàng:</strong> <?php echo esc_html($order->order_code); ?></div>
             <div><strong>Ngày lập:</strong> <?php echo esc_html($order->order_date); ?></div>
-            <div><strong>Khách hàng:</strong> <?php echo $customer ? esc_html($customer->full_name) : '--'; ?></div>
+            <div><strong>Khách hàng:</strong> <?php echo $customer ? esc_html($customer->full_name) . ' - ' . esc_html($customer_phone) : '--'; ?></div>
             <div><strong>Nhân viên phụ trách:</strong> <?php echo $employee ? esc_html($employee) : '--'; ?></div>
         </div>
         <?php
@@ -989,6 +1007,10 @@ if (function_exists('aerp_render_breadcrumb')) {
                     <th colspan="6" class="text-end">Tổng cộng (có VAT)</th>
                     <th class="text-end"><?php echo number_format($total_amount_with_vat, 0, ',', '.'); ?></th>
                     <th class="text-end"><?php echo number_format($total_amount, 0, ',', '.'); ?></th>
+                </tr>
+                <tr>
+                    <th colspan="2">Ghi chú đơn hàng</th>
+                    <td colspan="6"><?php echo esc_html($order->note) ?? '--'; ?></td>
                 </tr>
             </tfoot>
         </table>
@@ -1064,7 +1086,7 @@ if (function_exists('aerp_render_breadcrumb')) {
         }
     </style>
     <div class="sheet">
-        <h3 class="inv-header">CHỨNG TỪ TỔNG HỢP</h3>
+        <h3 class="inv-header">ĐƠN HÀNG TRIỂN KHAI</h3>
         <div class="inv-meta">
             <div><strong>Mã đơn hàng:</strong> <?php echo esc_html($order->order_code); ?></div>
             <div><strong>Ngày lập:</strong> <?php echo esc_html($order->order_date); ?></div>
@@ -1114,10 +1136,6 @@ if (function_exists('aerp_render_breadcrumb')) {
                 <tr>
                     <th colspan="5" class="text-end">Tổng tiền</th>
                     <th colspan="2"><?php echo number_format($total_content_amount, 0, ',', '.'); ?> VNĐ</th>
-                </tr>
-                <tr>
-                    <th colspan="2">Ghi chú đơn hàng</th>
-                    <td colspan="5"><?php echo esc_html($order->note) ?? '--'; ?></td>
                 </tr>
             </tfoot>
         </table>
@@ -1256,6 +1274,10 @@ if (function_exists('aerp_render_breadcrumb')) {
                 </div>
             <?php endif; ?>
         <?php endif; ?>
+        <div>
+            <strong>Ghi chú đơn hàng:</strong>
+            <div><?php echo esc_html($order->note) ?? '--'; ?></div>
+        </div>
     </div>
     <div class="sign">
         <div class="text-center">
@@ -1336,7 +1358,7 @@ if (function_exists('aerp_render_breadcrumb')) {
         }
     </style>
     <div class="sheet">
-        <h3 class="inv-header">BẢNG BÁO GIÁ NỘI DUNG TRIỂN KHAI</h3>
+        <h3 class="inv-header">ĐƠN HÀNG TRIỂN KHAI</h3>
         <div class="inv-meta">
             <div><strong>Mã đơn hàng:</strong> <?php echo esc_html($order->order_code); ?></div>
             <div><strong>Ngày lập:</strong> <?php echo esc_html($order->order_date); ?></div>
@@ -1465,7 +1487,7 @@ if (function_exists('aerp_render_breadcrumb')) {
         }
     </style>
     <div class="sheet">
-        <h3 class="inv-header">BIÊN NHẬN THIẾT BỊ</h3>
+        <h3 class="inv-header">ĐƠN HÀNG TRIỂN KHAI</h3>
         <div class="inv-meta">
             <div><strong>Mã đơn hàng:</strong> <?php echo esc_html($order->order_code); ?></div>
             <div><strong>Ngày lập:</strong> <?php echo esc_html($order->order_date); ?></div>
@@ -1497,7 +1519,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="5" class="text-center">Chưa có thiết bị nào.</td>
+                        <td colspan="6" class="text-center">Chưa có thiết bị nào.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
@@ -1575,7 +1597,7 @@ if (function_exists('aerp_render_breadcrumb')) {
         }
     </style>
     <div class="sheet">
-        <h3 class="inv-header">BIÊN NHẬN THIẾT BỊ TRẢ</h3>
+        <h3 class="inv-header">ĐƠN HÀNG TRIỂN KHAI</h3>
         <div class="inv-meta">
             <div><strong>Mã đơn hàng:</strong> <?php echo esc_html($order->order_code); ?></div>
             <div><strong>Ngày lập:</strong> <?php echo esc_html($order->order_date); ?></div>

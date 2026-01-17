@@ -129,6 +129,10 @@ class AERP_Frontend_Order_Manager
                     ['%d', '%d', '%d', '%d', '%s']
                 );
             }
+            // --- Tạo thông báo khi trạng thái thay đổi (cột status) ---
+            if (!empty($data['status']) && $data['status'] !== $old_status) {
+                self::notify_order_status_change($order_id, $old_status, $data['status']);
+            }
             // Xử lý thiết bị nhận nếu có submit (không phụ thuộc order_type để hỗ trợ đơn tổng hợp)
             $device_table = $wpdb->prefix . 'aerp_order_devices';
             // Xóa thiết bị cũ
@@ -136,7 +140,9 @@ class AERP_Frontend_Order_Manager
             if (!empty($_POST['devices']) && is_array($_POST['devices'])) {
                 foreach ($_POST['devices'] as $device) {
                     $device_name = sanitize_text_field($device['device_name'] ?? '');
-                    if ($device_name === '') { continue; }
+                    if ($device_name === '') {
+                        continue;
+                    }
                     $device_data = [
                         'order_id' => $order_id,
                         'device_name' => $device_name,
@@ -180,6 +186,7 @@ class AERP_Frontend_Order_Manager
             $format = ['%s', '%d', '%d', '%s', '%f', '%s', '%s', '%s', '%s', '%f', '%d', '%d', '%s'];
             $wpdb->insert($table, $data, $format);
             $order_id = $wpdb->insert_id;
+            aerp_notify_new_order($order_id, $employee_current_id);
 
             $msg = 'Đã thêm đơn hàng!';
             // Xử lý thiết bị nhận nếu có submit (không phụ thuộc order_type để hỗ trợ đơn tổng hợp)
@@ -187,7 +194,9 @@ class AERP_Frontend_Order_Manager
             if (!empty($_POST['devices']) && is_array($_POST['devices'])) {
                 foreach ($_POST['devices'] as $device) {
                     $device_name = sanitize_text_field($device['device_name'] ?? '');
-                    if ($device_name === '') { continue; }
+                    if ($device_name === '') {
+                        continue;
+                    }
                     $device_data = [
                         'order_id' => $order_id,
                         'device_name' => $device_name,
@@ -319,12 +328,12 @@ class AERP_Frontend_Order_Manager
             if (!empty($_POST['order_items']) && is_array($_POST['order_items'])) {
                 $count_product = 0;
                 $count_service = 0;
-                
+
                 foreach ($_POST['order_items'] as $item) {
                     $item_type = isset($item['item_type']) ? sanitize_text_field($item['item_type']) : 'product';
                     $product_name = sanitize_text_field($item['product_name'] ?? '');
                     $quantity = floatval($item['quantity'] ?? 0);
-                    
+
                     // Chỉ đếm các dòng hợp lệ
                     if (!empty($product_name) && $quantity > 0) {
                         if ($item_type === 'product') {
@@ -334,7 +343,7 @@ class AERP_Frontend_Order_Manager
                         }
                     }
                 }
-                
+
                 // Cập nhật order_type dựa trên loại sản phẩm/dịch vụ trước (tạm)
                 if ($count_product > 0 && $count_service > 0) {
                     $new_order_type = 'mixed';
@@ -346,7 +355,7 @@ class AERP_Frontend_Order_Manager
                     // Nếu không có order_items hợp lệ, giữ nguyên order_type hiện tại
                     $new_order_type = $order_type;
                 }
-                
+
                 // Việc update cuối cùng sẽ xét thêm content/devices/returns bên dưới
             } else {
                 // Nếu không có order_items, kiểm tra xem có phải đang chuyển từ content sang product/service không
@@ -594,6 +603,11 @@ class AERP_Frontend_Order_Manager
         global $wpdb;
         $table = $wpdb->prefix . 'aerp_order_orders';
 
+        $old_status = $wpdb->get_var($wpdb->prepare(
+            "SELECT status FROM $table WHERE id = %d",
+            $order_id
+        ));
+
         $data = [
             'cancel_reason' => sanitize_textarea_field($reason),
             'status' => 'cancelled'
@@ -607,6 +621,11 @@ class AERP_Frontend_Order_Manager
             ['%d']
         );
         aerp_clear_table_cache();
+
+        if ($result !== false && $old_status !== 'cancelled') {
+            self::notify_order_status_change($order_id, $old_status, 'cancelled');
+        }
+
         return $result !== false;
     }
 
@@ -616,20 +635,30 @@ class AERP_Frontend_Order_Manager
         global $wpdb;
         $table = $wpdb->prefix . 'aerp_order_orders';
 
+        $old_status = $wpdb->get_var($wpdb->prepare(
+            "SELECT status FROM $table WHERE id = %d",
+            $order_id
+        ));
+
         $data = [
             'status' => 'rejected',
-            'reject_reason' => !empty($reason) ? sanitize_textarea_field($reason) : 'Đơn hàng bị từ chối'
+            'reject_reason' => !empty($reason) ? sanitize_textarea_field($reason) : 'Đơn hàng bị từ chối',
+            'employee_id' => 0
         ];
 
         $result = $wpdb->update(
             $table,
             $data,
             ['id' => $order_id],
-            ['%s', '%s'],
+            ['%s', '%s', '%d'],
             ['%d']
         );
 
         aerp_clear_table_cache();
+        if ($result !== false && $old_status !== 'rejected') {
+            self::notify_order_status_change($order_id, $old_status, 'rejected');
+        }
+
         return $result !== false;
     }
 
@@ -639,6 +668,11 @@ class AERP_Frontend_Order_Manager
     {
         global $wpdb;
         $table = $wpdb->prefix . 'aerp_order_orders';
+
+        $old_status = $wpdb->get_var($wpdb->prepare(
+            "SELECT status FROM $table WHERE id = %d",
+            $order_id
+        ));
 
         $data = [
             'status' => 'completed'
@@ -657,7 +691,7 @@ class AERP_Frontend_Order_Manager
                 "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_device_returns WHERE order_id = %d",
                 $order_id
             ));
-            
+
             if ($device_return_count > 0) {
                 $order_type = 'return';
             } else {
@@ -666,14 +700,14 @@ class AERP_Frontend_Order_Manager
                     "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_order_devices WHERE order_id = %d",
                     $order_id
                 ));
-                
+
                 if ($device_count > 0) {
                     $order_type = 'device';
                 } else {
                     $order_type = 'product';
                 }
             }
-            
+
             // Cập nhật order_type vào database
             $wpdb->update(
                 $table,
@@ -697,7 +731,7 @@ class AERP_Frontend_Order_Manager
             if (!empty($device_returns)) {
                 $device_ids = array_column($device_returns, 'device_id');
                 $device_ids_placeholder = implode(', ', array_fill(0, count($device_ids), '%d'));
-                
+
                 // Cập nhật trạng thái thiết bị thành 'disposed' khi hoàn thành trả thiết bị
                 $wpdb->query($wpdb->prepare(
                     "UPDATE {$wpdb->prefix}aerp_order_devices SET device_status = 'disposed' WHERE id IN ($device_ids_placeholder) AND device_status = 'received'",
@@ -715,6 +749,9 @@ class AERP_Frontend_Order_Manager
         );
 
         aerp_clear_table_cache();
+        if ($result !== false && $old_status !== 'completed') {
+            self::notify_order_status_change($order_id, $old_status, 'completed');
+        }
         return $result !== false;
     }
 
@@ -723,6 +760,11 @@ class AERP_Frontend_Order_Manager
     {
         global $wpdb;
         $table = $wpdb->prefix . 'aerp_order_orders';
+
+        $old_status = $wpdb->get_var($wpdb->prepare(
+            "SELECT status FROM $table WHERE id = %d",
+            $order_id
+        ));
 
         $data = [
             'status' => 'paid'
@@ -737,6 +779,83 @@ class AERP_Frontend_Order_Manager
         );
 
         aerp_clear_table_cache();
+        if ($result !== false && $old_status !== 'paid') {
+            self::notify_order_status_change($order_id, $old_status, 'paid');
+        }
         return $result !== false;
+    }
+
+    /**
+     * Gửi thông báo khi đơn hàng đổi trạng thái (cột status)
+     * Gửi cho: tất cả admin, nhân viên được gán (employee_id), người tạo đơn (created_by)
+     */
+    protected static function notify_order_status_change($order_id, $old_status, $new_status)
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'aerp_order_orders';
+
+        $order_info = $wpdb->get_row($wpdb->prepare(
+            "SELECT order_code, employee_id, created_by FROM $table WHERE id = %d",
+            $order_id
+        ));
+        if (!$order_info) {
+            return;
+        }
+
+        $link_url = home_url('/aerp-order-orders/' . $order_id);
+        $title = 'Đơn hàng ' . $order_info->order_code . ' chuyển trạng thái';
+        $message = 'Từ: ' . self::status_label($old_status) . ' → ' . self::status_label($new_status);
+
+        // Danh sách user_id sẽ nhận thông báo
+        $target_user_ids = [];
+
+        // 1. Gửi cho TẤT CẢ admin (custom role system)
+        if (function_exists('aerp_get_all_admin_user_ids')) {
+            $admin_user_ids = aerp_get_all_admin_user_ids();
+            foreach ($admin_user_ids as $admin_user_id) {
+                if ($admin_user_id > 0 && !in_array($admin_user_id, $target_user_ids, true)) {
+                    $target_user_ids[] = $admin_user_id;
+                }
+            }
+        }
+
+        // 2. Gửi cho nhân viên được gán đơn (employee_id)
+        if (!empty($order_info->employee_id)) {
+            $employee_user_id = aerp_get_user_id_from_employee((int) $order_info->employee_id);
+            if ($employee_user_id && !in_array($employee_user_id, $target_user_ids, true)) {
+                $target_user_ids[] = $employee_user_id;
+            }
+        }
+
+        // 3. Gửi cho người tạo đơn (created_by - employee_id)
+        if (!empty($order_info->created_by)) {
+            $creator_user_id = aerp_get_user_id_from_employee((int) $order_info->created_by);
+            if ($creator_user_id && !in_array($creator_user_id, $target_user_ids, true)) {
+                $target_user_ids[] = $creator_user_id;
+            }
+        }
+
+        // Tạo thông báo cho từng user
+        foreach ($target_user_ids as $user_id) {
+            if ($user_id > 0) {
+                aerp_create_notification($user_id, 'order_status', $title, $message, $link_url, $order_id);
+            }
+        }
+    }
+
+    /**
+     * Nhãn tiếng Việt cho trạng thái đơn
+     */
+    protected static function status_label($status)
+    {
+        $map = [
+            'new'       => 'Mới tiếp nhận',
+            'assigned'  => 'Đã phân đơn',
+            'rejected'  => 'Đơn từ chối',
+            'completed' => 'Đã hoàn thành',
+            'paid'      => 'Đã thu tiền',
+            'cancelled' => 'Đã hủy',
+        ];
+        return $map[$status] ?? $status;
     }
 }

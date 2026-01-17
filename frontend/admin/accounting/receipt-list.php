@@ -2,6 +2,8 @@
 if (!defined('ABSPATH')) exit;
 $current_user = wp_get_current_user();
 $user_id = $current_user->ID;
+$employee = aerp_get_employee_by_user_id($user_id);
+$user_fullname = $employee ? $employee->full_name : '';
 
 // Quyền xem phiếu thu: admin, department_lead, or permission acc_receipt_view
 $access_conditions = [
@@ -19,12 +21,12 @@ $table->process_bulk_action();
 $message = get_transient('aerp_acc_receipt_message');
 ob_start();
 ?>
-<div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
+<div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-5">
     <h2>Phiếu thu</h2>
     <div class="user-info text-end">
-        Welcome, <?php echo esc_html($current_user->display_name); ?>
+        Hi, <?php echo esc_html($user_fullname); ?>
         <a href="<?php echo wp_logout_url(site_url('/aerp-dang-nhap')); ?>" class="btn btn-sm btn-outline-danger ms-2">
-            <i class="fas fa-sign-out-alt"></i> Logout
+            <i class="fas fa-sign-out-alt"></i> Đăng xuất
         </a>
     </div>
 </div>

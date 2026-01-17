@@ -32,6 +32,10 @@ function aerp_order_get_table_names()
         $wpdb->prefix . 'aerp_acc_deposit_lines',
         $wpdb->prefix . 'aerp_acc_payments',
         $wpdb->prefix . 'aerp_acc_payment_lines',
+        // Notifications
+        $wpdb->prefix . 'aerp_notifications',
+        // Calendar
+        $wpdb->prefix . 'aerp_calendar_events',
     ];
 }
 
@@ -472,6 +476,51 @@ function aerp_order_install_schema()
         INDEX idx_payment_id (payment_id),
         INDEX idx_order_id (order_id),
         INDEX idx_category_id (category_id)
+    ) $charset_collate;";
+
+    // 12. Notifications - Thông báo realtime
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_notifications (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        message TEXT,
+        link_url VARCHAR(500) DEFAULT NULL,
+        related_id BIGINT DEFAULT NULL,
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_user_id (user_id),
+        INDEX idx_type (type),
+        INDEX idx_is_read (is_read),
+        INDEX idx_created_at (created_at)
+    ) $charset_collate;";
+
+    // 13. Calendar - Lịch hẹn và sự kiện
+    $sqls[] = "CREATE TABLE {$wpdb->prefix}aerp_calendar_events (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        event_type ENUM('appointment','delivery','meeting','reminder','other') DEFAULT 'appointment',
+        customer_id BIGINT DEFAULT NULL,
+        order_id BIGINT DEFAULT NULL,
+        employee_id BIGINT DEFAULT NULL,
+        start_date DATETIME NOT NULL,
+        end_date DATETIME DEFAULT NULL,
+        location VARCHAR(255) DEFAULT NULL,
+        color VARCHAR(20) DEFAULT '#007cba',
+        is_all_day BOOLEAN DEFAULT FALSE,
+        reminder_minutes INT DEFAULT NULL,
+        reminder_sent BOOLEAN DEFAULT FALSE,
+        created_by BIGINT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_customer_id (customer_id),
+        INDEX idx_order_id (order_id),
+        INDEX idx_employee_id (employee_id),
+        INDEX idx_start_date (start_date),
+        INDEX idx_event_type (event_type),
+        INDEX idx_created_by (created_by),
+        INDEX idx_reminder (reminder_sent)
     ) $charset_collate;";
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';

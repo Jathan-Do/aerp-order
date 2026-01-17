@@ -3,6 +3,8 @@ if (!defined('ABSPATH')) exit;
 // Get current user
 $current_user = wp_get_current_user();
 $user_id = $current_user->ID;
+$employee = aerp_get_employee_by_user_id($user_id);
+$user_fullname = $employee ? $employee->full_name : '';
 
 if (!is_user_logged_in()) {
     wp_die(__('You must be logged in to access this page.'));
@@ -19,7 +21,7 @@ if (!in_array(true, $access_conditions, true)) {
     wp_die(__('You do not have sufficient permissions to access this page.'));
 }
 
-$date_now = (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d H:i:s');
+$date_now = (new DateTime('now', new DateTimeZone('Asia/Ho_Chi_Minh')))->format('Y-m-d H:i');
 ob_start();
 ?>
 <style>
@@ -65,12 +67,12 @@ ob_start();
         display: none !important;
     }
 </style>
-<div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
+<div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-5">
     <h2>Thêm đơn hàng mới</h2>
     <div class="user-info text-end">
-        Welcome, <?php echo esc_html($current_user->display_name); ?>
+        Hi, <?php echo esc_html($user_fullname); ?>
         <a href="<?php echo wp_logout_url(home_url()); ?>" class="btn btn-sm btn-outline-danger ms-2">
-            <i class="fas fa-sign-out-alt"></i> Logout
+            <i class="fas fa-sign-out-alt"></i> Đăng xuất
         </a>
     </div>
 </div>
@@ -243,7 +245,7 @@ if (function_exists('aerp_render_breadcrumb')) {
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Ngày nhận</label>
-                                <input type="datetime-local" class="form-control shadow-sm" name="devices[0][device_date]" placeholder="Ngày nhận">
+                                <input type="datetime-local" class="form-control shadow-sm" name="devices[0][device_date]" placeholder="Ngày nhận" value="<?php echo esc_attr($date_now); ?>">
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Ghi chú</label>
@@ -416,11 +418,18 @@ include(AERP_HRM_PATH . 'frontend/dashboard/layout.php');
         // Thêm dòng thiết bị
         let deviceIndex = 1;
         $('#add-device-row').on('click', function() {
+            var now = new Date();
+            var year = now.getFullYear();
+            var month = String(now.getMonth() + 1).padStart(2, '0');
+            var day = String(now.getDate()).padStart(2, '0');
+            var hours = String(now.getHours()).padStart(2, '0');
+            var minutes = String(now.getMinutes()).padStart(2, '0');
+            var today = year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
             let row = `<div class="row mb-2 device-row">
             <div class="col-md-3 mb-2"><label class="form-label">Tên thiết bị</label><input type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][device_name]" placeholder="Tên thiết bị"></div>
             <div class="col-md-2 mb-2"><label class="form-label">Serial/IMEI</label><input type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][serial_number]" placeholder="Serial/IMEI"></div>
             <div class="col-md-2 mb-2"><label class="form-label">Tình trạng</label><textarea type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][status]" placeholder="Tình trạng" rows="1"></textarea></div>
-            <div class="col-md-2 mb-2"><label class="form-label">Ngày nhận</label><input type="datetime-local" class="form-control shadow-sm" name="devices[${deviceIndex}][device_date]" placeholder="Ngày nhận"></div>
+            <div class="col-md-2 mb-2"><label class="form-label">Ngày nhận</label><input type="datetime-local" class="form-control shadow-sm" name="devices[${deviceIndex}][device_date]" placeholder="Ngày nhận" value="${today}"></div>
             <div class="col-md-2 mb-2"><label class="form-label">Ghi chú</label><textarea type="text" class="form-control shadow-sm" name="devices[${deviceIndex}][note]" placeholder="Ghi chú" rows="1"></textarea></div>
             <div class="col-md-1 mb-2 d-flex align-items-end">
                 <button type="button" class="btn btn-outline-danger remove-device-row">Xóa</button>

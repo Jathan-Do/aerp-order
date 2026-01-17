@@ -26,6 +26,77 @@ function aerp_order_filter_orders_callback()
     wp_send_json_success(['html' => $html]);
 }
 
+// AJAX: Lấy danh sách sự kiện cho FullCalendar
+add_action('wp_ajax_aerp_calendar_get_events', 'aerp_calendar_get_events_callback');
+function aerp_calendar_get_events_callback()
+{
+    if (!is_user_logged_in()) {
+        wp_send_json_error('Not logged in');
+    }
+
+    global $wpdb;
+
+    $start = isset($_GET['start']) ? sanitize_text_field($_GET['start']) : '';
+    $end   = isset($_GET['end']) ? sanitize_text_field($_GET['end']) : '';
+
+    if (empty($start) || empty($end)) {
+        wp_send_json_error('Missing start/end');
+    }
+
+    // FullCalendar gửi ISO8601, chuyển sang Y-m-d H:i:s
+    $start_ts = strtotime($start);
+    $end_ts   = strtotime($end);
+    if (!$start_ts || !$end_ts) {
+        wp_send_json_error('Invalid dates');
+    }
+
+    $start_mysql = date('Y-m-d H:i:s', $start_ts);
+    $end_mysql   = date('Y-m-d H:i:s', $end_ts);
+
+    $current_user_id = get_current_user_id();
+    $employee_id = $wpdb->get_var($wpdb->prepare(
+        "SELECT id FROM {$wpdb->prefix}aerp_hrm_employees WHERE user_id = %d",
+        $current_user_id
+    ));
+
+    $table = $wpdb->prefix . 'aerp_calendar_events';
+    $where = "WHERE start_date BETWEEN %s AND %s";
+    $params = [$start_mysql, $end_mysql];
+
+    if ($employee_id) {
+        $where .= " AND (employee_id = %d OR employee_id IS NULL)";
+        $params[] = $employee_id;
+    }
+
+    $events = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM {$table} {$where} ORDER BY start_date ASC",
+        ...$params
+    ));
+
+    $result = [];
+    foreach ($events as $event) {
+        $url = home_url('/aerp-calendar');
+        if (!empty($event->order_id)) {
+            $url = home_url('/aerp-order-orders/' . $event->order_id);
+        } elseif (!empty($event->customer_id)) {
+            $url = home_url('/aerp-crm-customers/' . $event->customer_id);
+        }
+
+        $result[] = [
+            'id' => (int)$event->id,
+            'title' => $event->title,
+            'start' => $event->start_date,
+            'end' => $event->end_date ?: null,
+            'allDay' => (bool)$event->is_all_day,
+            'backgroundColor' => $event->color ?: '#007cba',
+            'borderColor' => $event->color ?: '#007cba',
+            'url' => $url,
+        ];
+    }
+
+    wp_send_json($result);
+}
+
 // AJAX hook for deleting order attachments
 add_action('wp_ajax_aerp_delete_order_attachment', ['AERP_Frontend_Order_Manager', 'handle_delete_attachment_ajax']);
 
@@ -177,6 +248,58 @@ add_action('wp_ajax_aerp_order_search_customers', function () {
             'text' => $customer->full_name . (!empty($customer->customer_code) ? ' (' . $customer->customer_code . ')' : ''),
         ];
     }
+    wp_send_json($results);
+});
+
+// Select2: Tìm đơn hàng theo khách hàng (dùng cho calendar form)
+add_action('wp_ajax_aerp_search_orders_by_customer', function () {
+    global $wpdb;
+    $q = isset($_GET['q']) ? sanitize_text_field($_GET['q']) : '';
+    $customer_id = isset($_GET['customer_id']) ? absint($_GET['customer_id']) : 0;
+    $order_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
+    $results = [];
+    
+    // Preselect by id
+    if ($order_id && $customer_id) {
+        $order = $wpdb->get_row($wpdb->prepare(
+            "SELECT id, order_code FROM {$wpdb->prefix}aerp_order_orders WHERE id = %d AND customer_id = %d",
+            $order_id,
+            $customer_id
+        ));
+        if ($order) {
+            $label = $order->order_code ? ('#' . $order->order_code) : ('Đơn #' . $order->id);
+            wp_send_json([[
+                'id' => $order->id,
+                'text' => $label,
+            ]]);
+        }
+    }
+    
+    if (!$customer_id) {
+        wp_send_json($results);
+        return;
+    }
+    
+    $sql = "SELECT id, order_code, customer_id FROM {$wpdb->prefix}aerp_order_orders WHERE customer_id = %d";
+    $params = [$customer_id];
+    
+    if ($q !== '') {
+        $sql .= " AND (order_code LIKE %s OR note LIKE %s)";
+        $params[] = '%' . $wpdb->esc_like($q) . '%';
+        $params[] = '%' . $wpdb->esc_like($q) . '%';
+    }
+    
+    $sql .= " ORDER BY id DESC LIMIT 30";
+    $orders = $wpdb->get_results($params ? $wpdb->prepare($sql, ...$params) : $sql);
+    
+    foreach ($orders as $order) {
+        $label = $order->order_code ? ('#' . $order->order_code) : ('Đơn #' . $order->id);
+        $results[] = [
+            'id' => $order->id,
+            'text' => $label,
+        ];
+    }
+    
     wp_send_json($results);
 });
 
@@ -1255,3 +1378,238 @@ add_action('wp_ajax_aerp_acc_search_orders_in_receipt', function(){
     }
     wp_send_json($results);
 });
+
+// AJAX: Lấy thông báo mới (realtime notifications)
+add_action('wp_ajax_aerp_get_notifications', 'aerp_get_notifications_callback');
+function aerp_get_notifications_callback() {
+    if (!is_user_logged_in()) {
+        wp_send_json_error('Not logged in');
+        return;
+    }
+    
+    global $wpdb;
+    $user_id = get_current_user_id();
+    $last_check = isset($_POST['last_check']) ? sanitize_text_field($_POST['last_check']) : '';
+    
+    // Dùng timezone Asia/Ho_Chi_Minh để đồng bộ
+    $tz = new DateTimeZone('Asia/Ho_Chi_Minh');
+    $now = new DateTime('now', $tz);
+    
+    // Lấy thông báo chưa đọc, sắp xếp mới nhất trước
+    // Luôn lấy tất cả notifications chưa đọc (không filter theo last_check)
+    // Frontend sẽ tự filter để hiển thị toast cho notifications mới
+    $sql = "SELECT * FROM {$wpdb->prefix}aerp_notifications 
+            WHERE user_id = %d AND is_read = 0
+            ORDER BY created_at DESC LIMIT 20";
+    
+    $notifications = $wpdb->get_results($wpdb->prepare($sql, $user_id));
+    
+    // Đếm tổng số thông báo chưa đọc
+    $unread_count = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_notifications WHERE user_id = %d AND is_read = 0",
+        $user_id
+    ));
+    
+    wp_send_json_success([
+        'notifications' => $notifications,
+        'unread_count' => $unread_count,
+        'timestamp' => $now->format('Y-m-d H:i:s')
+    ]);
+}
+
+// AJAX: Lấy tất cả thông báo (cả đã đọc và chưa đọc) cho dropdown
+add_action('wp_ajax_aerp_get_all_notifications', 'aerp_get_all_notifications_callback');
+function aerp_get_all_notifications_callback() {
+    if (!is_user_logged_in()) {
+        wp_send_json_error('Not logged in');
+        return;
+    }
+    
+    global $wpdb;
+    $user_id = get_current_user_id();
+    
+    // Lấy tất cả notifications (cả đã đọc và chưa đọc)
+    $notifications = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM {$wpdb->prefix}aerp_notifications 
+         WHERE user_id = %d
+         ORDER BY created_at DESC LIMIT 50",
+        $user_id
+    ));
+    
+    // Đếm tổng số thông báo chưa đọc
+    $unread_count = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM {$wpdb->prefix}aerp_notifications WHERE user_id = %d AND is_read = 0",
+        $user_id
+    ));
+    
+    wp_send_json_success([
+        'notifications' => $notifications,
+        'unread_count' => $unread_count
+    ]);
+}
+
+// AJAX: Đánh dấu thông báo đã đọc
+add_action('wp_ajax_aerp_mark_notification_read', 'aerp_mark_notification_read_callback');
+function aerp_mark_notification_read_callback() {
+    if (!is_user_logged_in()) {
+        wp_send_json_error('Not logged in');
+        return;
+    }
+    
+    $notification_id = isset($_POST['notification_id']) ? absint($_POST['notification_id']) : 0;
+    if (!$notification_id) {
+        wp_send_json_error('Missing notification ID');
+        return;
+    }
+    
+    global $wpdb;
+    $user_id = get_current_user_id();
+    
+    // Chỉ cho phép đánh dấu thông báo của chính user
+    $updated = $wpdb->update(
+        $wpdb->prefix . 'aerp_notifications',
+        ['is_read' => 1],
+        ['id' => $notification_id, 'user_id' => $user_id],
+        ['%d'],
+        ['%d', '%d']
+    );
+    
+    if ($updated !== false) {
+        wp_send_json_success('Marked as read');
+    } else {
+        wp_send_json_error('Failed to mark as read');
+    }
+}
+
+// AJAX: Đánh dấu tất cả thông báo đã đọc
+add_action('wp_ajax_aerp_mark_all_notifications_read', 'aerp_mark_all_notifications_read_callback');
+function aerp_mark_all_notifications_read_callback() {
+    if (!is_user_logged_in()) {
+        wp_send_json_error('Not logged in');
+        return;
+    }
+    
+    global $wpdb;
+    $user_id = get_current_user_id();
+    
+    $updated = $wpdb->update(
+        $wpdb->prefix . 'aerp_notifications',
+        ['is_read' => 1],
+        ['user_id' => $user_id, 'is_read' => 0],
+        ['%d'],
+        ['%d', '%d']
+    );
+    
+    if ($updated !== false) {
+        wp_send_json_success('All marked as read');
+    } else {
+        wp_send_json_error('Failed to mark all as read');
+    }
+}
+
+// AJAX: Xóa một thông báo
+add_action('wp_ajax_aerp_delete_notification', 'aerp_delete_notification_callback');
+function aerp_delete_notification_callback() {
+    if (!is_user_logged_in()) {
+        wp_send_json_error('Not logged in');
+        return;
+    }
+    
+    $notification_id = isset($_POST['notification_id']) ? absint($_POST['notification_id']) : 0;
+    if (!$notification_id) {
+        wp_send_json_error('Missing notification ID');
+        return;
+    }
+    
+    global $wpdb;
+    $user_id = get_current_user_id();
+    
+    // Chỉ cho phép xóa thông báo của chính user
+    $deleted = $wpdb->delete(
+        $wpdb->prefix . 'aerp_notifications',
+        ['id' => $notification_id, 'user_id' => $user_id],
+        ['%d', '%d']
+    );
+    
+    if ($deleted !== false) {
+        wp_send_json_success('Notification deleted');
+    } else {
+        wp_send_json_error('Failed to delete notification');
+    }
+}
+
+// AJAX: Xóa tất cả thông báo
+add_action('wp_ajax_aerp_delete_all_notifications', 'aerp_delete_all_notifications_callback');
+function aerp_delete_all_notifications_callback() {
+    if (!is_user_logged_in()) {
+        wp_send_json_error('Not logged in');
+        return;
+    }
+    
+    global $wpdb;
+    $user_id = get_current_user_id();
+    
+    $deleted = $wpdb->delete(
+        $wpdb->prefix . 'aerp_notifications',
+        ['user_id' => $user_id],
+        ['%d']
+    );
+    
+    if ($deleted !== false) {
+        wp_send_json_success('All notifications deleted');
+    } else {
+        wp_send_json_error('Failed to delete all notifications');
+    }
+}
+
+// AJAX: Kích hoạt cron nhắc lịch thủ công
+add_action('wp_ajax_aerp_trigger_calendar_reminders', 'aerp_trigger_calendar_reminders_callback');
+function aerp_trigger_calendar_reminders_callback() {
+    if (!is_user_logged_in()) {
+        wp_send_json_error('Not logged in');
+        return;
+    }
+    
+    // Chỉ admin mới được trigger thủ công
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('Permission denied');
+        return;
+    }
+    
+    // Chạy hàm nhắc lịch
+    if (function_exists('aerp_run_calendar_reminders')) {
+        aerp_run_calendar_reminders();
+        wp_send_json_success('Đã kiểm tra nhắc lịch');
+    } else {
+        wp_send_json_error('Function not found');
+    }
+}
+
+// AJAX: Filter calendar events table
+add_action('wp_ajax_aerp_calendar_filter_events', 'aerp_calendar_filter_events_callback');
+add_action('wp_ajax_nopriv_aerp_calendar_filter_events', 'aerp_calendar_filter_events_callback');
+function aerp_calendar_filter_events_callback()
+{
+    if (!is_user_logged_in()) {
+        wp_send_json_error('Not logged in');
+        return;
+    }
+
+    $filters = [
+        'search_term' => sanitize_text_field($_POST['s'] ?? ''),
+        'paged' => intval($_POST['paged'] ?? 1),
+        'orderby' => sanitize_text_field($_POST['orderby'] ?? ''),
+        'order' => sanitize_text_field($_POST['order'] ?? ''),
+        'month' => sanitize_text_field($_POST['month'] ?? ''),
+        'color' => sanitize_text_field($_POST['color'] ?? ''),
+        'date_from' => sanitize_text_field($_POST['date_from'] ?? ''),
+        'date_to' => sanitize_text_field($_POST['date_to'] ?? ''),
+    ];
+
+    $table = new AERP_Calendar_Event_Table();
+    $table->set_filters($filters);
+    ob_start();
+    $table->render();
+    $html = ob_get_clean();
+    wp_send_json_success(['html' => $html]);
+}

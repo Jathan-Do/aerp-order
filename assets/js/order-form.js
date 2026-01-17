@@ -867,7 +867,14 @@ jQuery(document).ready(function ($) {
 
         var deviceReturnIndex = $("#device-return-table .device-return-row").length;
         $(document).on("click", "#add-device-return-row", function () {
-            var today = new Date().toISOString().slice(0, 10);
+            // Format date cho datetime-local: YYYY-MM-DDThh:mm
+            var now = new Date();
+            var year = now.getFullYear();
+            var month = String(now.getMonth() + 1).padStart(2, '0');
+            var day = String(now.getDate()).padStart(2, '0');
+            var hours = String(now.getHours()).padStart(2, '0');
+            var minutes = String(now.getMinutes()).padStart(2, '0');
+            var today = year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
             var row = `<div class="row mb-2 device-return-row">
                 <div class="col-md-4">
                     <label class="form-label">Thiết bị nhận</label>
@@ -875,7 +882,7 @@ jQuery(document).ready(function ($) {
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Ngày trả</label>
-                    <input type="date" class="form-control shadow-sm shadow-sm" name="device_returns[${deviceReturnIndex}][return_date]" value="${today}">
+                    <input type="datetime-local" class="form-control shadow-sm shadow-sm" name="device_returns[${deviceReturnIndex}][return_date]" value="${today}">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Ghi chú</label>

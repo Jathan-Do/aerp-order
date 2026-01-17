@@ -3,6 +3,8 @@ if (!defined('ABSPATH')) exit;
 // Get current user
 $current_user = wp_get_current_user();
 $user_id = $current_user->ID;
+$employee = aerp_get_employee_by_user_id($user_id);
+$user_fullname = $employee ? $employee->full_name : '';
 
 if (!is_user_logged_in()) {
     wp_die(__('You must be logged in to access this page.'));
@@ -24,7 +26,7 @@ $edit_id = isset($_GET['id']) ? absint($_GET['id']) : 0;
 $editing = $edit_id ? AERP_Order_Status_Manager::get_by_id($edit_id) : null;
 ob_start();
 ?>
-<div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-4">
+<div class="d-flex flex-column-reverse flex-md-row justify-content-between align-items-md-center mb-5">
     <h2><?php echo $edit_id ? 'Cập nhật' : 'Thêm'; ?> trạng thái đơn hàng</h2>
     <a href="<?php echo home_url('/aerp-order-statuses'); ?>" class="btn btn-secondary mb-2 mb-md-0">Quay lại</a>
 </div>

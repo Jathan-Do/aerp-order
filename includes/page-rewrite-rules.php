@@ -3,6 +3,8 @@
 add_action('init', function () {
     add_rewrite_rule('^aerp-order-orders/?$', 'index.php?aerp_order_page=orders', 'top');
     add_rewrite_rule('^aerp-order-orders/([0-9]+)/?$', 'index.php?aerp_order_page=order_detail&aerp_order_id=$matches[1]', 'top');
+    // Lịch công việc (calendar)
+    add_rewrite_rule('^aerp-calendar/?$', 'index.php?aerp_calendar_page=calendar', 'top');
     // Route cho quản lý kho
     add_rewrite_rule('^aerp-products/?$', 'index.php?aerp_product_page=products', 'top');
     add_rewrite_rule('^aerp-inventory-logs/?$', 'index.php?aerp_inventory_log_page=logs', 'top');
@@ -88,6 +90,7 @@ add_action('init', function () {
     if ($rules && !isset($rules['^aerp-acc-categories/?$'])) { flush_rewrite_rules(); }
     if ($rules && !isset($rules['^aerp-acc-reports/?$'])) { flush_rewrite_rules(); }
     if ($rules && !isset($rules['^aerp-acc-deposits/?$'])) { flush_rewrite_rules(); }
+    if ($rules && !isset($rules['^aerp-calendar/?$'])) { flush_rewrite_rules(); }
 });
 
 add_action('template_redirect', function () {
@@ -123,6 +126,7 @@ add_filter('query_vars', function ($vars) {
     $vars[] = 'aerp_report_template_name';
     $vars[] = 'aerp_report_dashboard_page';
     $vars[] = 'aerp_acc_page';
+    $vars[] = 'aerp_calendar_page';
     
     return $vars;
 });
@@ -135,6 +139,7 @@ add_action('template_redirect', function () {
         set_query_var('aerp_report_template_name', '../aerp-hrm/frontend/dashboard/categories.php');
     }
     $aerp_order_page = get_query_var('aerp_order_page');
+    $aerp_calendar_page = get_query_var('aerp_calendar_page');
     $aerp_order_id = get_query_var('aerp_order_id');
     $aerp_product_page = get_query_var('aerp_product_page');
     $product_id = get_query_var('product_id');
@@ -162,6 +167,22 @@ add_action('template_redirect', function () {
             case 'order_detail':
                 // Có thể mở rộng chi tiết đơn hàng ở đây
                 $template_name = 'order/detail.php';
+                break;
+        }
+        if ($template_name) {
+            include AERP_ORDER_PATH . 'frontend/admin/' . $template_name;
+            exit;
+        }
+    }
+    // Calendar page (lịch công việc)
+    if ($aerp_calendar_page === 'calendar') {
+        $template_name = '';
+        switch ($action_from_get) {
+            case 'delete':
+                AERP_Calendar_Manager::handle_single_delete();
+                return;
+            default:
+                $template_name = 'calendar.php';
                 break;
         }
         if ($template_name) {

@@ -15,6 +15,25 @@ define('AERP_ORDER_PATH', plugin_dir_path(__FILE__));
 define('AERP_ORDER_URL', plugin_dir_url(__FILE__));
 define('AERP_ORDER_VERSION', '1.0.0');
 
+// Thêm interval cho WP-Cron
+add_filter('cron_schedules', function ($schedules) {
+    // Interval 1 phút cho kiểm tra calendar reminders (chính xác hơn)
+    if (!isset($schedules['aerp_one_minute'])) {
+        $schedules['aerp_one_minute'] = [
+            'interval' => 60, // 1 phút
+            'display'  => __('Every Minute', 'aerp-order'),
+        ];
+    }
+    // Interval 5 phút (giữ lại để tương thích)
+    if (!isset($schedules['aerp_five_minutes'])) {
+        $schedules['aerp_five_minutes'] = [
+            'interval' => 5 * 60,
+            'display'  => __('Every 5 Minutes', 'aerp-order'),
+        ];
+    }
+    return $schedules;
+});
+
 add_action('admin_init', function () {
     if (!function_exists('is_plugin_active')) {
         include_once(ABSPATH . 'wp-admin/includes/plugin.php');
@@ -38,6 +57,7 @@ function aerp_order_init()
 {
     // Load func dùng chung
     require_once AERP_ORDER_PATH . 'includes/functions-common.php';
+    require_once AERP_ORDER_PATH . 'includes/functions-notifications.php';
     require_once AERP_ORDER_PATH . '../aerp-hrm/includes/functions-common.php';
     require_once AERP_ORDER_PATH . '../aerp-crm/includes/functions-common.php';
     // Table 
@@ -62,6 +82,7 @@ function aerp_order_init()
     require_once AERP_ORDER_PATH . 'includes/table/class-table-acc-receipt.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-acc-payment.php';
     require_once AERP_ORDER_PATH . 'includes/table/class-table-acc-deposit.php';
+    require_once AERP_ORDER_PATH . 'includes/table/class-table-calendar-event.php';
     // Load các class cần thiết manager
     $includes = [
         'class-frontend-order-manager.php',
@@ -83,6 +104,7 @@ function aerp_order_init()
         'class-acc-receipt-manager.php',
         'class-acc-payment-manager.php',
         'class-acc-deposit-manager.php',
+        'class-calendar-manager.php',
     ];
     foreach ($includes as $file) {
         require_once AERP_ORDER_PATH . 'includes/managers/' . $file;
@@ -109,6 +131,7 @@ function aerp_order_init()
         'AERP_Acc_Receipt_Manager',
         'AERP_Acc_Payment_Manager',
         'AERP_Acc_Deposit_Manager',
+        'AERP_Calendar_Manager',
         ];
     foreach ($managers as $manager) {
         if (method_exists($manager, 'handle_submit')) {
@@ -127,15 +150,57 @@ function aerp_order_init()
 }
 add_action('plugins_loaded', 'aerp_order_init');
 
+/**
+ * Đảm bảo cron nhắc lịch & schema lịch được thiết lập kể cả khi plugin đã cài từ trước
+ */
+function aerp_order_maybe_setup_calendar()
+{
+    // Đăng ký cron nếu chưa có - dùng interval 1 phút để kiểm tra chính xác hơn
+    if (!wp_next_scheduled('aerp_calendar_reminder_cron')) {
+        wp_schedule_event(time() + 30, 'aerp_one_minute', 'aerp_calendar_reminder_cron');
+    }
+
+    // Đảm bảo bảng lịch có cột reminder_sent (nâng cấp schema cũ)
+    global $wpdb;
+    $table = $wpdb->prefix . 'aerp_calendar_events';
+
+    // Nếu bảng chưa tồn tại thì bỏ qua (plugin mới cài sẽ được tạo qua install_schema)
+    $exists = $wpdb->get_var($wpdb->prepare(
+        "SHOW TABLES LIKE %s",
+        $table
+    ));
+    if ($exists !== $table) {
+        return;
+    }
+
+    $has_reminder_sent = $wpdb->get_var("SHOW COLUMNS FROM {$table} LIKE 'reminder_sent'");
+    if (!$has_reminder_sent) {
+        // Thêm cột reminder_sent và index nếu thiếu
+        $wpdb->query("ALTER TABLE {$table} ADD COLUMN reminder_sent BOOLEAN DEFAULT FALSE");
+        $wpdb->query("CREATE INDEX idx_reminder ON {$table} (reminder_sent)");
+    }
+}
+add_action('plugins_loaded', 'aerp_order_maybe_setup_calendar', 20);
+
 // Đăng ký database khi kích hoạt
 register_activation_hook(__FILE__, function () {
     require_once AERP_ORDER_PATH . 'install-schema.php';
     aerp_order_install_schema();
     flush_rewrite_rules();
+
+    // Đăng ký cron nhắc lịch nếu chưa có - dùng interval 1 phút để kiểm tra chính xác hơn
+    if (!wp_next_scheduled('aerp_calendar_reminder_cron')) {
+        wp_schedule_event(time() + 30, 'aerp_one_minute', 'aerp_calendar_reminder_cron');
+    }
 });
 
 // Xóa database khi deactivate
 register_deactivation_hook(__FILE__, function () {
+    // Hủy cron khi deactivate
+    $timestamp = wp_next_scheduled('aerp_calendar_reminder_cron');
+    if ($timestamp) {
+        wp_unschedule_event($timestamp, 'aerp_calendar_reminder_cron');
+    }
     flush_rewrite_rules();
 });
 // === REWRITE RULES FOR FRONTEND DASHBOARD ===
@@ -160,6 +225,14 @@ add_action('wp_enqueue_scripts', function () {
             'cancel_order_nonce' => wp_create_nonce('aerp_cancel_order_nonce'),
         ));
         
+        // Enqueue notifications script
+        wp_enqueue_script('aerp-notifications', AERP_ORDER_URL . 'assets/js/notifications.js', ['jquery'], AERP_ORDER_VERSION, true);
+
+        // Enqueue FullCalendar cho trang lịch
+        wp_enqueue_style('fullcalendar', 'https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css', [], '5.11.5');
+        wp_enqueue_script('fullcalendar', 'https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js', [], '5.11.5', true);
+        wp_enqueue_script('aerp-calendar-full', AERP_ORDER_URL . 'assets/js/calendar-full.js', ['jquery', 'fullcalendar'], AERP_ORDER_VERSION, true);
+        
         wp_enqueue_style('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css');
         wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', ['jquery'], null, true);
     // }
@@ -168,3 +241,6 @@ add_action('wp_enqueue_scripts', function () {
 // Ajax hooks nếu có
 require_once AERP_ORDER_PATH . 'includes/ajax/ajax-hook.php';
 require_once AERP_ORDER_PATH . 'includes/ajax/class-inventory-report-ajax.php';
+
+// Gắn cron handler cho nhắc lịch
+add_action('aerp_calendar_reminder_cron', 'aerp_run_calendar_reminders');

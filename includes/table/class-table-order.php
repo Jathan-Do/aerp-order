@@ -169,7 +169,16 @@ class AERP_Frontend_Order_Table extends AERP_Frontend_Table
         $customer = function_exists('aerp_get_customer') ? aerp_get_customer($item->customer_id) : null;
         if ($customer) {
             $url = home_url('/aerp-crm-customers/' . $customer->id);
-            return sprintf('<a class="text-decoration-none" href="%s">%s</a>', esc_url($url), esc_html($customer->full_name));
+            $name_link = sprintf('<a class="text-decoration-none" href="%s">%s</a>', esc_url($url), esc_html($customer->full_name));
+            
+            // Thêm mã khách hàng với link
+            $customer_code = !empty($customer->customer_code) ? $customer->customer_code : '';
+            if ($customer_code) {
+                $code_link = sprintf('<br><small class="text-muted">Mã: <a class="text-decoration-none" href="%s">%s</a></small>', esc_url($url), esc_html($customer_code));
+                return $name_link . $code_link;
+            }
+            
+            return $name_link;
         }
         return '<span class="text-muted">--</span>';
     }
